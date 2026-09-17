@@ -6,25 +6,25 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-	plugins: [
-		vue(),
-		AutoImport({
-			imports: ['vue', 'vue-router', 'pinia'],
-			resolvers: [ElementPlusResolver()],
-			dts: 'src/types/auto-imports.d.ts',
-		}),
-		Components({
-			resolvers: [ElementPlusResolver()],
-			dts: 'src/types/components.d.ts',
-		}),
-	],
-	resolve: {
-		alias: {
-			'@': fileURLToPath(new URL('./src', import.meta.url)),
-		},
-	},
-	server: {
-		host: 'localhost',
-		port: 5173,
-	},
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ['vue', 'vue-router', 'pinia'],
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/types/auto-imports.d.ts',
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/types/components.d.ts',
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  server: {
+    host: 'localhost',
+    port: 5173,
+  },
 })
