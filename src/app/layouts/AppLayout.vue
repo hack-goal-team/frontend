@@ -5,32 +5,35 @@ import Header from "./components/Header.vue";
 
 <template>
   <el-container class="app-layout">
-    <el-container>
-      <el-header>
-        <Header />
-      </el-header>
+    <el-header class="app-header">
+      <Header />
+    </el-header>
 
-      <el-main class="app-main">
-        <RouterView />
-      </el-main>
-    </el-container>
+    <el-main class="app-main">
+      <RouterView />
+    </el-main>
   </el-container>
 </template>
 
 <style scoped>
 .app-layout {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
+
 .app-header {
-  flex: 0 0 auto;
+  flex-shrink: 0;
   padding: 0;
   border-bottom: 1px solid var(--el-border-color);
 }
+
 .app-main {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 </style>

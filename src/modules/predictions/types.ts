@@ -22,6 +22,14 @@ export interface PredictionPage {
 }
 
 export interface PredictionsQuery {
-  limit?: number;
-  offset?: number;
+  limit?: number; // 1..100, default 50
+  offset?: number; // 0..100000, default 0
+  incidentType?: string;
+  targetKind?: string;
+  targetRef?: string;
+  from?: string; // ISO date-time, фильтр по computedAt
+  to?: string; // ISO date-time, фильтр по computedAt
+  status?: PredictionStatus;
+  minProbability?: number; // 0..1
+  activeOnly?: boolean; // default false
 }
