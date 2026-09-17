@@ -29,7 +29,6 @@ export default tseslint.config(
   {
     plugins: { prettier },
     rules: {
-      "prettier/prettier": "warn",
       "vue/multi-word-component-names": "off",
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
