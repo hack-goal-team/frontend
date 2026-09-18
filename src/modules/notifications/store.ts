@@ -1,16 +1,17 @@
-import { defineStore } from "pinia";
-import { computed, ref } from "vue";
-import { ElNotification } from "element-plus";
 import type { Prediction } from "@/modules/predictions/types";
 import { pluralize } from "@/shared/lib/pluralize";
+import { ElNotification } from "element-plus";
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+import { formatNewPredictions } from "./lib/format";
 
 export const useNotificationsStore = defineStore("notifications", () => {
   // --- состояние ---
   const snapshot = ref<Prediction[]>([]); // последний снимок
   const connected = ref(false); // SSE подключён
   const lastSnapshotAt = ref<Date | null>(null); // время последнего снимка
-  const hasChanges = ref(false); // есть новые id с прошлого снимка
-  const newIds = ref<string[]>([]); // id, которых не было в предыдущем снимке
+  const hasNewPredictions = ref(false); // есть новые id с прошлого снимка
+  const newPredictionIds = ref<string[]>([]); // id, которых не было в предыдущем снимке
 
   let isFirstSnapshot = true;
 
@@ -37,16 +38,19 @@ export const useNotificationsStore = defineStore("notifications", () => {
     snapshot.value = next;
     lastSnapshotAt.value = receivedAt;
 
-    console.log(snapshot)
+    console.log(snapshot);
 
-    // Уведомление — только если есть новые
     if (fresh.length > 0) {
-      newIds.value = fresh.map((p) => p.id);
-      hasChanges.value = true;
+      // Накапливаем, не перезаписываем
+      const existing = new Set(newPredictionIds.value);
+      for (const p of fresh) existing.add(p.id);
+      newPredictionIds.value = Array.from(existing);
+
+      hasNewPredictions.value = true;
 
       ElNotification({
         title: "Критические прогнозы",
-        message: `Обновилось ${fresh.length} ${pluralize(fresh.length)}`,
+        message: formatNewPredictions(fresh.length),
         type: "warning",
         duration: 5000,
         progress: true,
@@ -55,9 +59,9 @@ export const useNotificationsStore = defineStore("notifications", () => {
     }
   }
 
-  function clearChanges() {
-    hasChanges.value = false;
-    newIds.value = [];
+  function clearNewPredictions() {
+    hasNewPredictions.value = false;
+    newPredictionIds.value = [];
   }
 
   function setConnected(value: boolean) {
@@ -68,8 +72,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     snapshot.value = [];
     connected.value = false;
     lastSnapshotAt.value = null;
-    hasChanges.value = false;
-    newIds.value = [];
+    hasNewPredictions.value = false;
+    newPredictionIds.value = [];
     isFirstSnapshot = true;
   }
 
@@ -77,11 +81,11 @@ export const useNotificationsStore = defineStore("notifications", () => {
     snapshot,
     connected,
     lastSnapshotAt,
-    hasChanges,
-    newIds,
+    hasNewPredictions,
+    newPredictionIds,
     criticalCount,
     onSnapshot,
-    clearChanges,
+    clearNewPredictions,
     setConnected,
     reset,
   };

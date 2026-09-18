@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
-import PredictionTable from "./components/PredictionTable.vue";
-import PredictionFilters from "./components/PredictionFilters.vue";
-import PredictionPagination from "./components/PredictionPagination.vue";
-import type { PredictionsQuery } from "@/modules/predictions/types";
+import ChangesBanner from "@/modules/notifications/components/ChangesBanner.vue";
+import { useNotificationsStore } from "@/modules/notifications/store.ts";
+import { useCriticalNavigation } from "@/modules/notifications/useCriticalNavigation.ts";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
-import PredictionPanelContent from "./components/PredictionPanelContent.vue";
+import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
+import { predictionKeys } from "@/modules/predictions/keys.ts";
+import type { PredictionsQuery } from "@/modules/predictions/types";
 import SidePanel from "@/shared/ui/SidePanel.vue";
 import { useQueryClient } from "@tanstack/vue-query";
-import { useNotificationsStore } from "@/modules/notifications/store.ts";
-import { predictionKeys } from "@/modules/predictions/keys.ts";
-import { useCriticalNavigation } from "@/modules/notifications/useCriticalNavigation.ts";
-import ChangesBanner from "@/modules/notifications/components/ChangesBanner.vue";
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import PredictionFilters from "./components/PredictionFilters.vue";
+import PredictionPagination from "./components/PredictionPagination.vue";
+import PredictionPanelContent from "./components/PredictionPanelContent.vue";
+import PredictionTable from "./components/PredictionTable.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -59,12 +59,12 @@ function closePanel() {
 
 function onReload() {
   queryClient.invalidateQueries({ queryKey: predictionKeys.lists() });
-  store.clearChanges();
+  store.clearNewPredictions();
 }
 
 function onShowCritical() {
   showCritical();
-  store.clearChanges();
+  store.clearNewPredictions();
 }
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
