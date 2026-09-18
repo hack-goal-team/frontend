@@ -44,5 +44,10 @@ useSse();
 
 .app-main {
   overflow-y: auto;
+  background: var(--el-bg-color-page);
+}
+
+html:not(.dark) .app-main {
+  background: #ededed;
 }
 </style>
