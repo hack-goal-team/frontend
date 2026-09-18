@@ -40,7 +40,7 @@ function onClick() {
   align-items: center;
   justify-content: center;
   line-height: 1;
-  vertical-align: middle; 
+  vertical-align: middle;
 }
 
 .critical-indicator :deep(.el-icon) {
