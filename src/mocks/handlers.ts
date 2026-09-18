@@ -4,6 +4,7 @@ import type { Prediction, PredictionsQuery } from "@/modules/predictions/types";
 import { mockReferenceData } from "./data/reference";
 import { mockDelay } from "./utils/delay";
 import { generateDecisionsForPrediction } from "./data/generateDecisions";
+import { buildCriticalSnapshot, spawnCriticalPrediction } from "./data/notifications";
 
 const BASE = "/api/v1";
 
@@ -136,5 +137,58 @@ export const handlers = [
   http.get(`${BASE}/reference-data`, async () => {
     await mockDelay();
     return HttpResponse.json(mockReferenceData);
+  }),
+
+  http.get(`${BASE}/notifications/stream`, () => {
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      start(controller) {
+        let closed = false;
+
+        const send = (data: unknown) => {
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`event: critical-predictions\n`));
+            controller.enqueue(encoder.encode(`retry: 5000\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          } catch {
+            closed = true;
+          }
+        };
+
+        send(buildCriticalSnapshot());
+
+        const interval = setInterval(() => {
+          send(buildCriticalSnapshot());
+        }, 5000);
+
+        const spawnInterval = setInterval(() => {
+          spawnCriticalPrediction();
+        }, 15000);
+
+        setTimeout(
+          () => {
+            closed = true;
+            clearInterval(interval);
+            clearInterval(spawnInterval);
+            try {
+              controller.close();
+            } catch {
+              // уже закрыт
+            }
+          },
+          30 * 60 * 1000,
+        );
+      },
+    });
+
+    return new HttpResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   }),
 ];
