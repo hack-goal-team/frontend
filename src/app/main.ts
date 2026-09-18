@@ -8,6 +8,7 @@ import "@fontsource/m-plus-rounded-1c/cyrillic-700.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { VueQueryPlugin } from "@tanstack/vue-query";
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./styles/main.css";
 import { router } from "./router";
 import App from "./App.vue";

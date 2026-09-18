@@ -28,10 +28,12 @@ useSse();
 <style scoped>
 .app-layout {
   height: 100vh;
+  background: var(--el-bg-color-page);
 }
 
 .app-aside {
   border-right: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
   overflow-y: auto;
 }
 

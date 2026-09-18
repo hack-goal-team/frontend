@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import StreamStatus from "@/modules/notifications/components/StreamStatus.vue";
 import CriticalIndicator from "@/modules/notifications/components/CriticalIndicator.vue";
+import { isDark, toggleDark } from "@/shared/composables/useTheme";
+import { Moon, Sunny } from "@element-plus/icons-vue";
 </script>
 
 <template>
@@ -16,6 +18,12 @@ import CriticalIndicator from "@/modules/notifications/components/CriticalIndica
     </div>
 
     <div class="header__right">
+      <el-button text circle :title="isDark ? 'Светлая тема' : 'Тёмная тема'" @click="toggleDark()">
+        <el-icon :size="18">
+          <Sunny v-if="isDark" />
+          <Moon v-else />
+        </el-icon>
+      </el-button>
       <div id="header-right" class="header__slot" />
     </div>
   </div>
