@@ -2,7 +2,8 @@
 import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
 import type { PredictionDetail } from "@/modules/predictions/types";
-import { RISK_TAG_TYPE, STATUS_TAG_TYPE } from "@/modules/predictions/consts";
+import RiskTag from "@/shared/ui/RiskTag.vue";
+import StatusTag from "@/shared/ui/StatusTag.vue";
 
 defineProps<{
   detail: PredictionDetail;
@@ -22,15 +23,11 @@ defineProps<{
       </el-descriptions-item>
 
       <el-descriptions-item label="Риск">
-        <el-tag :type="RISK_TAG_TYPE[detail.prediction.riskLevel]">
-          {{ detail.prediction.riskLevel }}
-        </el-tag>
+        <RiskTag :level="detail.prediction.riskLevel" />
       </el-descriptions-item>
 
       <el-descriptions-item label="Статус">
-        <el-tag :type="STATUS_TAG_TYPE[detail.prediction.status]">
-          {{ detail.prediction.status }}
-        </el-tag>
+        <StatusTag :status="detail.prediction.status" />
       </el-descriptions-item>
 
       <el-descriptions-item label="Цель">

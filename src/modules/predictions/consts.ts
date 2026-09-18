@@ -14,11 +14,18 @@ export const RISK_LABEL: Record<RiskLevel, string> = {
   HIGH: "Высокий",
 };
 
+//TODO: Для фильтра по рискам
+export const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
+  { value: "LOW", label: "Низкий" },
+  { value: "MEDIUM", label: "Средний" },
+  { value: "HIGH", label: "Высокий" },
+];
+
 // ---- Статус ----
 
 export const STATUS_TAG_TYPE: Record<PredictionStatus, "info" | "success"> = {
-  NEW: "info",
-  REVIEWED: "success",
+  NEW: "success",
+  REVIEWED: "info",
 };
 
 export const STATUS_LABEL: Record<PredictionStatus, string> = {
@@ -30,4 +37,4 @@ export const STATUS_LABEL: Record<PredictionStatus, string> = {
 
 export const DEFAULT_LIMIT = 50;
 export const DEFAULT_OFFSET = 0;
-export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+export const PAGE_SIZE_OPTIONS = [25, 50, 100];

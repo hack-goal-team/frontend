@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
-import type { Prediction, RiskLevel } from "@/modules/predictions/types";
+import type { Prediction } from "@/modules/predictions/types";
+import RiskTag from "@/shared/ui/RiskTag.vue";
+import StatusTag from "@/shared/ui/StatusTag.vue";
 
 defineProps<{
   items: Prediction[];
@@ -15,12 +17,6 @@ const emit = defineEmits<{
 function handleRowClick(row: Prediction) {
   emit("rowClick", row.id);
 }
-
-const riskType: Record<RiskLevel, "success" | "warning" | "danger"> = {
-  LOW: "success",
-  MEDIUM: "warning",
-  HIGH: "danger",
-};
 </script>
 
 <template>
@@ -51,12 +47,14 @@ const riskType: Record<RiskLevel, "success" | "warning" | "danger"> = {
     </el-table-column>
     <el-table-column label="Риск" min-width="120">
       <template #default="{ row }">
-        <el-tag :type="riskType[row.riskLevel as RiskLevel]">
-          {{ row.riskLevel }}
-        </el-tag>
+        <RiskTag :level="row.riskLevel" />
       </template>
     </el-table-column>
-    <el-table-column prop="status" label="Статус" min-width="120" />
+    <el-table-column prop="status" label="Статус" min-width="120">
+      <template #default="{ row }">
+        <StatusTag :status="row.status" />
+      </template>
+    </el-table-column>
     <el-table-column label="Время" min-width="160">
       <template #default="{ row }">
         {{ formatDateTime(row.computedAt) }}
