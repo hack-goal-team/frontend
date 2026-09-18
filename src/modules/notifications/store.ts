@@ -1,5 +1,4 @@
 import type { Prediction } from "@/modules/predictions/types";
-import { pluralize } from "@/shared/lib/pluralize";
 import { ElNotification } from "element-plus";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";

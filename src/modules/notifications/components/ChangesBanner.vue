@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useNotificationsStore } from "../store";
-import { formatNewPredictions } from '../lib/format'
+import { formatNewPredictions } from "../lib/format";
 
 const emit = defineEmits<{
   reload: [];
@@ -10,7 +10,7 @@ const emit = defineEmits<{
 
 const store = useNotificationsStore();
 
-const message = computed(() => formatNewPredictions(store.newPredictionIds.length))
+const message = computed(() => formatNewPredictions(store.newPredictionIds.length));
 </script>
 
 <template>

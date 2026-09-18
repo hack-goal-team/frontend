@@ -36,7 +36,7 @@ export function useSse() {
           if (response.ok) {
             const wasDisconnected = !store.connected;
             store.setConnected(true);
-            console.log('SSE для уведомлений успешно подключено...')
+            console.log("SSE для уведомлений успешно подключено...");
             // После переподключения — refresh REST data
             if (wasDisconnected) {
               queryClient.invalidateQueries({ queryKey: predictionKeys.all });
