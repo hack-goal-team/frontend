@@ -5,6 +5,8 @@ import { mockReferenceData } from "./data/reference";
 import { mockDelay } from "./utils/delay";
 import { generateDecisionsForPrediction } from "./data/generateDecisions";
 import { buildCriticalSnapshot, spawnCriticalPrediction } from "./data/notifications";
+import { sortPredictions } from "./lib/sortPredictions";
+import { createSseStream } from "./lib/sse";
 
 const BASE = "/api/v1";
 
@@ -90,14 +92,7 @@ export const handlers = [
     const q = parseQuery(url);
 
     const filtered = applyFilters(mockPredictions, q);
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (a.computedAt !== b.computedAt) {
-        return a.computedAt < b.computedAt ? 1 : -1;
-      }
-      return a.id < b.id ? 1 : -1;
-    });
-
+    const sorted = sortPredictions(filtered);
     const pageItems = sorted.slice(q.offset, q.offset + q.limit);
     const hasMore = q.offset + q.limit < sorted.length;
 
@@ -145,73 +140,12 @@ export const handlers = [
   }),
 
   http.get(`${BASE}/notifications/stream`, () => {
-    const encoder = new TextEncoder();
-
-    // --- таймеры и флаг — снаружи, чтобы cancel() видел ---
-    let closed = false;
-    let snapshotTimer: ReturnType<typeof setInterval> | null = null;
-    let spawnTimer: ReturnType<typeof setTimeout> | null = null;
-    let closeTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (closed) return;
-      closed = true;
-      if (snapshotTimer) clearInterval(snapshotTimer);
-      if (spawnTimer) clearTimeout(spawnTimer);
-      if (closeTimer) clearTimeout(closeTimer);
-      snapshotTimer = null;
-      spawnTimer = null;
-      closeTimer = null;
-    };
-
-    const stream = new ReadableStream({
-      start(controller) {
-        const send = (data: unknown) => {
-          if (closed) return;
-          try {
-            controller.enqueue(encoder.encode(`event: critical-predictions\n`));
-            controller.enqueue(encoder.encode(`retry: 5000\n`));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-          } catch {
-            cleanup();
-          }
-        };
-
-        // 1. Первый снимок сразу
-        send(buildCriticalSnapshot());
-
-        // 2. Снимок каждые 5 сек
-        snapshotTimer = setInterval(() => {
-          send(buildCriticalSnapshot());
-        }, SNAPSHOT_INTERVAL);
-
-        // 3. Новый прогноз через случайный интервал 10..20 сек
-        const scheduleSpawn = () => {
-          if (closed) return;
-          const delay = SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
-          spawnTimer = setTimeout(() => {
-            if (closed) return;
-            spawnCriticalPrediction();
-            scheduleSpawn();
-          }, delay);
-        };
-        scheduleSpawn();
-
-        // 4. Закрытие через 1 мин
-        closeTimer = setTimeout(() => {
-          cleanup();
-          try {
-            controller.close();
-          } catch {
-            // уже закрыт
-          }
-        }, STREAM_LIFETIME);
-      },
-
-      cancel() {
-        // Клиент вызвал abort() — очищаем ресурсы
-        cleanup();
-      },
+    const stream = createSseStream({
+      snapshotInterval: SNAPSHOT_INTERVAL,
+      getSnapshot: buildCriticalSnapshot,
+      spawnInterval: [SPAWN_MIN, SPAWN_MAX],
+      onSpawn: spawnCriticalPrediction,
+      lifetime: STREAM_LIFETIME,
     });
 
     return new HttpResponse(stream, {

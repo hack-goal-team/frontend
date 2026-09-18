@@ -1,5 +1,6 @@
 import type { Prediction, PredictionPage } from "@/modules/predictions/types";
 import { mockPredictions } from "./predictions";
+import { sortPredictions } from "../lib/sortPredictions";
 
 // Мутабельная копия — мок будет её менять, чтобы имитировать новые прогнозы
 let livePredictions: Prediction[] = [...mockPredictions];
@@ -44,15 +45,10 @@ export function buildCriticalSnapshot(): PredictionPage {
     return computed <= now && now < horizon;
   });
 
-  active.sort((a, b) => {
-    if (a.computedAt !== b.computedAt) {
-      return a.computedAt < b.computedAt ? 1 : -1;
-    }
-    return a.id < b.id ? 1 : -1;
-  });
+  const sorted = sortPredictions(active);
 
   const limit = 100;
-  const items = active.slice(0, limit);
+  const items = sorted.slice(0, limit);
 
   return {
     items,
