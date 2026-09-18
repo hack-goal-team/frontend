@@ -22,7 +22,7 @@ const message = computed(() => formatNewPredictions(store.newPredictionIds.lengt
     <template #default>
       <div class="changes-banner__actions">
         <el-button text type="primary" size="small" @click="emit('reload')"> [Обновить таблицу] </el-button>
-        <!-- TODO: не показывать если текущий роут соответствует -->
+        <!-- TODO: не показывать если текущий роут соответствует предлагаемому -->
         <el-button text type="warning" size="small" @click="emit('showCritical')"> [Показать критические] </el-button>
       </div>
     </template>
