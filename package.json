@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "typecheck": "vue-tsc -b --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "ftl": "npm run format && npm run lint && npm run typecheck"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
