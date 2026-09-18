@@ -9,9 +9,17 @@ import type { PredictionsQuery } from "@/modules/predictions/types";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
 import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import SidePanel from "@/shared/ui/SidePanel.vue";
+import { useQueryClient } from "@tanstack/vue-query";
+import { useNotificationsStore } from "@/modules/notifications/store.ts";
+import { predictionKeys } from "@/modules/predictions/keys.ts";
+import { useCriticalNavigation } from "@/modules/notifications/useCriticalNavigation.ts";
+import ChangesBanner from "@/modules/notifications/components/ChangesBanner.vue";
 
 const route = useRoute();
 const router = useRouter();
+const queryClient = useQueryClient();
+const store = useNotificationsStore();
+const { showCritical } = useCriticalNavigation();
 
 const query = computed<PredictionsQuery>(() => ({
   limit: Number(route.query.limit ?? 50),
@@ -49,6 +57,16 @@ function closePanel() {
   router.replace({ query: rest });
 }
 
+function onReload() {
+  queryClient.invalidateQueries({ queryKey: predictionKeys.lists() });
+  store.clearChanges();
+}
+
+function onShowCritical() {
+  showCritical();
+  store.clearChanges();
+}
+
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
 const total = computed(() => {
@@ -66,6 +84,8 @@ const total = computed(() => {
 
   <div class="predictions-page">
     <PredictionFilters class="predictions-page__filters" />
+
+    <ChangesBanner @reload="onReload" @show-critical="onShowCritical" />
 
     <el-card
       class="predictions-page__table"

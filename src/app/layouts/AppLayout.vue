@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
 import Header from "./components/Header.vue";
+import { useSse } from "@/modules/notifications/useSse";
 // import Sidebar from "./components/Sidebar.vue";
+
+useSse();
 </script>
 
 <template>
