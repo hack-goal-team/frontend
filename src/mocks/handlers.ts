@@ -8,6 +8,11 @@ import { buildCriticalSnapshot, spawnCriticalPrediction } from "./data/notificat
 
 const BASE = "/api/v1";
 
+const SNAPSHOT_INTERVAL = 5000; // снимок — каждые 5 сек (по контракту)
+const SPAWN_MIN = 10_000; // новый прогноз — не раньше 10 сек
+const SPAWN_MAX = 20_000; // и не позже 20 сек
+const STREAM_LIFETIME = 60_000; // закрытие через 1 мин (для отладки)
+
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
@@ -142,10 +147,25 @@ export const handlers = [
   http.get(`${BASE}/notifications/stream`, () => {
     const encoder = new TextEncoder();
 
+    // --- таймеры и флаг — снаружи, чтобы cancel() видел ---
+    let closed = false;
+    let snapshotTimer: ReturnType<typeof setInterval> | null = null;
+    let spawnTimer: ReturnType<typeof setTimeout> | null = null;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (closed) return;
+      closed = true;
+      if (snapshotTimer) clearInterval(snapshotTimer);
+      if (spawnTimer) clearTimeout(spawnTimer);
+      if (closeTimer) clearTimeout(closeTimer);
+      snapshotTimer = null;
+      spawnTimer = null;
+      closeTimer = null;
+    };
+
     const stream = new ReadableStream({
       start(controller) {
-        let closed = false;
-
         const send = (data: unknown) => {
           if (closed) return;
           try {
@@ -153,33 +173,44 @@ export const handlers = [
             controller.enqueue(encoder.encode(`retry: 5000\n`));
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
           } catch {
-            closed = true;
+            cleanup();
           }
         };
 
+        // 1. Первый снимок сразу
         send(buildCriticalSnapshot());
 
-        const interval = setInterval(() => {
+        // 2. Снимок каждые 5 сек
+        snapshotTimer = setInterval(() => {
           send(buildCriticalSnapshot());
-        }, 5000);
+        }, SNAPSHOT_INTERVAL);
 
-        const spawnInterval = setInterval(() => {
-          spawnCriticalPrediction();
-        }, 15000);
+        // 3. Новый прогноз через случайный интервал 10..20 сек
+        const scheduleSpawn = () => {
+          if (closed) return;
+          const delay = SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
+          spawnTimer = setTimeout(() => {
+            if (closed) return;
+            spawnCriticalPrediction();
+            scheduleSpawn();
+          }, delay);
+        };
+        scheduleSpawn();
 
-        setTimeout(
-          () => {
-            closed = true;
-            clearInterval(interval);
-            clearInterval(spawnInterval);
-            try {
-              controller.close();
-            } catch {
-              // уже закрыт
-            }
-          },
-          30 * 60 * 1000,
-        );
+        // 4. Закрытие через 1 мин
+        closeTimer = setTimeout(() => {
+          cleanup();
+          try {
+            controller.close();
+          } catch {
+            // уже закрыт
+          }
+        }, STREAM_LIFETIME);
+      },
+
+      cancel() {
+        // Клиент вызвал abort() — очищаем ресурсы
+        cleanup();
       },
     });
 
