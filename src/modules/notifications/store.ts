@@ -37,6 +37,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     snapshot.value = next;
     lastSnapshotAt.value = receivedAt;
 
+    console.log(snapshot)
+
     // Уведомление — только если есть новые
     if (fresh.length > 0) {
       newIds.value = fresh.map((p) => p.id);
