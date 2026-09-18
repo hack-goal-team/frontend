@@ -2,8 +2,8 @@
 import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
 import type { Prediction } from "@/modules/predictions/types";
-import RiskTag from "@/shared/ui/RiskTag.vue";
-import StatusTag from "@/shared/ui/StatusTag.vue";
+import RiskTag from "./RiskTag.vue";
+import StatusTag from "./StatusTag.vue";
 
 defineProps<{
   items: Prediction[];
