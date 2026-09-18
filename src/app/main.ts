@@ -10,6 +10,7 @@ import { createPinia } from "pinia";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
+import ru from "element-plus/es/locale/lang/ru";
 import "./styles/main.css";
 import { router } from "./router";
 import App from "./App.vue";
@@ -24,7 +25,7 @@ async function bootstrap() {
   app.use(createPinia());
   app.use(router);
   app.use(VueQueryPlugin);
-  app.use(ElementPlus);
+  app.use(ElementPlus, { locale: ru });
   app.mount("#app");
 }
 
