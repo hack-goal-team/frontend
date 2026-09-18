@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-defineProps<{ total: number, disable: boolean }>();
+defineProps<{ total: number; disable: boolean }>();
 
 const route = useRoute();
 const router = useRouter();

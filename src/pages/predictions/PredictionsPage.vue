@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
 import PredictionTable from "./components/PredictionTable.vue";
 import PredictionFilters from "./components/PredictionFilters.vue";
 import PredictionPagination from "./components/PredictionPagination.vue";
 import type { PredictionsQuery } from "@/modules/predictions/types";
+import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
+import PredictionPanelContent from "./components/PredictionPanelContent.vue";
+import SidePanel from "@/shared/ui/SidePanel.vue";
 
 const route = useRoute();
+const router = useRouter();
 
 const query = computed<PredictionsQuery>(() => ({
   limit: Number(route.query.limit ?? 50),
@@ -19,6 +23,31 @@ const query = computed<PredictionsQuery>(() => ({
 }));
 
 const { data, isFetching, isLoading, isError, error } = usePredictionsQuery(query);
+
+const selectedId = computed(() => (route.query.selectedId as string) ?? null);
+const isPanelOpen = computed(() => !!selectedId.value);
+
+// Детали выбранного прогноза
+const {
+  data: detail,
+  isLoading: isDetailLoading,
+  isError: isDetailError,
+  error: detailError,
+} = usePredictionQuery(selectedId);
+
+// Открыть панель
+function openPanel(id: string) {
+  router.replace({
+    query: { ...route.query, selectedId: id },
+  });
+}
+
+// Закрыть панель
+function closePanel() {
+  const rest = { ...route.query };
+  delete rest.selectedId;
+  router.replace({ query: rest });
+}
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
@@ -57,13 +86,33 @@ const total = computed(() => {
         class="predictions-page__empty"
       />
 
-      <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" />
+      <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
     </el-card>
 
     <div class="predictions-page__pagination">
       <PredictionPagination :disable="isEmpty || isLoading || isFetching" :total="total" />
     </div>
   </div>
+
+  <SidePanel
+    :visible="isPanelOpen"
+    :title="detail?.prediction.incidentType ?? 'Прогноз'"
+    :loading="isDetailLoading"
+    size="600px"
+    @close="closePanel"
+  >
+    <el-alert
+      v-if="isDetailError"
+      type="error"
+      :title="`Ошибка загрузки: ${(detailError as Error)?.message ?? 'неизвестно'}`"
+      :closable="false"
+      show-icon
+    />
+
+    <template v-else-if="detail">
+      <PredictionPanelContent :detail="detail" />
+    </template>
+  </SidePanel>
 </template>
 
 <style scoped>

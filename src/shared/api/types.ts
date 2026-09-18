@@ -4,3 +4,8 @@ export interface Problem {
   status: number;
   detail?: string;
 }
+
+export interface Code {
+  code: string;
+  description: string;
+}

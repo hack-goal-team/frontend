@@ -3,6 +3,7 @@ import { mockPredictions } from "./data/predictions";
 import type { Prediction, PredictionsQuery } from "@/modules/predictions/types";
 import { mockReferenceData } from "./data/reference";
 import { mockDelay } from "./utils/delay";
+import { generateDecisionsForPrediction } from "./data/generateDecisions";
 
 const BASE = "/api/v1";
 
@@ -107,19 +108,29 @@ export const handlers = [
   }),
 
   http.get(`${BASE}/predictions/:id`, async ({ params }) => {
-    const found = mockPredictions.find((p) => p.id === params.id);
+    await mockDelay(300, 700);
+
+    const id = String(params.id);
+    const found = mockPredictions.find((p) => p.id === id);
+
     if (!found) {
-      await mockDelay();
       return HttpResponse.json(
         {
           type: "about:blank",
           title: "Not Found",
           status: 404,
+          detail: `Prediction ${id} not found`,
         },
         { status: 404 },
       );
     }
-    return HttpResponse.json({ prediction: found, decisions: [] });
+
+    const decisions = generateDecisionsForPrediction(found);
+
+    return HttpResponse.json({
+      prediction: found,
+      decisions,
+    });
   }),
 
   http.get(`${BASE}/reference-data`, async () => {

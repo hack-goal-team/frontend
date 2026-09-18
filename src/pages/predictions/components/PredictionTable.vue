@@ -8,6 +8,14 @@ defineProps<{
   loading?: boolean;
 }>();
 
+const emit = defineEmits<{
+  rowClick: [id: string];
+}>();
+
+function handleRowClick(row: Prediction) {
+  emit("rowClick", row.id);
+}
+
 const riskType: Record<RiskLevel, "success" | "warning" | "danger"> = {
   LOW: "success",
   MEDIUM: "warning",
@@ -24,6 +32,8 @@ const riskType: Record<RiskLevel, "success" | "warning" | "danger"> = {
     style="width: 100%"
     :border="true"
     empty-text="Загрузка..."
+    highlight-current-row
+    @row-click="handleRowClick"
   >
     <el-table-column prop="incidentType" label="Тип" min-width="140" />
     <el-table-column label="Вероятность" min-width="120">

@@ -1,6 +1,6 @@
 import { delay } from "msw";
 
-const DEFAULT_MIN = 700;
+const DEFAULT_MIN = 500;
 const DEFAULT_MAX = 2000;
 
 /**

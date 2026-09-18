@@ -21,6 +21,11 @@ export interface PredictionPage {
   hasMore: boolean;
 }
 
+export interface PredictionDetail {
+  prediction: Prediction;
+  decisions: Decision[];
+}
+
 export interface PredictionsQuery {
   limit?: number; // 1..100, default 50
   offset?: number; // 0..100000, default 0
@@ -32,4 +37,25 @@ export interface PredictionsQuery {
   status?: PredictionStatus;
   minProbability?: number; // 0..1
   activeOnly?: boolean; // default false
+}
+
+export interface Decision {
+  id: string;
+  target: PredictionTarget | AlarmTarget;
+  actionCode: string | null;
+  reasonCode: string;
+  comment: string | null;
+  decidedBy: string;
+  decidedAt: string;
+}
+
+export interface PredictionTarget {
+  type: "PREDICTION";
+  predictionId: string;
+}
+
+export interface AlarmTarget {
+  type: "ALARM";
+  eventId: string;
+  eventTs: string;
 }
