@@ -47,19 +47,19 @@ function reset() {
 <template>
   <el-form :inline="true" class="prediction-filters">
     <el-form-item label="Тип инцидента">
-      <el-select v-model="incidentType" clearable placeholder="Все" style="width: 200px">
+      <el-select v-model="incidentType" clearable placeholder="Все" style="min-width: 200px">
         <el-option v-for="t in reference.data?.incidentTypes ?? []" :key="t" :label="t" :value="t" />
       </el-select>
     </el-form-item>
 
     <el-form-item label="Статус">
-      <el-select v-model="status" clearable placeholder="Все" style="width: 160px">
+      <el-select v-model="status" clearable placeholder="Все" style="min-width: 160px">
         <el-option v-for="s in reference.data?.predictionStatuses ?? []" :key="s" :label="s" :value="s" />
       </el-select>
     </el-form-item>
 
     <el-form-item label="Мин. вероятность">
-      <el-slider v-model="minProbability" :min="0" :max="1" :step="0.05" style="width: 200px" />
+      <el-slider v-model="minProbability" :min="0" :max="1" :step="0.05" style="min-width: 200px" />
     </el-form-item>
 
     <el-form-item>
@@ -72,8 +72,16 @@ function reset() {
   </el-form>
 </template>
 
-<style>
+<style scoped>
 .prediction-filters {
-  padding-block: 15px;
+  padding-block: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.prediction-filters :deep(.el-form-item) {
+  margin-right: 0;
+  margin-bottom: 0;
 }
 </style>

@@ -24,7 +24,6 @@ const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value
 
 const total = computed(() => {
   const offset = query.value.offset ?? 0;
-  const limit = query.value.limit ?? 50;
   const loaded = data.value?.items.length ?? 0;
   const hasMore = data.value?.hasMore ?? false;
   return offset + loaded + (hasMore ? 1 : 0);
@@ -33,15 +32,15 @@ const total = computed(() => {
 
 <template>
   <Teleport defer to="#header-left">
-    <span class="page-title"><h2>Прогнозы</h2></span>
+    <span class="page-title">Прогнозы</span>
   </Teleport>
 
-  <div class="predictions-page">
-    <div class="predictions-page__filters">
+  <div class="predictions-table">
+    <div class="filters">
       <PredictionFilters />
     </div>
 
-    <div class="predictions-page__table">
+    <div class="table">
       <el-alert
         v-if="isError"
         type="error"
@@ -53,21 +52,21 @@ const total = computed(() => {
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
         description="Прогнозов нет"
-        class="predictions-page__empty"
+        class="empty"
       />
 
       <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" />
     </div>
 
-    <div v-if="!isEmpty && !isLoading" class="predictions-page__pagination">
+    <div v-if="!isEmpty && !isLoading" class="pagination">
       <PredictionPagination :total="total" />
     </div>
-    <div v-else class="predictions-page__pagination-placeholder"></div>
+    <div v-else class="pagination-placeholder"></div>
   </div>
 </template>
 
 <style scoped>
-.predictions-page {
+.predictions-table {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -75,11 +74,13 @@ const total = computed(() => {
   gap: 16px;
 }
 
-.predictions-page__filters {
+.filters {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.predictions-page__table {
+.table {
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -89,26 +90,26 @@ const total = computed(() => {
   flex-direction: column;
 }
 
-.predictions-page__empty {
+.empty {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.predictions-page__pagination {
+.pagination {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
 }
 
-.predictions-page__pagination-placeholder {
+.pagination-placeholder {
   padding: 16px;
 }
 
 .page-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
 }
 </style>
