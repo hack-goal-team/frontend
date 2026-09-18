@@ -35,12 +35,14 @@ const total = computed(() => {
     <span class="page-title">Прогнозы</span>
   </Teleport>
 
-  <div class="predictions-table">
-    <div class="filters">
-      <PredictionFilters />
-    </div>
+  <div class="predictions-page">
+    <PredictionFilters class="predictions-page__filters" />
 
-    <div class="table">
+    <el-card
+      class="predictions-page__table"
+      shadow="never"
+      :body-style="{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }"
+    >
       <el-alert
         v-if="isError"
         type="error"
@@ -52,59 +54,53 @@ const total = computed(() => {
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
         description="Прогнозов нет"
-        class="empty"
+        class="predictions-page__empty"
       />
 
       <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" />
-    </div>
+    </el-card>
 
-    <div v-if="!isEmpty && !isLoading" class="pagination">
-      <PredictionPagination :total="total" />
+    <div class="predictions-page__pagination">
+      <PredictionPagination v-if="!isEmpty && !isLoading" :total="total" />
     </div>
-    <div v-else class="pagination-placeholder"></div>
   </div>
 </template>
 
 <style scoped>
-.predictions-table {
+.predictions-page {
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
   gap: 16px;
 }
 
-.filters {
+.predictions-page__filters {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-.table {
+.predictions-page__table {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
+  border-color: var(--el-border-color-lighter);
+  overflow: hidden;
 }
 
-.empty {
+.predictions-page__table :deep(.el-card__body) {
+  overflow: auto;
+}
+
+.predictions-page__empty {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.pagination {
+.predictions-page__pagination {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-}
-
-.pagination-placeholder {
-  padding: 16px;
+  min-height: 32px;
 }
 
 .page-title {
