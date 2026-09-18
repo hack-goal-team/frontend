@@ -61,7 +61,7 @@ const total = computed(() => {
     </el-card>
 
     <div class="predictions-page__pagination">
-      <PredictionPagination v-if="!isEmpty && !isLoading" :total="total" />
+      <PredictionPagination :hide="isEmpty || isLoading" :total="total" />
     </div>
   </div>
 </template>

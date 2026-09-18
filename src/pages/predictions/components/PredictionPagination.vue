@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-defineProps<{ total: number }>();
+defineProps<{ total: number, hide: boolean }>();
 
 const route = useRoute();
 const router = useRouter();
@@ -31,6 +31,7 @@ const pageSize = computed({
   <el-pagination
     v-model:current-page="currentPage"
     v-model:page-size="pageSize"
+    :hide-on-single-page="hide"
     :total="total"
     :page-sizes="[25, 50, 100]"
     layout="total, sizes, prev, pager, next"
