@@ -3,6 +3,7 @@ import { ElNotification } from "element-plus";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { formatNewPredictions } from "./lib/format";
+import "element-plus/theme-chalk/el-notification.css";
 
 export const useNotificationsStore = defineStore("notifications", () => {
   // --- состояние ---
