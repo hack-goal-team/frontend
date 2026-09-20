@@ -22,14 +22,19 @@ declare module 'vue' {
     ElDescriptions: typeof import('element-plus/es')['ElDescriptions']
     ElDescriptionsItem: typeof import('element-plus/es')['ElDescriptionsItem']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
+    ElDropdown: typeof import('element-plus/es')['ElDropdown']
+    ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
+    ElDropdownMenu: typeof import('element-plus/es')['ElDropdownMenu']
     ElEmpty: typeof import('element-plus/es')['ElEmpty']
     ElForm: typeof import('element-plus/es')['ElForm']
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
     ElHeader: typeof import('element-plus/es')['ElHeader']
     ElIcon: typeof import('element-plus/es')['ElIcon']
+    ElInput: typeof import('element-plus/es')['ElInput']
     ElMain: typeof import('element-plus/es')['ElMain']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
+    ElResult: typeof import('element-plus/es')['ElResult']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElTable: typeof import('element-plus/es')['ElTable']
@@ -57,14 +62,19 @@ declare global {
   const ElDescriptions: (typeof import("element-plus/es"))["ElDescriptions"];
   const ElDescriptionsItem: (typeof import("element-plus/es"))["ElDescriptionsItem"];
   const ElDrawer: (typeof import("element-plus/es"))["ElDrawer"];
+  const ElDropdown: (typeof import("element-plus/es"))["ElDropdown"];
+  const ElDropdownItem: (typeof import("element-plus/es"))["ElDropdownItem"];
+  const ElDropdownMenu: (typeof import("element-plus/es"))["ElDropdownMenu"];
   const ElEmpty: (typeof import("element-plus/es"))["ElEmpty"];
   const ElForm: (typeof import("element-plus/es"))["ElForm"];
   const ElFormItem: (typeof import("element-plus/es"))["ElFormItem"];
   const ElHeader: (typeof import("element-plus/es"))["ElHeader"];
   const ElIcon: (typeof import("element-plus/es"))["ElIcon"];
+  const ElInput: (typeof import("element-plus/es"))["ElInput"];
   const ElMain: (typeof import("element-plus/es"))["ElMain"];
   const ElOption: (typeof import("element-plus/es"))["ElOption"];
   const ElPagination: (typeof import("element-plus/es"))["ElPagination"];
+  const ElResult: (typeof import("element-plus/es"))["ElResult"];
   const ElSelect: (typeof import("element-plus/es"))["ElSelect"];
   const ElSlider: (typeof import("element-plus/es"))["ElSlider"];
   const ElTable: (typeof import("element-plus/es"))["ElTable"];

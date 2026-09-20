@@ -42,10 +42,12 @@ function update(patch: Record<string, unknown>) {
 function reset() {
   router.replace({ query: {} });
 }
+
+defineProps<{ disable: boolean }>();
 </script>
 
 <template>
-  <el-form :inline="true" class="prediction-filters">
+  <el-form :disabled="disable" :inline="true" class="prediction-filters">
     <el-form-item label="Тип инцидента">
       <el-select v-model="incidentType" clearable placeholder="Все" style="min-width: 200px">
         <el-option v-for="t in reference.data?.incidentTypes ?? []" :key="t" :label="t" :value="t" />

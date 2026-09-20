@@ -1,6 +1,7 @@
-import type { Prediction, RiskLevel, PredictionStatus } from "@/modules/predictions/types";
+// src/mocks/data/generatePredictions.ts
+import type { Prediction, RiskLevel, PredictionStatus, TargetContext, Decision } from "@/modules/predictions/types";
 
-// ---- Справочные значения (совпадают с /reference-data) ----
+// --- Справочники ---
 
 const INCIDENT_TYPES = ["FLOODING", "OVERHEAT", "FAILURE", "PRESSURE_DROP", "LEAK", "POWER_OUTAGE"] as const;
 
@@ -8,9 +9,47 @@ const TARGET_KINDS = ["COLLECTOR", "PUMP", "WELL", "SHAFT"] as const;
 
 const MODEL_VERSIONS = ["v1.3.0", "v1.4.0", "v1.4.2", "v1.5.0"] as const;
 
-// ---- Хелперы ----
+// Коды причин — совпадают с /reference-data (mockReferenceData.reasons)
+const REASON_CODES = ["WEATHER", "WEAR", "LOAD", "SENSOR", "OTHER"] as const;
 
-/** Детерминированный PRNG (mulberry32) — данные стабильны между перезапусками. */
+const DECIDED_BY = ["dispatcher-01", "dispatcher-02", "dispatcher-03"] as const;
+
+const OBJECT_NAMES = [
+  "Объект Альфа",
+  "Объект Бета",
+  "Объект Гамма",
+  "Объект Дельта",
+  "Объект Эпсилон",
+  "Объект Дзета",
+  "Объект Эта",
+  "Объект Тета",
+  "Объект Йота",
+  "Объект Каппа",
+  "Объект Лямбда",
+  "Объект Мю",
+];
+
+const SENSOR_TYPES = [
+  "Датчик температуры",
+  "Датчик давления",
+  "Датчик дыма",
+  "Датчик движения",
+  "Датчик уровня",
+  "Датчик влажности",
+];
+
+const ENGINEERING_SYSTEMS = [
+  "Температурная подсистема",
+  "Подсистема пожаротушения",
+  "Подсистема водоотведения",
+  "Подсистема вентиляции",
+  "Подсистема электроснабжения",
+];
+
+const SENSOR_NAMES = ["ДТ-01", "ДД-02", "ДД-03", "ДД-04", "ДУ-05", "ДВ-06", "ДД-07", "ДТ-08"];
+
+// --- PRNG ---
+
 function mulberry32(seed: number) {
   return function () {
     seed |= 0;
@@ -25,26 +64,74 @@ const rand = mulberry32(42);
 const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
 const randInt = (min: number, max: number): number => Math.floor(rand() * (max - min + 1)) + min;
 
-/** Риск выводим из вероятности — согласовано с riskThresholds. */
+// --- Утилиты ---
+
 function riskFromProbability(p: number): RiskLevel {
   if (p >= 0.7) return "HIGH";
   if (p >= 0.4) return "MEDIUM";
   return "LOW";
 }
 
-/** ISO-строка в UTC. */
 function isoAt(msOffsetFromNow: number): string {
   return new Date(Date.now() + msOffsetFromNow).toISOString();
 }
 
-// ---- Генерация ----
+// --- Генерация контекста ---
+
+function generateContext(): TargetContext {
+  const isEmpty = rand() < 0.15;
+
+  if (isEmpty) {
+    return {
+      objectId: null,
+      objectName: null,
+      channelId: null,
+      sensorName: null,
+      sensorType: null,
+      engineeringSystem: null,
+    };
+  }
+
+  return {
+    objectId: String(randInt(1, 100)),
+    objectName: pick(OBJECT_NAMES),
+    channelId: String(randInt(1000, 9999)),
+    sensorName: pick(SENSOR_NAMES),
+    sensorType: pick(SENSOR_TYPES),
+    engineeringSystem: pick(ENGINEERING_SYSTEMS),
+  };
+}
+
+// --- Генерация решения ---
+
+function generateDecision(predictionId: string, computedAt: string, horizonUntil: string): Decision {
+  const reasonCode = pick(REASON_CODES);
+
+  // decidedAt — между computedAt и horizonUntil
+  // (в первой половине горизонта, чтобы решение было раньше инцидента)
+  const computed = Date.parse(computedAt);
+  const horizon = Date.parse(horizonUntil);
+  const span = horizon - computed;
+  const decidedOffset = Math.floor(rand() * span * 0.5);
+  const decidedAt = new Date(computed + decidedOffset).toISOString();
+
+  return {
+    id: `prediction:${predictionId}:1`,
+    target: { type: "PREDICTION", predictionId },
+    reasonCode,
+    comment: reasonCode === "OTHER" ? "Комментарий обязателен" : null,
+    decidedBy: pick(DECIDED_BY),
+    decidedAt,
+  };
+}
+
+// --- Генерация прогнозов ---
 
 export function generatePredictions(count = 500): Prediction[] {
   const items: Prediction[] = [];
 
   for (let i = 0; i < count; i++) {
-    // Вероятность с бимодальным распределением — больше HIGH и LOW, меньше MEDIUM.
-    // Так интереснее смотреть фильтры.
+    // --- probability ---
     const roll = rand();
     let probability: number;
     if (roll < 0.35) {
@@ -56,24 +143,29 @@ export function generatePredictions(count = 500): Prediction[] {
     }
     probability = Math.round(probability * 100) / 100;
 
-    // computedAt — за последние 7 дней, равномерно.
-    const computedOffsetMs = -randInt(0, 7 * 24 * 60) * 60 * 1000;
+    // --- computedAt / horizonUntil ---
+    const computedOffsetMs = -randInt(0, 24 * 60) * 60 * 1000;
     const computedAt = isoAt(computedOffsetMs);
 
-    // horizonUntil — computedAt + 4..24 часа.
     const horizonOffsetMs = computedOffsetMs + randInt(4 * 60, 24 * 60) * 60 * 1000;
     const horizonUntil = isoAt(horizonOffsetMs);
 
-    // status: ~30% REVIEWED, чтобы фильтр по статусу был заметен.
+    // --- status ---
     const status: PredictionStatus = rand() < 0.3 ? "REVIEWED" : "NEW";
 
+    // --- lastDecision: только у REVIEWED ---
+    const id = String(1000 + i);
+    const lastDecision = status === "REVIEWED" ? generateDecision(id, computedAt, horizonUntil) : null;
+
+    // --- target ---
     const targetKind = pick(TARGET_KINDS);
     const targetRef = `${targetKind[0]}-${String(randInt(1, 99)).padStart(2, "0")}`;
 
     items.push({
-      id: String(1000 + i),
+      id,
       targetKind,
       targetRef,
+      context: generateContext(),
       incidentType: pick(INCIDENT_TYPES),
       probability,
       riskLevel: riskFromProbability(probability),
@@ -81,10 +173,11 @@ export function generatePredictions(count = 500): Prediction[] {
       horizonUntil,
       modelVersion: pick(MODEL_VERSIONS),
       status,
+      lastDecision,
     });
   }
 
-  // Сортировка по контракту: computedAt DESC, id DESC.
+  // Сортировка по контракту: computedAt DESC, id DESC
   items.sort((a, b) => {
     if (a.computedAt !== b.computedAt) {
       return a.computedAt < b.computedAt ? 1 : -1;

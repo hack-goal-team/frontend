@@ -8,4 +8,5 @@ export interface Problem {
 export interface Code {
   code: string;
   description: string;
+  commentRequired?: boolean;
 }

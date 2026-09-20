@@ -4,10 +4,14 @@ import { formatProbability } from "@/shared/lib/probability";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import StatusTag from "./StatusTag.vue";
+import { useLabels } from "@/modules/reference/composables/useLabels.ts";
+import { incidentTypeLabel } from "@/modules/reference/lib/incidentTypes.ts";
 
 defineProps<{
   detail: PredictionDetail;
 }>();
+
+const { reasonLabel } = useLabels();
 </script>
 
 <template>
@@ -15,7 +19,7 @@ defineProps<{
     <!-- Прогноз -->
     <el-descriptions :column="1" border>
       <el-descriptions-item label="Тип инцидента">
-        {{ detail.prediction.incidentType }}
+        {{ incidentTypeLabel(detail.prediction.incidentType) }}
       </el-descriptions-item>
 
       <el-descriptions-item label="Вероятность">
@@ -30,8 +34,25 @@ defineProps<{
         <StatusTag :status="detail.prediction.status" />
       </el-descriptions-item>
 
-      <el-descriptions-item label="Цель">
-        {{ detail.prediction.targetKind }} / {{ detail.prediction.targetRef }}
+      <el-descriptions-item label="Объект">
+        <span v-if="detail.prediction.context?.objectName">
+          {{ detail.prediction.context.objectName }}
+        </span>
+        <span v-else class="text-muted">—</span>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Датчик">
+        <span v-if="detail.prediction.context?.sensorName">
+          {{ detail.prediction.context.sensorName }}
+          <span v-if="detail.prediction.context.sensorType" class="text-muted">
+            ({{ detail.prediction.context.sensorType }})
+          </span>
+        </span>
+        <span v-else class="text-muted">—</span>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Подсистема">
+        {{ detail.prediction.context?.engineeringSystem ?? "—" }}
       </el-descriptions-item>
 
       <el-descriptions-item label="Горизонт">
@@ -43,7 +64,19 @@ defineProps<{
       </el-descriptions-item>
 
       <el-descriptions-item label="Модель">
-        {{ detail.prediction.modelVersion }}
+        <span class="text-muted">{{ detail.prediction.modelVersion }}</span>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Техническая цель">
+        <span class="text-muted"> {{ detail.prediction.targetKind }} / {{ detail.prediction.targetRef }} </span>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Последнее решение">
+        <span v-if="detail.prediction.lastDecision">
+          {{ reasonLabel(detail.prediction.lastDecision.reasonCode) }}
+          <span class="text-muted"> от {{ formatDateTime(detail.prediction.lastDecision.decidedAt) }} </span>
+        </span>
+        <span v-else class="text-muted">Нет</span>
       </el-descriptions-item>
     </el-descriptions>
 
@@ -62,8 +95,7 @@ defineProps<{
         >
           <div class="prediction-panel__decision">
             <div>
-              <strong>{{ d.actionCode ?? "Без действия" }}</strong>
-              · {{ d.reasonCode }}
+              {{ reasonLabel(d.reasonCode) }}
             </div>
             <div v-if="d.comment" class="prediction-panel__decision-comment">
               {{ d.comment }}
@@ -97,6 +129,10 @@ defineProps<{
   gap: 4px;
 }
 
+.prediction-panel__decision-reason {
+  font-weight: 500;
+}
+
 .prediction-panel__decision-comment {
   color: var(--el-text-color-regular);
   font-size: 13px;
@@ -105,5 +141,9 @@ defineProps<{
 .prediction-panel__decision-author {
   color: var(--el-text-color-secondary);
   font-size: 12px;
+}
+
+.text-muted {
+  color: var(--el-text-color-placeholder);
 }
 </style>

@@ -14,9 +14,12 @@ import PredictionFilters from "./components/PredictionFilters.vue";
 import PredictionPagination from "./components/PredictionPagination.vue";
 import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
+import { useAuthStore } from "@/modules/auth/store.ts";
+import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 const queryClient = useQueryClient();
 const store = useNotificationsStore();
 const { showCritical } = useCriticalNavigation();
@@ -83,7 +86,7 @@ const total = computed(() => {
   </Teleport>
 
   <div class="predictions-page">
-    <PredictionFilters class="predictions-page__filters" />
+    <PredictionFilters :disable="auth.isEmptyScope" class="predictions-page__filters" />
 
     <ChangesBanner @reload="onReload" @show-critical="onShowCritical" />
 
@@ -92,6 +95,8 @@ const total = computed(() => {
       shadow="never"
       :body-style="{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }"
     >
+      <EmptyScopeNotice v-if="auth.isEmptyScope" />
+
       <el-alert
         v-if="isError"
         type="error"
@@ -110,7 +115,10 @@ const total = computed(() => {
     </el-card>
 
     <div class="predictions-page__pagination">
-      <PredictionPagination :disable="isEmpty || isLoading || isFetching || isError" :total="total" />
+      <PredictionPagination
+        :disable="auth.isEmptyScope || isEmpty || isLoading || isFetching || isError"
+        :total="total"
+      />
     </div>
   </div>
 

@@ -1,17 +1,28 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PredictionStatus = "NEW" | "REVIEWED";
 
+export interface TargetContext {
+  objectId: string | null;
+  objectName: string | null;
+  channelId: string | null;
+  sensorName: string | null;
+  sensorType: string | null;
+  engineeringSystem: string | null;
+}
+
 export interface Prediction {
   id: string;
   targetKind: string;
   targetRef: string;
+  context: TargetContext;
   incidentType: string;
-  probability: number; // 0..1
+  probability: number;
   riskLevel: RiskLevel;
-  computedAt: string; // ISO 8601 UTC
-  horizonUntil: string; // ISO 8601 UTC
+  computedAt: string;
+  horizonUntil: string;
   modelVersion: string;
   status: PredictionStatus;
+  lastDecision: Decision | null;
 }
 
 export interface PredictionPage {
@@ -27,22 +38,22 @@ export interface PredictionDetail {
 }
 
 export interface PredictionsQuery {
-  limit?: number; // 1..100, default 50
-  offset?: number; // 0..100000, default 0
+  limit?: number;
+  offset?: number;
+  from?: string;
+  to?: string;
+  objectId?: string;
   incidentType?: string;
   targetKind?: string;
   targetRef?: string;
-  from?: string; // ISO date-time, фильтр по computedAt
-  to?: string; // ISO date-time, фильтр по computedAt
   status?: PredictionStatus;
-  minProbability?: number; // 0..1
-  activeOnly?: boolean; // default false
+  minProbability?: number;
+  activeOnly?: boolean;
 }
 
 export interface Decision {
   id: string;
   target: PredictionTarget | AlarmTarget;
-  actionCode: string | null;
   reasonCode: string;
   comment: string | null;
   decidedBy: string;

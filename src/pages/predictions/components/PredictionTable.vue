@@ -3,6 +3,7 @@ import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
 import type { Prediction } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
+import { useLabels } from "@/modules/reference/composables/useLabels.ts";
 import StatusTag from "./StatusTag.vue";
 
 defineProps<{
@@ -17,6 +18,8 @@ const emit = defineEmits<{
 function handleRowClick(row: Prediction) {
   emit("rowClick", row.id);
 }
+
+const { reasonLabel } = useLabels();
 </script>
 
 <template>
@@ -32,7 +35,7 @@ function handleRowClick(row: Prediction) {
     @row-click="handleRowClick"
   >
     <el-table-column prop="incidentType" label="Тип" min-width="140" />
-    <el-table-column label="Вероятность" min-width="120">
+    <el-table-column label="Вероятность" min-width="65">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}
       </template>
@@ -42,12 +45,39 @@ function handleRowClick(row: Prediction) {
         {{ formatDateTime(row.horizonUntil) }}
       </template>
     </el-table-column>
-    <el-table-column label="Цель" min-width="180">
-      <template #default="{ row }"> {{ row.targetKind }} / {{ row.targetRef }} </template>
+    <el-table-column label="Объект" width="200">
+      <template #default="{ row }">
+        <span v-if="row.context?.objectName">
+          {{ row.context.objectName }}
+        </span>
+        <span v-else class="text-muted">—</span>
+      </template>
+    </el-table-column>
+
+    <el-table-column label="Цель" width="180">
+      <template #default="{ row }">
+        <span class="text-muted"> {{ row.targetKind }} / {{ row.targetRef }} </span>
+      </template>
+    </el-table-column>
+    <el-table-column label="Датчик" width="180">
+      <template #default="{ row }">
+        <span v-if="row.context.sensorName">
+          {{ row.context.sensorName }}
+        </span>
+        <span v-else class="text-muted">—</span>
+      </template>
     </el-table-column>
     <el-table-column label="Риск" min-width="120">
       <template #default="{ row }">
         <RiskTag :level="row.riskLevel" />
+      </template>
+    </el-table-column>
+    <el-table-column label="Решение" width="220">
+      <template #default="{ row }">
+        <el-tag v-if="row.lastDecision" type="success" size="small">
+          {{ reasonLabel(row.lastDecision.reasonCode) }}
+        </el-tag>
+        <el-tag v-else type="info" size="small">Нет</el-tag>
       </template>
     </el-table-column>
     <el-table-column prop="status" label="Статус" min-width="120">
@@ -63,4 +93,8 @@ function handleRowClick(row: Prediction) {
   </el-table>
 </template>
 
-<style scoped></style>
+<style scoped>
+.text-muted {
+  color: var(--el-text-color-placeholder);
+}
+</style>

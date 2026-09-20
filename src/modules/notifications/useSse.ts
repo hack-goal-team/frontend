@@ -26,6 +26,7 @@ export function useSse() {
 
     try {
       await fetchEventSource(`${import.meta.env.VITE_API_URL}/notifications/stream`, {
+        // TODO: заменить на куку
         headers: {
           Authorization: `Bearer ${getToken()}`,
           Accept: "text/event-stream",

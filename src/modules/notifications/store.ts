@@ -52,7 +52,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
         title: "Критические прогнозы",
         message: formatNewPredictions(fresh.length),
         type: "warning",
-        duration: 5000,
+        duration: 3000,
         progress: true,
         position: "bottom-left",
       });
