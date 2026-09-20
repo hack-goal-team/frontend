@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive } from "vue";
-import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/modules/auth/store";
+import { computed, reactive } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 const router = useRouter();
 const route = useRoute();
@@ -37,7 +37,7 @@ function fillDemo(user: string) {
 <template>
   <el-card class="login-card">
     <template #header>
-      <h2 class="login-card__title">Прогнозы инцидентов</h2>
+      <h2 class="login-card__title">Авторизация (LDAP/AD)</h2>
     </template>
 
     <el-form :model="form" label-position="top" @submit.prevent="onSubmit">
