@@ -38,8 +38,6 @@ export const useNotificationsStore = defineStore("notifications", () => {
     snapshot.value = next;
     lastSnapshotAt.value = receivedAt;
 
-    console.log(snapshot);
-
     if (fresh.length > 0) {
       // Накапливаем, не перезаписываем
       const existing = new Set(newPredictionIds.value);

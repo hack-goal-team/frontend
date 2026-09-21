@@ -15,10 +15,6 @@ export function useSse() {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let isUnmounted = false;
 
-  function getToken(): string {
-    return localStorage.getItem("token") || import.meta.env.VITE_API_TOKEN || "";
-  }
-
   async function connect() {
     if (isUnmounted) return;
 
@@ -26,9 +22,8 @@ export function useSse() {
 
     try {
       await fetchEventSource(`${import.meta.env.VITE_API_URL}/notifications/stream`, {
-        // TODO: заменить на куку
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${getToken()}`,
           Accept: "text/event-stream",
         },
         signal: abortController.signal,
@@ -37,7 +32,7 @@ export function useSse() {
           if (response.ok) {
             const wasDisconnected = !store.connected;
             store.setConnected(true);
-            console.log("SSE для уведомлений успешно подключено...");
+
             // После переподключения — refresh REST data
             if (wasDisconnected) {
               queryClient.invalidateQueries({ queryKey: predictionKeys.all });
@@ -84,7 +79,7 @@ export function useSse() {
 
   function scheduleReconnect() {
     if (isUnmounted) return;
-    if (reconnectTimer) return; // уже запланирован
+    if (reconnectTimer) return;
 
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
