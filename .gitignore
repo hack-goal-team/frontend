@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+settings.local.json
+AGENTS.md
+backlog.md
+openapi-frontend.yaml

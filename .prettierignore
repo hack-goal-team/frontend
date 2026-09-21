@@ -1,0 +1,16 @@
+# Собираемые артефакты
+dist/
+coverage/
+
+# Генерируется Vite — править руками нельзя
+src/types/auto-imports.d.ts
+src/types/components.d.ts
+
+# Контракт приходит с бэкенда как есть, свою форматировку не наводим
+docs/openapi-*.yaml
+
+# npm пишет сам
+package-lock.json
+
+# локальное состояние CLI
+.qoder/
