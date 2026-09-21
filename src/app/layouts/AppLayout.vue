@@ -2,16 +2,16 @@
 import { RouterView } from "vue-router";
 import Header from "./components/Header.vue";
 import { useSse } from "@/modules/notifications/useSse";
-// import Sidebar from "./components/Sidebar.vue";
+import Sidebar from "./components/Sidebar.vue";
 
 useSse();
 </script>
 
 <template>
   <el-container class="app-layout">
-    <!-- <el-aside width="240px" class="app-aside">
+    <el-aside width="240px" class="app-aside">
       <Sidebar />
-    </el-aside> -->
+    </el-aside>
 
     <el-container class="app-body">
       <el-header class="app-header">
