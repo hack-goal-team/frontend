@@ -6,12 +6,10 @@ const props = withDefaults(
     visible: boolean;
     title?: string;
     size?: string | number;
-    loading?: boolean;
   }>(),
   {
     title: "",
     size: "600px",
-    loading: false,
   },
 );
 
@@ -46,7 +44,7 @@ function handleClose() {
       <span class="side-panel__title">{{ title }}</span>
     </template>
 
-    <div v-loading="loading" class="side-panel__body">
+    <div class="side-panel__body">
       <slot />
     </div>
 

@@ -39,6 +39,7 @@ declare module 'vue' {
     ElResult: typeof import('element-plus/es')['ElResult']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
+    ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
     ElSlider: typeof import('element-plus/es')['ElSlider']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
@@ -82,6 +83,7 @@ declare global {
   const ElResult: (typeof import("element-plus/es"))["ElResult"];
   const ElSelect: (typeof import("element-plus/es"))["ElSelect"];
   const ElSkeleton: (typeof import("element-plus/es"))["ElSkeleton"];
+  const ElSkeletonItem: (typeof import("element-plus/es"))["ElSkeletonItem"];
   const ElSlider: (typeof import("element-plus/es"))["ElSlider"];
   const ElTable: (typeof import("element-plus/es"))["ElTable"];
   const ElTableColumn: (typeof import("element-plus/es"))["ElTableColumn"];

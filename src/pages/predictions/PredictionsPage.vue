@@ -16,6 +16,7 @@ import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
 import { useAuthStore } from "@/modules/auth/store.ts";
 import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
+import PredictionPanelSkeleton from "./components/PredictionPanelSkeleton.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -120,21 +121,22 @@ const total = computed(() => data.value?.total ?? 0);
   <SidePanel
     :visible="isPanelOpen"
     :title="detail?.prediction.incidentType ?? 'Прогноз'"
-    :loading="isDetailLoading"
     size="600px"
     @close="closePanel"
   >
+    <PredictionPanelSkeleton v-if="isDetailLoading" />
+
     <el-alert
-      v-if="isDetailError"
+      v-else-if="isDetailError"
       type="error"
       :title="`Ошибка загрузки: ${(detailError as Error)?.message ?? 'неизвестно'}`"
       :closable="false"
       show-icon
     />
 
-    <template v-else-if="detail">
-      <PredictionPanelContent :detail="detail" />
-    </template>
+    <PredictionPanelContent v-else-if="detail" :detail="detail" />
+
+    <el-empty v-else description="Данные недоступны" />
   </SidePanel>
 </template>
 
