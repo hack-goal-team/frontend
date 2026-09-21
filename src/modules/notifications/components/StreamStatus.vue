@@ -10,7 +10,7 @@ const lastSnapshotText = computed(() => {
   return dayjs(store.lastSnapshotAt).format("HH:mm:ss");
 });
 
-const statusText = computed(() => (store.connected ? "Подключено" : "Отключено"));
+const statusText = computed(() => (store.connected ? "Подключено" : "Подключение..."));
 
 const statusClass = computed(() => (store.connected ? "is-connected" : "is-disconnected"));
 </script>
