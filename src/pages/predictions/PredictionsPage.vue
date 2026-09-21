@@ -16,7 +16,8 @@ import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
 import { useAuthStore } from "@/modules/auth/store.ts";
 import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
-import PredictionPanelSkeleton from "./components/PredictionPanelSkeleton.vue";
+import PredictionPanelSkeleton from "./components/skeletons/PredictionPanelSkeleton.vue";
+import PredictionTableSkeleton from "./components/skeletons/PredictionTableSkeleton.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -100,6 +101,8 @@ const total = computed(() => data.value?.total ?? 0);
         :closable="false"
         show-icon
       />
+
+      <PredictionTableSkeleton v-else-if="isLoading" :rows="20" />
 
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"

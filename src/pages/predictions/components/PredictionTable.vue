@@ -32,10 +32,11 @@ const { reasonLabel } = useLabels();
     :border="true"
     empty-text="Загрузка..."
     highlight-current-row
+    show-overflow-tooltip
     @row-click="handleRowClick"
   >
     <el-table-column prop="incidentType" label="Тип" min-width="140" />
-    <el-table-column label="Вероятность" min-width="65">
+    <el-table-column label="Вероятность" min-width="120">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}
       </template>
