@@ -72,12 +72,7 @@ function onShowCritical() {
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
-const total = computed(() => {
-  const offset = query.value.offset ?? 0;
-  const loaded = data.value?.items.length ?? 0;
-  const hasMore = data.value?.hasMore ?? false;
-  return offset + loaded + (hasMore ? 1 : 0);
-});
+const total = computed(() => data.value?.total ?? 0);
 </script>
 
 <template>

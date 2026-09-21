@@ -45,3 +45,14 @@ export async function post<T>(url: string, body?: unknown): Promise<T> {
   const { data } = await http.post<T>(url, body);
   return data;
 }
+
+export async function getWithHeaders<T>(
+  url: string,
+  params?: object,
+): Promise<{ data: T; headers: Record<string, string> }> {
+  const response = await http.get<T>(url, { params });
+  return {
+    data: response.data,
+    headers: response.headers as Record<string, string>,
+  };
+}

@@ -34,6 +34,7 @@ const pageSize = computed({
     :disabled="disable"
     :total="total"
     :page-sizes="[25, 50, 100]"
+    :pager-count="5"
     layout="total, sizes, prev, pager, next"
     background
   />
