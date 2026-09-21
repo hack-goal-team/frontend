@@ -4,6 +4,7 @@ import { useNotificationsStore } from "./store";
 import { useQueryClient } from "@tanstack/vue-query";
 import { predictionKeys } from "@/modules/predictions/keys";
 import type { PredictionPage } from "@/modules/predictions/types";
+import { dashboardKeys } from "../dashboard/keys";
 
 const RECONNECT_DELAY = 5000;
 
@@ -36,6 +37,7 @@ export function useSse() {
             // После переподключения — refresh REST data
             if (wasDisconnected) {
               queryClient.invalidateQueries({ queryKey: predictionKeys.all });
+              queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
             }
             return;
           }

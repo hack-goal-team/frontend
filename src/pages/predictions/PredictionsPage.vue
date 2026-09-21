@@ -77,7 +77,7 @@ const total = computed(() => data.value?.total ?? 0);
 
 <template>
   <Teleport defer to="#header-left">
-    <span class="page-title">Прогнозы</span>
+    <span class="page-title">Журнал прогнозов</span>
   </Teleport>
 
   <div class="predictions-page">

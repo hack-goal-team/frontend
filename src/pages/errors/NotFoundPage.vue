@@ -7,7 +7,7 @@ const router = useRouter();
 <template>
   <el-result icon="info" title="404" sub-title="Страница не найдена">
     <template #extra>
-      <el-button type="primary" @click="router.push('/predictions')"> К прогнозам </el-button>
+      <el-button type="primary" @click="router.push('/dashboard')"> К аналитической панели </el-button>
     </template>
   </el-result>
 </template>

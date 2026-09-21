@@ -42,7 +42,12 @@ export const router = createRouter({
           component: () => import("@/pages/predictions/PredictionsPage.vue"),
           meta: { requiresAuth: true, permission: PERMISSIONS.PREDICTION_READ },
         },
-        // ...другие защищённые
+        {
+          path: "dashboard",
+          name: "dashboard",
+          component: () => import("@/pages/dashboard/DashboardPage.vue"),
+          meta: { requiresAuth: true, permission: PERMISSIONS.PREDICTION_READ },
+        },
       ],
     },
 
