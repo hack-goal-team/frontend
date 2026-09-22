@@ -40,6 +40,15 @@ export interface RiskMaps {
   byObject: Map<string, RiskAggregate>;
   /** Ключ — id канала из `context.channelId`; уровень риска канала не сворачивается на объект повторно. */
   byChannel: Map<string, RiskAggregate>;
+  /**
+   * Прогноз, чьи детали показывает клик по каналу. Ключ — id канала.
+   *
+   * Отдельная карта, а не поле `RiskAggregate`: агрегат участвует в свёртке по поддереву,
+   * где ссылка на «тот самый прогноз» всплыла бы от потомка к району и повела бы диспетчера
+   * не туда. Одна запись на канал: из нескольких активных прогнозов берётся сильнейший —
+   * тем же правилом, что и уровень.
+   */
+  predictionByChannel: Map<string, string>;
   /** Прогнозы, у которых `context.objectId` пуст: их нельзя никуда приписать (ADR-003). */
   unattributed: number;
 }
@@ -60,10 +69,18 @@ function merge(target: Map<string, RiskAggregate>, key: string, prediction: Pred
  * Атрибуция риска — ТОЛЬКО через `context.objectId` / `context.channelId`.
  * `targetKind`/`targetRef` не парсим: формат `targetRef` контрактом не определён,
  * а догадываться о привязке прогноза к объекту хуже, чем признать `unattributed`.
+ *
+ * Ссылка «канал → прогноз» рождается здесь же, потому что иного источника нет:
+ * у `/predictions` фильтра по `channelId` в контракте нет (§ 13 плана — ждём подтверждения),
+ * а скан активных прогнозов уже идёт. Выбранный прогноз — сильнейший по уровню; при равенстве
+ * берётся первый принятый (строгого `>` хватает: порядок выдачи сервером не обещан, но он
+ * фиксирован для одного ответа, значит выбор детерминирован). Прогноза в карте нет — клика
+ * по каналу нет: «не досмотрели» и «прогнозов нет» различает `coverage`, а не мёртвая кнопка.
  */
 export function buildRiskMaps(predictions: Prediction[]): RiskMaps {
   const byObject = new Map<string, RiskAggregate>();
   const byChannel = new Map<string, RiskAggregate>();
+  const winnerByChannel = new Map<string, Prediction>();
   let unattributed = 0;
 
   for (const prediction of predictions) {
@@ -73,11 +90,20 @@ export function buildRiskMaps(predictions: Prediction[]): RiskMaps {
       continue;
     }
     if (context.objectId) merge(byObject, context.objectId, prediction);
-    if (context.channelId) merge(byChannel, context.channelId, prediction);
+    if (context.channelId) {
+      merge(byChannel, context.channelId, prediction);
+      const held = winnerByChannel.get(context.channelId);
+      if (!held || RISK_RANK[prediction.riskLevel] > RISK_RANK[held.riskLevel]) {
+        winnerByChannel.set(context.channelId, prediction);
+      }
+    }
     if (!context.objectId && !context.channelId) unattributed += 1;
   }
 
-  return { byObject, byChannel, unattributed };
+  const predictionByChannel = new Map<string, string>();
+  winnerByChannel.forEach((prediction, channelId) => predictionByChannel.set(channelId, prediction.id));
+
+  return { byObject, byChannel, predictionByChannel, unattributed };
 }
 
 /**

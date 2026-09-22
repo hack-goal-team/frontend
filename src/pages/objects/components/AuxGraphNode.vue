@@ -13,9 +13,9 @@ import {
 import type { AuxNodeData } from "@/modules/objects/lib/graph";
 
 /**
- * Служебный узел в колонке детей: «+ ещё N», загрузка, ошибка, пусто.
+ * Служебный узел в ряду детей: «+ ещё N», загрузка, ошибка, пусто.
  *
- * Он нужен, чтобы граф не исчезал, пока `/channels` грузится или упал: пустая колонка
+ * Он нужен, чтобы граф не исчезал, пока `/channels` грузится или упал: пустой ряд
  * читается как «каналов нет», а это ровно та ложь, из-за которой диспетчер примет
  * неверное решение. Узел состояния — утверждение про запрос, а не про объект.
  */
@@ -43,7 +43,7 @@ const variant = computed(() => (props.data.aux === "channels-error" ? "error" : 
 <template>
   <el-tooltip :content="hint" placement="top" :disabled="!clickable">
     <div class="aux-node" :class="[`aux-node_${variant}`, { 'aux-node_clickable': clickable }]">
-      <Handle type="target" :position="Position.Left" />
+      <Handle type="target" :position="Position.Top" />
       <span class="aux-node__text">{{ text }}</span>
     </div>
   </el-tooltip>

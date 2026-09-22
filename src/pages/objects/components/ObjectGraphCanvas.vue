@@ -4,6 +4,7 @@ import { Background } from "@vue-flow/background";
 import { Controls } from "@vue-flow/controls";
 import { useVueFlow, VueFlow, type Edge, type Node, type NodeMouseEvent } from "@vue-flow/core";
 import { RENDER_ONLY_VISIBLE } from "@/modules/objects/consts";
+import type { ChannelNodeData } from "@/modules/objects/lib/graph";
 import AuxGraphNode from "./AuxGraphNode.vue";
 import ChannelGraphNode from "./ChannelGraphNode.vue";
 import ObjectGraphNode from "./ObjectGraphNode.vue";
@@ -28,7 +29,7 @@ const props = defineProps<{
   focusId: string;
 }>();
 
-const emit = defineEmits<{ auxClick: [id: string] }>();
+const emit = defineEmits<{ auxClick: [id: string]; channelClick: [channelId: string] }>();
 
 const nodeTypes = {
   object: markRaw(ObjectGraphNode),
@@ -64,8 +65,17 @@ watch(
   { flush: "post" },
 );
 
+/**
+ * Клик по узлу. `node-click` Vue Flow приходит и на Enter с клавиатуры (узел фокусируется,
+ * `nodes-focusable`), так что отдельного обработчика клавиш не нужно.
+ *
+ * id канала берём из `data`, а не из `node.id`: `ch:…` — деталь отрисовки, и разбор строки
+ * здесь был бы связью с форматом, который нигде не обещан.
+ */
 function onNodeClick(event: NodeMouseEvent) {
-  if (event.node.type === "aux") emit("auxClick", event.node.id);
+  const node = event.node;
+  if (node.type === "aux") emit("auxClick", node.id);
+  else if (node.type === "channel") emit("channelClick", (node.data as ChannelNodeData).channel.id);
 }
 </script>
 

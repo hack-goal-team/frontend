@@ -1,22 +1,38 @@
 <script setup lang="ts">
-/**
- * Каркас экрана объекта: три колонки «предки → фокус → дети». Форма повторяет раскладку
- * графа, чтобы момент, когда вместо скелета появляется Vue Flow, не дёргал вёрстку страницы.
- */
-withDefaults(defineProps<{ columns?: number; nodes?: number }>(), { columns: 3, nodes: 4 });
+import { GRAPH_LAYOUT } from "@/modules/objects/lib/graph";
 
-const COLUMNS = [1, 2, 3];
+/**
+ * Каркас экрана объекта: спинка «предки → фокус» сверху и ряд детей под ней — та же
+ * вертикальная проекция, что рисует Vue Flow, чтобы момент, когда вместо скелета появляется
+ * граф, не дёргал вёрстку страницы.
+ *
+ * Размеры карточек берём из раскладки, а не переписываем числами: каркас, у которого узлы
+ * шире настоящих, сам и есть то самое дёрганье. Зазоры между узлами — косметика, они могут
+ * расходиться, а ширина и высота — нет.
+ */
+const spineBox = {
+  width: `${GRAPH_LAYOUT.size.object.width}px`,
+  height: `${GRAPH_LAYOUT.size.object.height}px`,
+};
+const rowBox = {
+  width: `${GRAPH_LAYOUT.size.channel.width}px`,
+  height: `${GRAPH_LAYOUT.size.channel.height}px`,
+};
 </script>
 
 <template>
   <div class="graph-skeleton">
-    <div v-for="column in COLUMNS.slice(0, columns)" :key="column" class="graph-skeleton__column">
-      <el-skeleton animated :count="nodes">
-        <template #template>
-          <el-skeleton-item variant="rect" class="graph-skeleton__node" />
-        </template>
-      </el-skeleton>
-    </div>
+    <el-skeleton animated :count="3" class="graph-skeleton__spine">
+      <template #template>
+        <el-skeleton-item variant="rect" :style="spineBox" />
+      </template>
+    </el-skeleton>
+
+    <el-skeleton animated :count="GRAPH_LAYOUT.nodesPerLine" class="graph-skeleton__row">
+      <template #template>
+        <el-skeleton-item variant="rect" :style="rowBox" />
+      </template>
+    </el-skeleton>
   </div>
 </template>
 
@@ -25,23 +41,25 @@ const COLUMNS = [1, 2, 3];
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 72px;
+  gap: 64px;
   padding: 24px 32px;
   overflow: hidden;
 }
 
-.graph-skeleton__column {
+/* ElSkeleton рендерит карточки прямыми детьми своего корня, поэтому флекс навешиваем на него. */
+.graph-skeleton__spine {
+  width: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: 248px;
-  flex-shrink: 0;
+  gap: 48px;
 }
 
-.graph-skeleton__node {
-  width: 100%;
-  height: 76px;
-  border-radius: var(--el-border-radius-base);
+.graph-skeleton__row {
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
 }
 </style>

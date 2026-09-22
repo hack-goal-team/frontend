@@ -12,8 +12,9 @@ import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
  * Узел объекта. Подпись и риск — те же компоненты, что в таблице реестра: на графе
  * диспетчер не должен встречать другой язык разметки.
  *
- * Левая полоса повторяет уровень риска, но не заменяет текстовую подпись: цвет без текста
- * нерабочий ни для дальтоников, ни на печати.
+ * Уровень риска окрашивает карточку целиком (рамка + фон), левая полоса — тот же цвет,
+ * но плотнее: на сильном риске карточка обязана читаться издалека, когда текста уже не разобрать.
+ * Цвет не заменяет текстовую подпись: он нерабочий ни для дальтоников, ни на печати.
  */
 const props = defineProps<NodeProps<ObjectNodeData>>();
 
@@ -23,7 +24,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
 <template>
   <div class="object-node" :class="[riskClass, { 'object-node_focus': data.focused }]">
-    <Handle type="target" :position="Position.Left" />
+    <Handle type="target" :position="Position.Top" />
 
     <div class="object-node__head">
       <el-tooltip :content="objectIdNote(data.object)" placement="top">
@@ -44,7 +45,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
     <ObjectRiskDot :risk="data.risk" class="object-node__risk" />
 
-    <Handle type="source" :position="Position.Right" />
+    <Handle type="source" :position="Position.Bottom" />
   </div>
 </template>
 
@@ -64,26 +65,33 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
   background: var(--el-bg-color-overlay);
 }
 
-.object-node_focus {
-  border-color: var(--el-color-primary);
-  border-left-color: var(--el-color-primary);
-  box-shadow: var(--el-box-shadow-light);
-}
-
 .object-node_risk-high {
+  border-color: var(--el-color-danger-light-7);
   border-left-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
 }
 
 .object-node_risk-medium {
+  border-color: var(--el-color-warning-light-7);
   border-left-color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
 }
 
 .object-node_risk-low {
+  border-color: var(--el-color-success-light-7);
   border-left-color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
 }
 
 .object-node_risk-unknown {
   border-left-color: var(--el-border-color-darker);
+}
+
+/* После цветов риска: рамка фокуса перечёркивает цветную рамку, а тон карточки остаётся. */
+.object-node_focus {
+  border-color: var(--el-color-primary);
+  border-left-color: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .object-node__head {

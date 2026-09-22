@@ -84,10 +84,16 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
     retry: 1,
   });
 
-  const empty: RiskMaps = { byObject: new Map(), byChannel: new Map(), unattributed: 0 };
+  const empty: RiskMaps = {
+    byObject: new Map(),
+    byChannel: new Map(),
+    predictionByChannel: new Map(),
+    unattributed: 0,
+  };
 
   const byObject = computed(() => data.value?.byObject ?? empty.byObject);
   const byChannel = computed(() => data.value?.byChannel ?? empty.byChannel);
+  const predictionByChannel = computed(() => data.value?.predictionByChannel ?? empty.predictionByChannel);
   const unattributed = computed(() => data.value?.unattributed ?? 0);
 
   /**
@@ -98,5 +104,18 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
   const scanned = computed(() => data.value?.scanned ?? 0);
   const pages = computed(() => (data.value ? `${data.value.pages} из ${data.value.pagesNeeded ?? "?"}` : null));
 
-  return { data, byObject, byChannel, unattributed, coverage, scanned, pages, isLoading, isFetching, isError, error };
+  return {
+    data,
+    byObject,
+    byChannel,
+    predictionByChannel,
+    unattributed,
+    coverage,
+    scanned,
+    pages,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  };
 }

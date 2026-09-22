@@ -110,6 +110,16 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     });
   }
 
+  /**
+   * Прогноз канала — та же карта скана, что и риск: фильтра `channelId` у `/predictions` нет,
+   * второй источник был бы выдумкой. Когда бэк дорастёт `withRisk`, скан выключится
+   * (`enabled` выше) и карта станет пустой — клик по каналу тогда просто не откроет ничего,
+   * а не соврёт про чужой прогноз.
+   */
+  function predictionOfChannel(channel: Channel): string | null {
+    return scan.predictionByChannel.value.get(channel.id) ?? null;
+  }
+
   return {
     data,
     items,
@@ -126,6 +136,8 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     riskOf,
     riskOfChannel,
     riskByChannel: scan.byChannel,
+    predictionOfChannel,
+    predictionByChannel: scan.predictionByChannel,
     isLoading,
     isFetching,
     isError,

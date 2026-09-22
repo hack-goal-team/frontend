@@ -61,13 +61,15 @@ export const RISK_SCAN_PARTIAL_ALERT = "Показаны риски не по в
 export const NO_DATA_NOTE = "нет данных";
 export const ORPHAN_TAG = "Родитель не найден в реестре";
 export const CHANNEL_UNKNOWN_BADGE = "нет в реестре";
+/** Подсказка на карточке канала: показывается только там, где прогноз реально найден. */
+export const CHANNEL_OPEN_PREDICTION_HINT = "Открыть детали прогноза канала";
 export const OBJECT_NOT_FOUND = "Объект не найден в вашей области видимости";
 export const CHANNEL_NOT_FOUND = "Канал не найден среди {n} загруженных из {m} каналов объекта";
 export const SHOW_ON_GRAPH = "Показать на схеме";
 export const SHOW_ON_GRAPH_SHORT = "На схеме →";
 export const NO_OBJECT_HINT = "Прогноз не сводится к объекту";
 
-// ---- Служебные узлы графа (колонка k+1) ----
+// ---- Служебные узлы графа (уровень k+1) ----
 
 /** «+ ещё N»: догрузка из уже принятого дерева (дети) или следующей страницы (каналы). */
 export const MORE_PREFIX = "+ ещё";

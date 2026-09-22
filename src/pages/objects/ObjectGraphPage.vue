@@ -21,9 +21,16 @@ import {
   buildObjectGraph,
   toFlowEdges,
   toFlowNodes,
-  type ChannelColumnState,
+  type ChannelRowState,
 } from "@/modules/objects/lib/graph";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
+import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery";
+import { useLabels } from "@/modules/reference/composables/useLabels";
+import SidePanel from "@/shared/ui/SidePanel.vue";
+// Панель деталей прогноза принадлежит журналу прогнозов; своя разметка здесь означала бы
+// две версии одного экрана, расходящиеся при каждой правке состава.
+import PredictionPanelContent from "@/pages/predictions/components/PredictionPanelContent.vue";
+import PredictionPanelSkeleton from "@/pages/predictions/components/skeletons/PredictionPanelSkeleton.vue";
 import ChannelStripMap from "./components/ChannelStripMap.vue";
 import ObjectGraphCanvas from "./components/ObjectGraphCanvas.vue";
 import ObjectGraphHeading from "./components/ObjectGraphHeading.vue";
@@ -34,6 +41,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const registry = useObjectRegistry();
+const { incidentTypeLabel } = useLabels();
 
 /** `route.params.id` типизирован string | string[] — нормализуем, иначе id уедет в [object Object]. */
 const objectId = computed(() => String(route.params.id ?? ""));
@@ -47,6 +55,23 @@ const highlightChannel = computed<string | null>(() => {
   const value = Array.isArray(raw) ? raw[0] : raw;
   return typeof value === "string" && value !== "" ? value : null;
 });
+
+/**
+ * Прогноз, открытый в боковой панели: то же имя параметра, что в журнале прогнозов
+ * (`?selectedId=`), — одна ссылка должна работать с любого экрана.
+ */
+const selectedPrediction = computed<string | null>(() => {
+  const raw = route.query.selectedId;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === "string" && value !== "" ? value : null;
+});
+
+const {
+  data: predictionDetail,
+  isLoading: isDetailLoading,
+  isError: isDetailError,
+  error: detailError,
+} = usePredictionQuery(selectedPrediction);
 
 /**
  * Разворот «+ ещё» для детей-объектов. Это не фильтр и не выбор объекта — они в URL, —
@@ -70,11 +95,11 @@ const channelsEnabled = computed(() => focus.value?.object.hierarchyLevel === 3)
 const channels = useObjectChannelsQuery(objectId, { enabled: channelsEnabled });
 
 /**
- * Колоночное состояние для `buildObjectGraph`. «empty» утверждается только когда запрос
- * завершился и страниц больше нет; на лету — «loading», иначе пустая колонка прочтётся
+ * Состояние строки каналов для `buildObjectGraph`. «empty» утверждается только когда запрос
+ * завершился и страниц больше нет; на лету — «loading», иначе пустой ряд прочтётся
  * как «каналов нет».
  */
-const channelState = computed<ChannelColumnState>(() => {
+const channelState = computed<ChannelRowState>(() => {
   if (!channelsEnabled.value) return "off";
   if (channels.isError.value) return "error";
   if (channels.isLoading.value || channels.isFetching.value) return "loading";
@@ -95,6 +120,7 @@ const graph = computed(() => {
     hasMoreChannels: channels.hasMore.value,
     riskOfNode: registry.riskOf,
     riskOfChannel: registry.riskOfChannel,
+    predictionOfChannel: registry.predictionOfChannel,
     highlightChannel: highlightChannel.value,
     childLimit: childrenExpanded.value ? Number.MAX_SAFE_INTEGER : MAX_CHILD_OBJECT_NODES,
   });
@@ -150,6 +176,16 @@ function revealChannel(channelId: string) {
   if (index >= channelLimit.value) channelLimit.value = index + 1;
 }
 
+/** Остальные параметры бережём: открытая панель прогноза от навигации по полосе не уходит. */
+function focusChannel(channelId: string) {
+  revealChannel(channelId);
+  router.replace({
+    name: "object-graph",
+    params: { id: objectId.value },
+    query: { ...route.query, highlightChannel: channelId },
+  });
+}
+
 /**
  * «+ ещё» на каналах: сначала поднимаем потолок отрисовки, затем, если принятых данных
  * не хватает, просим следующую страницу. Обратный порядок выглядел бы как игнорированный
@@ -191,9 +227,37 @@ function selectObject(id: string) {
   router.replace({ name: "object-graph", params: { id }, query: {} });
 }
 
-function focusChannel(channelId: string) {
-  revealChannel(channelId);
-  router.replace({ name: "object-graph", params: { id: objectId.value }, query: { highlightChannel: channelId } });
+/**
+ * Клик по карточке канала — детали прогноза, который этот канал и раскрасил. Прогноза нет
+ * (в смысле — канал не светится активным) и карта пустая: молча выходим, мёртвый клик
+ * хуже отсутствующей подсказки.
+ */
+function openChannelPrediction(channelId: string) {
+  const predictionId = registry.predictionByChannel.value.get(channelId);
+  if (predictionId) router.replace({ query: { ...route.query, selectedId: predictionId } });
+}
+
+function closePredictionPanel() {
+  const rest = { ...route.query };
+  delete rest.selectedId;
+  router.replace({ query: rest });
+}
+
+/**
+ * «Показать на схеме» из панели. Если прогноз относится к текущему объекту — только
+ * подсвечиваем узел: закрывать панель ради карточки, которая и так на экране, значит
+ * заставлять диспетчера открывать её заново.
+ */
+function showPredictionOnGraph(targetObjectId: string, channelId?: string) {
+  if (targetObjectId === objectId.value) {
+    if (channelId) focusChannel(channelId);
+    return;
+  }
+  router.replace({
+    name: "object-graph",
+    params: { id: targetObjectId },
+    query: channelId ? { highlightChannel: channelId } : {},
+  });
 }
 
 function onAuxClick(id: string) {
@@ -247,6 +311,7 @@ function onAuxClick(id: string) {
         :focus-id="graph?.focusId ?? ''"
         :highlighted-id="graph?.highlightedId ?? null"
         @aux-click="onAuxClick"
+        @channel-click="openChannelPrediction"
       />
 
       <ObjectGraphLegend
@@ -256,6 +321,31 @@ function onAuxClick(id: string) {
       />
     </template>
   </div>
+
+  <SidePanel
+    :visible="!!selectedPrediction"
+    :title="predictionDetail ? incidentTypeLabel(predictionDetail.prediction.incidentType) : 'Прогноз'"
+    size="600px"
+    @close="closePredictionPanel"
+  >
+    <PredictionPanelSkeleton v-if="isDetailLoading" />
+
+    <el-alert
+      v-else-if="isDetailError"
+      type="error"
+      :title="`Ошибка загрузки: ${(detailError as Error)?.message ?? 'неизвестно'}`"
+      :closable="false"
+      show-icon
+    />
+
+    <PredictionPanelContent
+      v-else-if="predictionDetail"
+      :detail="predictionDetail"
+      @show-on-graph="showPredictionOnGraph"
+    />
+
+    <el-empty v-else description="Данные недоступны" />
+  </SidePanel>
 </template>
 
 <style scoped>
