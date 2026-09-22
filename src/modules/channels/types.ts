@@ -30,3 +30,8 @@ export interface ChannelPage {
   offset: number;
   hasMore: boolean;
 }
+
+/** Страница вместе со счётчиком: `total: null` — «заголовка нет», это НЕ ноль. */
+export interface ChannelsPage extends ChannelPage {
+  total: number | null;
+}

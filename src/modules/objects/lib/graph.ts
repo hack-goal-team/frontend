@@ -114,6 +114,8 @@ export interface BuildGraphInput {
   channelState: ChannelColumnState;
   /** null — X-Total-Count не пришёл: «+ ещё N» и «из M» тогда без числа. */
   channelTotal: number | null;
+  /** `hasMore` последней страницы — утверждение схемы, работает и без счётчика. */
+  hasMoreChannels?: boolean;
   riskOfNode: (node: ObjectTreeNode) => NodeRisk | null;
   riskOfChannel?: (channel: Channel) => NodeRisk | null;
   highlightChannel?: string | null;
@@ -182,7 +184,17 @@ export function layoutGraph(cells: Cell[], focusColumn: number): Map<string, { x
 }
 
 export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
-  const { focus, ancestors, channels, channelState, channelTotal, riskOfNode, riskOfChannel, highlightChannel } = input;
+  const {
+    focus,
+    ancestors,
+    channels,
+    channelState,
+    channelTotal,
+    hasMoreChannels,
+    riskOfNode,
+    riskOfChannel,
+    highlightChannel,
+  } = input;
 
   const focusColumn = ancestors.length;
   const childColumn = focusColumn + 1;
@@ -276,13 +288,14 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
       row += 1;
     }
 
-    // Число скрытых каналов считаем от X-Total-Count; без него — только от принятого, и то тихо.
-    const hidden = channelTotal === null ? 0 : Math.max(channelTotal - shown.length, 0);
+    // Скрытые считаем от X-Total-Count; без счётчика остаётся hasMore последней страницы —
+    // он в схеме required, и «страница не последняя» без числа тоже повод показать «+ ещё».
+    const hidden = channelTotal === null ? null : Math.max(channelTotal - shown.length, 0);
     let aux: AuxKind | null = null;
     if (channelState === "loading" && shown.length === 0) aux = "channels-loading";
     else if (channelState === "error") aux = "channels-error";
     else if (channelState === "empty" && shown.length === 0) aux = "channels-empty";
-    else if (hidden > 0) aux = "more-channels";
+    else if ((hidden ?? 0) > 0 || hasMoreChannels) aux = "more-channels";
 
     if (aux) {
       const id = aux === "more-channels" ? GRAPH_ID.moreChannels : GRAPH_ID.state(aux.replace("channels-", ""));
@@ -292,7 +305,7 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
         column: childColumn,
         row,
         data: { kind: "aux", aux, count: aux === "more-channels" ? hidden : null },
-        ariaLabel: aux === "more-channels" ? `Показать ещё каналы: ${hidden}` : aux,
+        ariaLabel: aux === "more-channels" ? `Показать ещё каналы${hidden === null ? "" : `: ${hidden}`}` : aux,
       });
       link(focusId, id);
     }

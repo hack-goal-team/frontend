@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Handle, Position, type NodeProps } from "@vue-flow/core";
+import { pluralize } from "@/shared/lib/pluralize";
 import {
   AUX_CLICK_HINT,
   AUX_RETRY_HINT,
@@ -20,10 +21,15 @@ import type { AuxNodeData } from "@/modules/objects/lib/graph";
  */
 const props = defineProps<NodeProps<AuxNodeData>>();
 
+/** null — числа нет (X-Total-Count не пришёл, а hasMore есть): «+ ещё» без счётчика честнее выдуманного. */
+function more(count: number | null, one: string, few: string, many: string): string {
+  return count === null ? MORE_PREFIX : `${MORE_PREFIX} ${count} ${pluralize(count, one, few, many)}`;
+}
+
 const text = computed(() => {
   const data = props.data;
-  if (data.aux === "more-channels") return `${MORE_PREFIX} ${data.count ?? 0} каналов`;
-  if (data.aux === "more-children") return `${MORE_PREFIX} ${data.count ?? 0} объектов`;
+  if (data.aux === "more-channels") return more(data.count, "канал", "канала", "каналов");
+  if (data.aux === "more-children") return more(data.count, "объект", "объекта", "объектов");
   if (data.aux === "channels-loading") return CHANNELS_LOADING;
   if (data.aux === "channels-error") return CHANNELS_ERROR;
   return CHANNELS_EMPTY;

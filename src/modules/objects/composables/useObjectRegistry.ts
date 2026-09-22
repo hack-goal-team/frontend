@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 import { useAuthStore } from "@/modules/auth/store";
+import type { Channel } from "@/modules/channels/types";
 import { fetchObjects } from "../api";
 import { objectsKeys } from "../keys";
 import { RISK_DERIVED_NOTE, RISK_UNSUPPORTED_HINT } from "../consts";
@@ -96,6 +97,19 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     return ancestorChain(tree.value.byId, id);
   }
 
+  /**
+   * Риск канала. У `Channel` поля `risk` в контракте нет, поэтому источник ровно один —
+   * скан активных прогнозов по `context.channelId`. `registryRisk` не передаём намеренно:
+   * подставлять туда риск объекта означало бы приписать каналу чужое решение.
+   */
+  function riskOfChannel(channel: Channel): NodeRisk | null {
+    return resolveRisk({
+      support: riskSupport.value,
+      derived: scan.byChannel.value.get(channel.id),
+      coverage: scan.coverage.value,
+    });
+  }
+
   return {
     data,
     items,
@@ -110,6 +124,7 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     riskUnattributed: scan.unattributed,
     riskNote,
     riskOf,
+    riskOfChannel,
     riskByChannel: scan.byChannel,
     isLoading,
     isFetching,

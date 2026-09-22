@@ -67,6 +67,34 @@ export const CHANNELS_EMPTY = "Каналов нет";
 export const AUX_CLICK_HINT = "Нажмите на узел, чтобы догрузить";
 export const AUX_RETRY_HINT = "Нажмите на узел, чтобы повторить запрос";
 
+// ---- Каналы: поиск подсветки и полоса-мини-карта ----
+
+export const CHANNEL_SEARCH_PREFIX = "ищем канал…";
+
+/** Вариант без X-Total-Count: обещать «из M», когда M неизвестно, нельзя. */
+export const CHANNEL_NOT_FOUND_NO_TOTAL = "Канал не найден среди {n} загруженных каналов объекта";
+
+/** Упор в стоп-кран — отдельный текст: «не нашли» и «перестали искать» разные решения. */
+export const CHANNEL_SCAN_TRUNCATED =
+  "Канал не найден среди {n} загруженных каналов: поиск остановлен на лимите {max} страниц";
+
+/** Хвост полосы-мини-карты: сколько каналов ещё не прочитано. */
+export const CHANNEL_STRIP_HIDDEN = "ещё {n} не загружено";
+
+export function channelNotFoundText(loaded: number, total: number | null): string {
+  return total === null
+    ? CHANNEL_NOT_FOUND_NO_TOTAL.replace("{n}", String(loaded))
+    : CHANNEL_NOT_FOUND.replace("{n}", String(loaded)).replace("{m}", String(total));
+}
+
+export function channelScanTruncatedText(loaded: number, maxPages: number): string {
+  return CHANNEL_SCAN_TRUNCATED.replace("{n}", String(loaded)).replace("{max}", String(maxPages));
+}
+
+export function channelStripHiddenText(hidden: number): string {
+  return CHANNEL_STRIP_HIDDEN.replace("{n}", String(hidden));
+}
+
 // ---- Размеры и «стоп-краны» ----
 
 /**
