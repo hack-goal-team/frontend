@@ -19,13 +19,28 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [id: string] }>();
 
-const options = computed(() =>
-  props.objects.map((object) => ({
-    id: object.id,
-    label: objectLabel(object),
-    hint: `${LEVEL_LABEL[object.hierarchyLevel]} · ID ${object.id}`,
-  })),
-);
+/**
+ * Дедуп по id — то же правило «первая запись выигрывает», что в `buildObjectTree`.
+ * Выборка идёт из сырого снапшота реестра, а в нём повторная строка того же id —
+ * штатный случай (уникальность id схемой не гарантирована); без дедупа селект показал
+ * бы два варианта с одним value.
+ */
+const options = computed(() => {
+  const seen = new Set<string>();
+  const result: { id: string; label: string; hint: string }[] = [];
+
+  for (const object of props.objects) {
+    if (seen.has(object.id)) continue;
+    seen.add(object.id);
+    result.push({
+      id: object.id,
+      label: objectLabel(object),
+      hint: `${LEVEL_LABEL[object.hierarchyLevel]} · ID ${object.id}`,
+    });
+  }
+
+  return result;
+});
 
 /**
  * Ид из URL может отсутствовать в выдаче (объект вне области видимости → 404 по контракту).
