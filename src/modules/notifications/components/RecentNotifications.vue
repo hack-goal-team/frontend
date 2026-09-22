@@ -14,6 +14,21 @@ const router = useRouter();
 const { incidentTypeLabel } = useLabels();
 
 const items = computed(() => store.recentNotifications);
+const criticalCount = computed(() => store.criticalCount);
+
+/**
+ * Лента — окно сессии, снимок SSE — актуальное состояние. Числа различаются,
+ * и без пояснения диспетчер примет «20 записей» за «20 проблем».
+ */
+const hintText = computed(() => {
+  const base = "Уведомления текущей сессии. После перезагрузки список пуст.";
+  if (criticalCount.value === 0) return base;
+
+  const active = `Активных высокого риска сейчас: ${criticalCount.value}`;
+  if (items.value.length === 0) return `${base} ${active}.`;
+
+  return `${base} ${active} — лента показывает только последние ${items.value.length}.`;
+});
 
 function openPrediction(prediction: Prediction) {
   router.push({ name: "predictions", query: { selectedId: prediction.id, offset: "0" } });
@@ -41,7 +56,12 @@ function locationLabel(p: Prediction): string {
       <div class="recent-notifications__header">
         <span class="recent-notifications__title">
           Последние уведомления
-          <el-tooltip placement="top" content="Уведомления текущей сессии. После перезагрузки страницы список пуст.">
+
+          <span v-if="criticalCount > 0" class="recent-notifications__active">
+            · активных высокого риска: {{ criticalCount }}
+          </span>
+
+          <el-tooltip placement="top" :content="hintText">
             <el-icon class="recent-notifications__help"><InfoFilled /></el-icon>
           </el-tooltip>
         </span>
@@ -109,6 +129,12 @@ function locationLabel(p: Prediction): string {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.recent-notifications__active {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
 }
 
 .recent-notifications__help {

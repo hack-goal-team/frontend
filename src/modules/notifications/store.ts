@@ -75,10 +75,10 @@ export const useNotificationsStore = defineStore("notifications", () => {
       hasNewPredictions.value = true;
 
       ElNotification({
-        title: "Критические прогнозы",
-        message: formatNewPredictions(fresh.length),
+        title: "Прогнозы высокого риска",
+        message: `${formatNewPredictions(fresh.length)}. Смотрите на «Аналитической панели».`,
         type: "warning",
-        duration: 3000,
+        duration: 5000,
         progress: true,
         position: "bottom-left",
       });

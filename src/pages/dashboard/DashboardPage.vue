@@ -108,9 +108,9 @@ const state = computed<DashboardState>(() => {
 
       <div class="dashboard-grid">
         <DashboardCard
-          title="Активные прогнозы"
+          title="Активные риски"
           :value="data.activePredictions"
-          hint="Уникальные сочетания «цель + тип»"
+          hint="Все активные прогнозы, без повторов по «цель + тип инцидента»"
           icon="Warning"
           color="warning"
           clickable

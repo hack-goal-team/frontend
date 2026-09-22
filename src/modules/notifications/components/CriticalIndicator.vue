@@ -18,7 +18,7 @@ const tooltipText = computed(() => {
     return "Область видимости не назначена";
   }
   if (!hasCount.value) {
-    return "Нет критических прогнозов без решения";
+    return "Нет прогнозов высокого риска без решения";
   }
 
   const scope = auth.scope;
@@ -26,7 +26,8 @@ const tooltipText = computed(() => {
     scope?.kind === "ALL" ? " по всем объектам" : scope?.names[0] ? ` по объекту «${scope.names[0]}»` : "";
 
   const noun = pluralize(count.value, "прогноз", "прогноза", "прогнозов");
-  return `${count.value} критических ${noun} ждут решения${scopeLabel}. Нажмите, чтобы открыть список.`;
+  const verb = count.value === 1 ? "ждёт" : "ждут";
+  return `${count.value} ${noun} высокого риска ${verb} решения${scopeLabel}. Нажмите, чтобы открыть список.`;
 });
 
 function onClick() {
