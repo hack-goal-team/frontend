@@ -21,7 +21,7 @@ import {
   buildObjectGraph,
   toFlowEdges,
   toFlowNodes,
-  type ChannelRowState,
+  type ChannelColumnState,
 } from "@/modules/objects/lib/graph";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery";
@@ -95,11 +95,11 @@ const channelsEnabled = computed(() => focus.value?.object.hierarchyLevel === 3)
 const channels = useObjectChannelsQuery(objectId, { enabled: channelsEnabled });
 
 /**
- * Состояние строки каналов для `buildObjectGraph`. «empty» утверждается только когда запрос
- * завершился и страниц больше нет; на лету — «loading», иначе пустой ряд прочтётся
+ * Колоночное состояние для `buildObjectGraph`. «empty» утверждается только когда запрос
+ * завершился и страниц больше нет; на лету — «loading», иначе пустая колонка прочтётся
  * как «каналов нет».
  */
-const channelState = computed<ChannelRowState>(() => {
+const channelState = computed<ChannelColumnState>(() => {
   if (!channelsEnabled.value) return "off";
   if (channels.isError.value) return "error";
   if (channels.isLoading.value || channels.isFetching.value) return "loading";

@@ -37,7 +37,7 @@ const clickable = computed(() => !!props.data.predictionId);
         },
       ]"
     >
-      <Handle type="target" :position="Position.Top" />
+      <Handle type="target" :position="Position.Left" />
 
       <div class="channel-node__head">
         <el-tooltip :content="`ID: ${data.channel.id}`" placement="top">

@@ -195,7 +195,7 @@ export function countTreeNodes(roots: ObjectTreeNode[]): number {
  * Цепочка предков `id` сверху вниз, БЕЗ самого узла. Узлы, а не записи: графу нужны
  * `detached` и разрешение риска по тому же правилу, что у списка.
  * Для висячего parentId или неизвестного id возвращает `[]` — граф тогда рисуется
- * без спинки предков, фокус один в верхнем ряду, это штатное состояние, а не ошибка.
+ * без колонки предков, это штатное состояние, а не ошибка.
  */
 export function ancestorChain(byId: Map<string, ObjectTreeNode>, id: string): ObjectTreeNode[] {
   const path: ObjectTreeNode[] = [];

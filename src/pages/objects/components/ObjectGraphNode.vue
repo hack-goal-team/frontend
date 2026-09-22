@@ -24,7 +24,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
 <template>
   <div class="object-node" :class="[riskClass, { 'object-node_focus': data.focused }]">
-    <Handle type="target" :position="Position.Top" />
+    <Handle type="target" :position="Position.Left" />
 
     <div class="object-node__head">
       <el-tooltip :content="objectIdNote(data.object)" placement="top">
@@ -45,7 +45,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
     <ObjectRiskDot :risk="data.risk" class="object-node__risk" />
 
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle type="source" :position="Position.Right" />
   </div>
 </template>
 

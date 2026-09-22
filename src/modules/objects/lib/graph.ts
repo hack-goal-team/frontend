@@ -6,10 +6,7 @@ import { objectLabel } from "./label";
 import type { NodeRisk, ObjectTreeNode } from "../types";
 
 /**
- * Проекция «предки сверху → фокус → дети/каналы внизу» и детерминированный макет.
- *
- * Ориентация вертикальная: иерархия читается сверху вниз (район → комплекс → объект), а
- * однородные узлы одного уровня стоят в один ряд по горизонтали, в порядке выдачи.
+ * Проекция «предки → фокус → дети/каналы» и детерминированный макет.
  *
  * Рёбра выводятся ровно из двух отношений контракта: `InfrastructureObject.parentId`
  * (иерархия) и `Channel.objectId` (владение каналом). Топологии потока здесь нет — ребро
@@ -35,22 +32,12 @@ export const GRAPH_ID = {
 } as const;
 
 /**
- * Ориентация вертикальная: глубина иерархии идёт по y (`levelStep`), однородный уровень
- * разворачивается по x шагом `siblingStep` и переносится, как текст — не более
- * `nodesPerLine` узлов на строку (`lineStep` — высота строки).
- *
- * Перенос обязателен: без него объект с 30 каналами дал бы ленту шириной ~8700px, `fitView`
- * упёрся бы в `minZoom`, и экран выглядел бы сломанным. 6 в строку — 1680px, то есть кадр
- * типового монитора диспетчерской без учёта сайдбара.
- *
  * Размеры узлов заданы числами здесь, а не измеряются из DOM: координаты считаются
  * до первого кадра, и плавающая высота сдвигала бы фокус на каждой перерисовке.
  */
 export const GRAPH_LAYOUT = {
-  levelStep: 200,
-  siblingStep: 280,
-  lineStep: 96,
-  nodesPerLine: 6,
+  columnStep: 320,
+  rowStep: 92,
   size: {
     object: { width: 248, height: 76 },
     channel: { width: 232, height: 52 },
@@ -92,10 +79,8 @@ export type GraphNodeData = ObjectNodeData | ChannelNodeData | AuxNodeData;
 export interface GraphNode {
   id: string;
   type: GraphKind;
-  /** Глубина от корня: 0..k-1 предки, k фокус, k+1 дети и каналы. По этой оси идёт y. */
-  level: number;
-  /** Порядок внутри уровня — он же x: дети и каналы разложены слева направо. */
-  slot: number;
+  column: number;
+  row: number;
   position: { x: number; y: number };
   width: number;
   height: number;
@@ -112,15 +97,15 @@ export interface GraphEdge {
 export interface ObjectGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
-  /** false у уровня 2: каналов по контракту нет, и строки «нет данных» для него тоже нет. */
-  channelRowPresent: boolean;
+  /** false у уровня 2: каналов по контракту нет, и колонки «нет данных» для него тоже нет. */
+  channelColumnPresent: boolean;
   focusId: string;
   /** id узла подсветки, только если канал реально отрисован. */
   highlightedId: string | null;
 }
 
 /** "off" — источника каналов ещё нет (инкремент до подключения `/channels`). */
-export type ChannelRowState = "off" | "loading" | "error" | "empty" | "ready";
+export type ChannelColumnState = "off" | "loading" | "error" | "empty" | "ready";
 
 export interface BuildGraphInput {
   focus: ObjectTreeNode;
@@ -128,7 +113,7 @@ export interface BuildGraphInput {
   ancestors: ObjectTreeNode[];
   /** Каналы в порядке выдачи; обрезку по лимиту делает эта функция. */
   channels: Channel[];
-  channelState: ChannelRowState;
+  channelState: ChannelColumnState;
   /** null — X-Total-Count не пришёл: «+ ещё N» и «из M» тогда без числа. */
   channelTotal: number | null;
   /** `hasMore` последней страницы — утверждение схемы, работает и без счётчика. */
@@ -162,60 +147,41 @@ function channelAria(channel: Channel, risk: NodeRisk | null, predictionId: stri
   return parts.join(", ");
 }
 
-type Cell = { level: number; slot: number; kind: GraphKind };
+type Cell = { column: number; row: number; kind: GraphKind };
 type Placed = Omit<GraphNode, "position" | "width" | "height">;
 
 /**
- * Координаты из глубины (y: предки → фокус → дети) и порядка внутри уровня (x).
- * Фокус центрирован по блоку следующего уровня, предки стоят на одной вертикали с ним —
- * цепочка «район → комплекс → объект» читается сверху вниз одной линией.
+ * Координаты из колонок и строк. Фокус центрирован по блоку следующего уровня
+ * (центр блока = `(rows - 1) * rowStep / 2` плюс половина высоты узла), предки идут
+ * на одной вертикали с фокусом.
  *
- * `position` в Vue Flow — верхний левый угол, поэтому центровка считает ЦЕНТР блока
- * (`(строки - 1) * siblingStep / 2 + ширина / 2`) и вычитает половину ширины своего узла.
- * Ошибка «считаем левые углы» — расцентровка на полузла.
+ * `position` в Vue Flow — верхний левый угол, поэтому поправка на половину высоты обязательна:
+ * без неё фокус уезжает вверх на колонке более высоких узлов.
  *
- * Строка уровня выравнивается по центру блока, а не по левому краю: последняя, неполная строка
- * на 60 каналах иначе уехала бы влево и фокус «смотрел» бы не в середину, а в угол.
- *
- * Ширина блока берётся от ПЕРВОГО узла следующего уровня: в смешанном уровне (объекты +
+ * Высота блока берётся от первого узла следующей колонки: в смешанной колонке (объекты +
  * «+ ещё») возможен сдвиг на полузла. Это косметика, а не ошибка — вид центрируется по
- * однотипным уровням (каналы), а смешанные всегда короче лимита и влезают в кадр.
+ * однотипным колонкам (каналы), а смешанные всегда короче лимита и влезают в кадр.
  */
-export function layoutGraph(cells: Cell[], focusLevel: number): Map<string, { x: number; y: number }> {
-  const nextLevel = focusLevel + 1;
-  let slots = 0;
-  let blockKind: GraphKind | null = null;
+export function layoutGraph(cells: Cell[], focusColumn: number): Map<string, { x: number; y: number }> {
+  const nextColumn = focusColumn + 1;
+  let rows = 0;
+  let nextKind: GraphKind = "object";
 
   for (const cell of cells) {
-    if (cell.level !== nextLevel) continue;
-    if (cell.slot + 1 > slots) slots = cell.slot + 1;
-    blockKind ??= cell.kind;
+    if (cell.column === nextColumn) {
+      rows = Math.max(rows, cell.row + 1);
+      nextKind = cell.kind;
+    }
   }
 
-  const { levelStep, siblingStep, lineStep, nodesPerLine, size } = GRAPH_LAYOUT;
-  // Узлов на строку: хотя бы один, иначе на пустом уровне blockSpan уедет в минус на целый шаг.
-  const perLine = Math.max(Math.min(slots, nodesPerLine), 1);
-  const blockSpan = (perLine - 1) * siblingStep;
-  const blockCenter = blockSpan / 2 + size[blockKind ?? "object"].width / 2;
-  const sharedX = blockCenter - size.object.width / 2;
+  const blockCenter = rows > 0 ? ((rows - 1) * GRAPH_LAYOUT.rowStep) / 2 + GRAPH_LAYOUT.size[nextKind].height / 2 : 0;
+  const sharedY = blockCenter - GRAPH_LAYOUT.size.object.height / 2;
 
   const positions = new Map<string, { x: number; y: number }>();
   for (const cell of cells) {
-    if (cell.level !== nextLevel) {
-      positions.set(`${cell.level}:${cell.slot}`, { x: sharedX, y: cell.level * levelStep });
-      continue;
-    }
-    const line = Math.floor(cell.slot / nodesPerLine);
-    const inLine = Math.min(slots - line * nodesPerLine, nodesPerLine);
-    const width = size[cell.kind].width;
-    const step = cell.slot % nodesPerLine;
-    // Первый узел строки: центр строки совпадает с центром блока, от него — назад на полшага
-    // за каждого соседа и на половину своей ширины (position — левый верхний угол).
-    const firstLeft = blockCenter - ((inLine - 1) * siblingStep) / 2 - width / 2;
-
-    positions.set(`${cell.level}:${cell.slot}`, {
-      x: firstLeft + step * siblingStep,
-      y: cell.level * levelStep + line * lineStep,
+    positions.set(`${cell.column}:${cell.row}`, {
+      x: cell.column * GRAPH_LAYOUT.columnStep,
+      y: cell.column === nextColumn ? cell.row * GRAPH_LAYOUT.rowStep : sharedY,
     });
   }
 
@@ -236,9 +202,9 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
     highlightChannel,
   } = input;
 
-  const focusLevel = ancestors.length;
-  const childLevel = focusLevel + 1;
-  const channelRowPresent = focus.object.hierarchyLevel === 3;
+  const focusColumn = ancestors.length;
+  const childColumn = focusColumn + 1;
+  const channelColumnPresent = focus.object.hierarchyLevel === 3;
   const childLimit = input.childLimit ?? MAX_CHILD_OBJECT_NODES;
 
   const cells: Cell[] = [];
@@ -247,19 +213,19 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
 
   const link = (source: string, target: string) => edges.push({ id: GRAPH_ID.edge(source, target), source, target });
   const put = (item: Placed) => {
-    cells.push({ level: item.level, slot: item.slot, kind: item.type });
+    cells.push({ column: item.column, row: item.row, kind: item.type });
     placed.push(item);
   };
 
-  // Предки: по одному узлу на уровень (0..k-1) на одной вертикали с фокусом.
+  // Предки: по одному узлу на колонку (0..k-1), риск — тот же фолбэк, что и в списке.
   ancestors.forEach((ancestor, index) => {
     const risk = riskOfNode(ancestor);
     const id = GRAPH_ID.object(ancestor.id);
     put({
       id,
       type: "object",
-      level: index,
-      slot: 0,
+      column: index,
+      row: 0,
       data: { kind: "object", object: ancestor.object, risk, focused: false, detached: ancestor.detached },
       ariaLabel: objectAria(ancestor, risk),
     });
@@ -271,14 +237,14 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
   put({
     id: focusId,
     type: "object",
-    level: focusLevel,
-    slot: 0,
+    column: focusColumn,
+    row: 0,
     data: { kind: "object", object: focus.object, risk: focusRisk, focused: true, detached: focus.detached },
     ariaLabel: objectAria(focus, focusRisk),
   });
   if (ancestors.length > 0) link(GRAPH_ID.object(ancestors[ancestors.length - 1].id), focusId);
 
-  let slot = 0;
+  let row = 0;
 
   // Дети-объекты: сервером не лимитированы, единственный потолок — локальный.
   const shownChildren = focus.children.slice(0, childLimit);
@@ -288,13 +254,13 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
     put({
       id,
       type: "object",
-      level: childLevel,
-      slot,
+      column: childColumn,
+      row,
       data: { kind: "object", object: child.object, risk, focused: false, detached: child.detached },
       ariaLabel: objectAria(child, risk),
     });
     link(focusId, id);
-    slot += 1;
+    row += 1;
   }
 
   const hiddenChildren = focus.children.length - shownChildren.length;
@@ -302,16 +268,16 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
     put({
       id: GRAPH_ID.moreChildren,
       type: "aux",
-      level: childLevel,
-      slot,
+      column: childColumn,
+      row,
       data: { kind: "aux", aux: "more-children", count: hiddenChildren },
       ariaLabel: `Показать ещё детей: ${hiddenChildren}`,
     });
     link(focusId, GRAPH_ID.moreChildren);
-    slot += 1;
+    row += 1;
   }
 
-  if (channelRowPresent && channelState !== "off") {
+  if (channelColumnPresent && channelState !== "off") {
     const shown = channels.slice(0, CHANNEL_NODE_LIMIT);
     for (const channel of shown) {
       const risk = riskOfChannel?.(channel) ?? null;
@@ -320,19 +286,13 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
       put({
         id,
         type: "channel",
-        level: childLevel,
-        slot,
-        data: {
-          kind: "channel",
-          channel,
-          risk,
-          highlighted: channel.id === highlightChannel,
-          predictionId,
-        },
+        column: childColumn,
+        row,
+        data: { kind: "channel", channel, risk, highlighted: channel.id === highlightChannel, predictionId },
         ariaLabel: channelAria(channel, risk, predictionId),
       });
       link(focusId, id);
-      slot += 1;
+      row += 1;
     }
 
     // Скрытые считаем от X-Total-Count; без счётчика остаётся hasMore последней страницы —
@@ -349,8 +309,8 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
       put({
         id,
         type: "aux",
-        level: childLevel,
-        slot,
+        column: childColumn,
+        row,
         data: { kind: "aux", aux, count: aux === "more-channels" ? hidden : null },
         ariaLabel: aux === "more-channels" ? `Показать ещё каналы${hidden === null ? "" : `: ${hidden}`}` : aux,
       });
@@ -358,12 +318,12 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
     }
   }
 
-  const positions = layoutGraph(cells, focusLevel);
+  const positions = layoutGraph(cells, focusColumn);
   const nodes: GraphNode[] = placed.map((item) => {
     const size = GRAPH_LAYOUT.size[item.type];
     return {
       ...item,
-      position: positions.get(`${item.level}:${item.slot}`) ?? { x: 0, y: item.level * GRAPH_LAYOUT.levelStep },
+      position: positions.get(`${item.column}:${item.row}`) ?? { x: item.column * GRAPH_LAYOUT.columnStep, y: 0 },
       width: size.width,
       height: size.height,
     };
@@ -372,7 +332,7 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
   return {
     nodes,
     edges,
-    channelRowPresent,
+    channelColumnPresent,
     focusId,
     highlightedId:
       highlightChannel && nodes.some((n) => n.id === GRAPH_ID.channel(highlightChannel))
