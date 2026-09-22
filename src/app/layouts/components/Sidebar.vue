@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/modules/auth/store";
 import { PERMISSIONS } from "@/modules/auth/consts";
-import { DataBoard, Warning, Document, Setting, List } from "@element-plus/icons-vue";
+import { DataBoard, Warning, OfficeBuilding, Document, Setting, List } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import logoLight from "@/app/layouts/components/assets/logo-light.png";
 import logoDark from "@/app/layouts/components/assets/logo-dark.png";
@@ -33,6 +33,13 @@ const ALL_ITEMS: NavItem[] = [
     path: "/predictions",
     label: "Журнал прогнозов",
     icon: Warning,
+    permission: PERMISSIONS.PREDICTION_READ,
+  },
+  {
+    name: "objects",
+    path: "/objects",
+    label: "Реестр объектов",
+    icon: OfficeBuilding,
     permission: PERMISSIONS.PREDICTION_READ,
   },
   {

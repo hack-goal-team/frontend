@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/vue-query";
 import { predictionKeys } from "@/modules/predictions/keys";
 import type { PredictionPage } from "@/modules/predictions/types";
 import { dashboardKeys } from "../dashboard/keys";
+import { objectsKeys } from "../objects/keys";
 
 const RECONNECT_DELAY = 5000;
 
@@ -38,6 +39,8 @@ export function useSse() {
             if (wasDisconnected) {
               queryClient.invalidateQueries({ queryKey: predictionKeys.all });
               queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+              // Реестр — снапшот (ADR-015), его не трогаем; производный риск построен на активных прогнозах.
+              queryClient.invalidateQueries({ queryKey: objectsKeys.riskMap() });
             }
             return;
           }
@@ -56,6 +59,7 @@ export function useSse() {
             // Новый критический прогноз меняет и сводку панели — не ждём рефетч по времени
             if (fresh.length > 0) {
               queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+              queryClient.invalidateQueries({ queryKey: objectsKeys.riskMap() });
             }
           } catch (e) {
             console.warn("[SSE] failed to parse message", e);

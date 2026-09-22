@@ -1,0 +1,58 @@
+/**
+ * Мост между Element Plus и Vue Flow: переменные `--vf-*` объявляются ссылками на `--el-*`.
+ *
+ * Отдельного блока `html.dark` здесь нет — `--el-*` переназначаются на `<html>`, а подстановка
+ * `var()` происходит поздно, в точке использования, поэтому тёмная тема подхватывается без правок
+ * и переключение темы на открытом графе перекрашивает узлы без перезагрузки.
+ *
+ * Правил, которые нельзя перенести на переменные (stroke/path — SVG-атрибуты у дефолтных
+ * компонентов Vue Flow), тоже касаются только `--el-*`: любой hex здесь останется светлым
+ * пятном в тёмной теме.
+ */
+
+:root {
+  --vf-node-bg: var(--el-bg-color-overlay);
+  --vf-node-text: var(--el-text-color-primary);
+  --vf-node-color: var(--el-border-color);
+  --vf-handle: var(--el-border-color-darker);
+  --vf-connection-path: var(--el-border-color-darker);
+  --vf-box-shadow: var(--el-color-primary);
+}
+
+/* Рёбра: цвет маршрута читаем и в светлой, и в тёмной теме; маркера направления нет намеренно */
+.vue-flow__edge .vue-flow__edge-path {
+  stroke: var(--el-border-color-darker);
+  stroke-width: 1.5px;
+}
+
+.vue-flow__background circle {
+  fill: var(--el-border-color-lighter);
+}
+
+/* Якоря рёбер нужны для геометрии, но рисовать их незачем: связи не создаются и не правятся */
+.vue-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vue-flow__controls {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.vue-flow__controls-button {
+  background: var(--el-bg-color-overlay);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-regular);
+  fill: currentColor;
+}
+
+.vue-flow__controls-button:hover {
+  background: var(--el-fill-color-light);
+}
+
+.vue-flow__controls-button svg {
+  color: inherit;
+}

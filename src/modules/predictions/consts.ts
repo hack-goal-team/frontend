@@ -14,7 +14,6 @@ export const RISK_LABEL: Record<RiskLevel, string> = {
   HIGH: "Высокий",
 };
 
-//TODO: Для фильтра по рискам
 export const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
   { value: "LOW", label: "Низкий" },
   { value: "MEDIUM", label: "Средний" },

@@ -50,6 +50,18 @@ export const router = createRouter({
           component: () => import("@/pages/dashboard/DashboardPage.vue"),
           meta: { permission: PERMISSIONS.PREDICTION_READ },
         },
+        {
+          path: "objects",
+          name: "objects",
+          component: () => import("@/pages/objects/ObjectsPage.vue"),
+          meta: { permission: PERMISSIONS.PREDICTION_READ },
+        },
+        {
+          path: "objects/:id",
+          name: "object-graph",
+          component: () => import("@/pages/objects/ObjectGraphPage.vue"),
+          meta: { permission: PERMISSIONS.PREDICTION_READ },
+        },
       ],
     },
 
