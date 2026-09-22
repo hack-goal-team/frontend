@@ -1,16 +1,33 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
+import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import StatusTag from "./StatusTag.vue";
 import { useLabels } from "@/modules/reference/composables/useLabels.ts";
 
-defineProps<{
+const props = defineProps<{
   detail: PredictionDetail;
 }>();
 
+/**
+ * Переход на граф объекта — наружу, роутингом компонент не занимается
+ * (так же устроен клик по строке в таблице прогнозов).
+ */
+const emit = defineEmits<{ showOnGraph: [objectId: string, channelId?: string] }>();
+
 const { reasonLabel, incidentTypeLabel } = useLabels();
+
+/** `context.objectId` — единственное, без чего переход бессмысленен: графа для «никуда» нет. */
+const objectId = computed(() => props.detail.prediction.context?.objectId ?? null);
+const channelId = computed(() => props.detail.prediction.context?.channelId ?? null);
+
+function showOnGraph() {
+  if (!objectId.value) return;
+  emit("showOnGraph", objectId.value, channelId.value ?? undefined);
+}
 </script>
 
 <template>
@@ -34,10 +51,15 @@ const { reasonLabel, incidentTypeLabel } = useLabels();
       </el-descriptions-item>
 
       <el-descriptions-item label="Объект">
-        <span v-if="detail.prediction.context?.objectName">
-          {{ detail.prediction.context.objectName }}
-        </span>
-        <span v-else class="text-muted">—</span>
+        <div class="prediction-panel__object">
+          <span v-if="detail.prediction.context?.objectName">
+            {{ detail.prediction.context.objectName }}
+          </span>
+          <span v-else class="text-muted">—</span>
+          <el-button v-if="objectId" size="small" type="primary" link @click="showOnGraph">
+            {{ SHOW_ON_GRAPH }}
+          </el-button>
+        </div>
       </el-descriptions-item>
 
       <el-descriptions-item label="Датчик">
@@ -126,6 +148,13 @@ const { reasonLabel, incidentTypeLabel } = useLabels();
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.prediction-panel__object {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .prediction-panel__decision-reason {

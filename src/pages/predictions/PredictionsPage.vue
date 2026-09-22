@@ -56,6 +56,18 @@ function closePanel() {
   router.replace({ query: rest });
 }
 
+/**
+ * На граф объекта — push, а не replace: список прогнозов с его фильтрами должен остаться
+ * в истории. Канал передаётся подсветкой, только когда прогноз к нему привязан.
+ */
+function showOnGraph(objectId: string, channelId?: string) {
+  router.push({
+    name: "object-graph",
+    params: { id: objectId },
+    query: channelId ? { highlightChannel: channelId } : {},
+  });
+}
+
 // Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип»
 const fromDashboard = computed(() => route.query.from === "dashboard");
 
@@ -148,7 +160,7 @@ const total = computed(() => data.value?.total ?? 0);
       show-icon
     />
 
-    <PredictionPanelContent v-else-if="detail" :detail="detail" />
+    <PredictionPanelContent v-else-if="detail" :detail="detail" @show-on-graph="showOnGraph" />
 
     <el-empty v-else description="Данные недоступны" />
   </SidePanel>

@@ -36,6 +36,16 @@ export const RELATIONS_HINT =
 export const OBJECTS_TITLE = "Реестр объектов";
 export const GRAPH_TITLE = "Иерархия объекта";
 
+// ---- Карточка реестра на аналитической панели: четыре состояния, все видимые ----
+
+export const OBJECTS_CARD_TITLE = "Объектов в реестре";
+export const OBJECTS_CARD_HINT = "Откройте реестр, чтобы увидеть иерархию и каналы";
+/** 0 — ответ сервиса, а не пустой экран: переход по-прежнему доступен. */
+export const OBJECTS_CARD_EMPTY_HINT = "Реестр пуст";
+export const OBJECTS_CARD_NO_TOTAL_HINT = "Сколько объектов — неизвестно: сервис не прислал X-Total-Count";
+export const OBJECTS_CARD_LOADING_HINT = "Реестр загружается…";
+export const OBJECTS_CARD_ERROR_HINT = "Реестр недоступен";
+
 export const NAME_FALLBACK_PREFIX = "Объект #";
 
 /** channelCount: null ≠ 0 — «неизвестно» рисуется прочерком, а не нулём. */

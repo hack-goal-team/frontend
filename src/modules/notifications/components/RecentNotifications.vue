@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { Bell, InfoFilled } from "@element-plus/icons-vue";
 import { useNotificationsStore } from "../store";
+import { NO_OBJECT_HINT, SHOW_ON_GRAPH_SHORT } from "@/modules/objects/consts";
 import { RISK_LABEL, RISK_TAG_TYPE } from "@/modules/predictions/consts";
 import { useLabels } from "@/modules/reference/composables/useLabels";
 import type { Prediction } from "@/modules/predictions/types";
@@ -32,6 +33,25 @@ const hintText = computed(() => {
 
 function openPrediction(prediction: Prediction) {
   router.push({ name: "predictions", query: { selectedId: prediction.id, offset: "0" } });
+}
+
+/**
+ * Прогноз привязан к объекту не всегда (ADR-003): без `context.objectId` перехода на граф
+ * не существует, и кнопка обязана говорить об этом, а не вести в пустой экран.
+ */
+function hasObject(prediction: Prediction): boolean {
+  return prediction.context?.objectId != null;
+}
+
+function openGraph(prediction: Prediction) {
+  const { objectId, channelId } = prediction.context ?? {};
+  if (!objectId) return;
+
+  router.push({
+    name: "object-graph",
+    params: { id: objectId },
+    query: channelId ? { highlightChannel: channelId } : {},
+  });
 }
 
 function objectLabel(p: Prediction): string {
@@ -106,7 +126,26 @@ function locationLabel(p: Prediction): string {
             Горизонт до
             <strong>{{ formatDateTime(item.prediction.horizonUntil) }}</strong>
           </span>
-          <span class="notification__link">Открыть прогноз →</span>
+
+          <span class="notification__actions">
+            <!-- .stop на click и keydown.enter: клик по карточке наружу должен сохраниться -->
+            <el-tooltip :content="NO_OBJECT_HINT" :disabled="hasObject(item.prediction)" placement="top">
+              <!-- span-обёртка обязательна: disabled-button не шлёт pointer-events, и без неё
+                   подсказка «почему недоступно» не показывается вообще -->
+              <span>
+                <el-button
+                  size="small"
+                  text
+                  :disabled="!hasObject(item.prediction)"
+                  @click.stop="openGraph(item.prediction)"
+                  @keydown.enter.stop
+                >
+                  {{ SHOW_ON_GRAPH_SHORT }}
+                </el-button>
+              </span>
+            </el-tooltip>
+            <span class="notification__link">Открыть прогноз →</span>
+          </span>
         </div>
       </div>
     </div>
@@ -217,8 +256,14 @@ function locationLabel(p: Prediction): string {
   font-variant-numeric: tabular-nums;
 }
 
-.notification__link {
+.notification__actions {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification__link {
   color: var(--el-color-primary);
 }
 </style>

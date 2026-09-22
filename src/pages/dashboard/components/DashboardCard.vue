@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Warning, WarningFilled, Document, Bell, InfoFilled } from "@element-plus/icons-vue";
+import { Warning, WarningFilled, Document, Bell, InfoFilled, OfficeBuilding } from "@element-plus/icons-vue";
 import type { Component } from "vue";
+import { UNKNOWN_VALUE } from "@/modules/objects/consts";
 
 const props = defineProps<{
   title: string;
-  value: number;
+  /** null — «неизвестно» (например, X-Total-Count не пришёл), 0 — настоящее ноль. */
+  value: number | null;
   hint?: string;
-  icon?: "Warning" | "WarningFilled" | "Document" | "Bell" | "InfoFilled";
+  icon?: "Warning" | "WarningFilled" | "Document" | "Bell" | "InfoFilled" | "OfficeBuilding";
   color?: "primary" | "success" | "warning" | "danger" | "info";
   clickable?: boolean;
 }>();
@@ -22,6 +24,7 @@ const icons: Record<string, Component> = {
   Document,
   Bell,
   InfoFilled,
+  OfficeBuilding,
 };
 
 const iconComponent = computed(() => (props.icon ? icons[props.icon] : null));
@@ -48,7 +51,7 @@ const color = computed(() => props.color ?? "primary");
 
       <div class="dashboard-card__content">
         <div class="dashboard-card__title">{{ title }}</div>
-        <div class="dashboard-card__value">{{ value }}</div>
+        <div class="dashboard-card__value">{{ value ?? UNKNOWN_VALUE }}</div>
         <div v-if="hint" class="dashboard-card__hint">{{ hint }}</div>
       </div>
     </div>

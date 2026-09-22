@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { InfoFilled } from "@element-plus/icons-vue";
 import { useDashboardQuery } from "@/modules/dashboard/composables/useDashboardQuery";
 import { useAuthStore } from "@/modules/auth/store";
+import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
+import {
+  OBJECTS_CARD_EMPTY_HINT,
+  OBJECTS_CARD_ERROR_HINT,
+  OBJECTS_CARD_HINT,
+  OBJECTS_CARD_LOADING_HINT,
+  OBJECTS_CARD_NO_TOTAL_HINT,
+  OBJECTS_CARD_TITLE,
+} from "@/modules/objects/consts";
 import { useRiskNavigation } from "@/modules/predictions/composables/useRiskNavigation";
 import { useNow } from "@/shared/composables/useNow";
 import { formatDateTime } from "@/shared/lib/date";
@@ -14,8 +24,27 @@ import RiskBreakdown from "./components/RiskBreakdown.vue";
 type DashboardState = "empty-scope" | "loading" | "error" | "no-predictions" | "no-active" | "has-active";
 
 const auth = useAuthStore();
+const router = useRouter();
 const { openActive, openCritical, openUnreviewed } = useRiskNavigation();
 const { data, isLoading, isError, error } = useDashboardQuery();
+
+/** Карточке нужно только число записей — скан активных прогнозов не запускаем. */
+const registry = useObjectRegistry({ withRisks: false });
+
+/**
+ * `null` приходит из `parseTotal` (заголовка X-Total-Count нет), а не из `?? 0`:
+ * «ноль объектов» и «не знаем числа» — разные решения диспетчера, и право нуля
+ * превратиться в не-ноль по дороге к экрану у нас нет.
+ */
+const objectsTotal = computed(() => (registry.isLoading.value || registry.isError.value ? null : registry.total.value));
+
+const objectsHint = computed(() => {
+  if (registry.isError.value) return OBJECTS_CARD_ERROR_HINT;
+  if (registry.isLoading.value) return OBJECTS_CARD_LOADING_HINT;
+  if (registry.total.value === null) return OBJECTS_CARD_NO_TOTAL_HINT;
+  if (registry.total.value === 0) return OBJECTS_CARD_EMPTY_HINT;
+  return OBJECTS_CARD_HINT;
+});
 
 // Date.now() внутри computed не пересчитывается — возраст висел бы на первом рендере
 const now = useNow(30_000);
@@ -60,6 +89,11 @@ const state = computed<DashboardState>(() => {
   if (data.value.activePredictions === 0) return "no-active";
   return "has-active";
 });
+
+/** Пустой реестр — тоже ответ, который диспетчер вправе увидеть: клик живёт и при total = 0. */
+function openObjects() {
+  router.push({ name: "objects" });
+}
 </script>
 
 <template>
@@ -135,6 +169,17 @@ const state = computed<DashboardState>(() => {
           color="info"
           clickable
           @click="openUnreviewed"
+        />
+
+        <!-- :clickable="false" на ошибке: не ведём диспетчера в пустой экран -->
+        <DashboardCard
+          :title="OBJECTS_CARD_TITLE"
+          :value="objectsTotal"
+          :hint="objectsHint"
+          icon="OfficeBuilding"
+          color="primary"
+          :clickable="!registry.isError.value"
+          @click="openObjects"
         />
       </div>
 
