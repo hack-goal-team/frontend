@@ -216,20 +216,6 @@ export function ancestorChain(byId: Map<string, ObjectTreeNode>, id: string): Ob
   return path.reverse();
 }
 
-/** `id` — потомок `ancestorId` (строгий, без самого узла)? */
-export function isDescendant(byId: Map<string, ObjectTreeNode>, id: string, ancestorId: string): boolean {
-  let cursor = byId.get(id)?.parentId ?? null;
-  let guard = 0;
-
-  while (cursor !== null && guard <= byId.size) {
-    guard += 1;
-    if (cursor === ancestorId) return true;
-    cursor = byId.get(cursor)?.parentId ?? null;
-  }
-
-  return false;
-}
-
 /**
  * Фильтр дерева. Узел остаётся, если совпал сам ИЛИ если совпал кто-то из его потомков:
  * иначе поиск по имени листа рвал бы связь с его районом и дерево превращалось в плоский список.
