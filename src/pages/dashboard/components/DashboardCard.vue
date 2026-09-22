@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Warning, Document, Bell, InfoFilled } from "@element-plus/icons-vue";
+import { Warning, WarningFilled, Document, Bell, InfoFilled } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 
 const props = defineProps<{
   title: string;
   value: number;
   hint?: string;
-  icon?: "Warning" | "Document" | "Bell" | "InfoFilled";
+  icon?: "Warning" | "WarningFilled" | "Document" | "Bell" | "InfoFilled";
   color?: "primary" | "success" | "warning" | "danger" | "info";
+  clickable?: boolean;
+}>();
+
+const emit = defineEmits<{
+  click: [];
 }>();
 
 const icons: Record<string, Component> = {
   Warning,
+  WarningFilled,
   Document,
   Bell,
   InfoFilled,
@@ -24,7 +30,15 @@ const color = computed(() => props.color ?? "primary");
 </script>
 
 <template>
-  <el-card shadow="never" class="dashboard-card">
+  <el-card
+    shadow="never"
+    class="dashboard-card"
+    :class="{ 'dashboard-card_clickable': clickable }"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    @click="clickable && emit('click')"
+    @keydown.enter="clickable && emit('click')"
+  >
     <div class="dashboard-card__body">
       <div class="dashboard-card__icon" :class="`is-${color}`">
         <el-icon :size="28">
@@ -44,6 +58,16 @@ const color = computed(() => props.color ?? "primary");
 <style scoped>
 .dashboard-card :deep(.el-card__body) {
   padding: 20px;
+}
+
+.dashboard-card_clickable {
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.dashboard-card_clickable:hover,
+.dashboard-card_clickable:focus-visible {
+  border-color: var(--el-color-primary);
 }
 
 .dashboard-card__body {

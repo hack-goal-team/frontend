@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/modules/auth/store";
+import { useReferenceStore } from "@/modules/reference/store";
 import { PERMISSIONS } from "@/modules/auth/consts";
 
 export const router = createRouter({
@@ -88,5 +89,12 @@ router.beforeEach(async (to) => {
   const required = to.meta.permission as string | undefined;
   if (required && !auth.hasPermission(required)) {
     return { name: "forbidden" };
+  }
+
+  // 5. Справочник до рендера: подписи кодов и пороги риска нужны первому кадру,
+  //    иначе страница на миг показывает FLOOD вместо «Подтопление». Ошибку load
+  //    глотает сам стор — навигация из-за недоступного справочника не встанет.
+  if (to.meta.requiresAuth) {
+    await useReferenceStore().load();
   }
 });

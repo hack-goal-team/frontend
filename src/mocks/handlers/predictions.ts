@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
-import { mockPredictions } from "../data/predictions";
 import { generateDecisionsForPrediction } from "../data/generateDecisions";
+import { getLivePredictions } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
@@ -103,7 +103,7 @@ export const predictionHandlers = [
     const url = new URL(request.url);
     const q = parseQuery(url);
 
-    const filtered = applyFilters(mockPredictions, q);
+    const filtered = applyFilters(getLivePredictions(), q);
     const scoped = filterByScope(filtered, user);
     const sorted = sortPredictions(scoped);
 
@@ -126,7 +126,7 @@ export const predictionHandlers = [
     }
 
     const id = String(params.id);
-    const found = mockPredictions.find((p) => p.id === id);
+    const found = getLivePredictions().find((p) => p.id === id);
 
     if (!found) {
       return notFound(`Prediction ${id} not found`);

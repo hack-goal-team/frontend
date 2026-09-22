@@ -3,7 +3,8 @@ import type { Prediction, RiskLevel, PredictionStatus, TargetContext, Decision }
 
 // --- Справочники ---
 
-const INCIDENT_TYPES = ["FLOODING", "OVERHEAT", "FAILURE", "PRESSURE_DROP", "LEAK", "POWER_OUTAGE"] as const;
+// Коды типов — совпадают с /reference-data (mockReferenceData.incidentTypes)
+const INCIDENT_TYPES = ["EQUIPMENT_FAILURE", "FIRE", "FLOOD", "GAS", "INTRUSION"] as const;
 
 const TARGET_KINDS = ["COLLECTOR", "PUMP", "WELL", "SHAFT"] as const;
 

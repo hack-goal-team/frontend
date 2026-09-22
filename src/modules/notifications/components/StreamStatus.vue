@@ -18,7 +18,7 @@ const statusClass = computed(() => (store.connected ? "is-connected" : "is-disco
 <template>
   <div class="stream-status">
     <div class="stream-status__label-time">
-      <span class="stream-status__label">Данные обновлены:</span>
+      <span class="stream-status__label">Уведомления:</span>
       <span class="stream-status__time">{{ lastSnapshotText }}</span>
     </div>
     <div class="stream-status__dot-status">

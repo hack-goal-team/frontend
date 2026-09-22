@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import ChangesBanner from "@/modules/notifications/components/ChangesBanner.vue";
-import { useNotificationsStore } from "@/modules/notifications/store.ts";
-import { useCriticalNavigation } from "@/modules/notifications/useCriticalNavigation.ts";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
 import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
-import { predictionKeys } from "@/modules/predictions/keys.ts";
 import type { PredictionsQuery } from "@/modules/predictions/types";
 import SidePanel from "@/shared/ui/SidePanel.vue";
-import { useQueryClient } from "@tanstack/vue-query";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PredictionFilters from "./components/PredictionFilters.vue";
@@ -15,6 +10,7 @@ import PredictionPagination from "./components/PredictionPagination.vue";
 import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
 import { useAuthStore } from "@/modules/auth/store.ts";
+import { useLabels } from "@/modules/reference/composables/useLabels";
 import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
 import PredictionPanelSkeleton from "./components/skeletons/PredictionPanelSkeleton.vue";
 import PredictionTableSkeleton from "./components/skeletons/PredictionTableSkeleton.vue";
@@ -22,9 +18,7 @@ import PredictionTableSkeleton from "./components/skeletons/PredictionTableSkele
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-const queryClient = useQueryClient();
-const store = useNotificationsStore();
-const { showCritical } = useCriticalNavigation();
+const { incidentTypeLabel } = useLabels();
 
 const query = computed<PredictionsQuery>(() => ({
   limit: Number(route.query.limit ?? 50),
@@ -62,14 +56,13 @@ function closePanel() {
   router.replace({ query: rest });
 }
 
-function onReload() {
-  queryClient.invalidateQueries({ queryKey: predictionKeys.lists() });
-  store.clearNewPredictions();
-}
+// Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип»
+const fromDashboard = computed(() => route.query.from === "dashboard");
 
-function onShowCritical() {
-  showCritical();
-  store.clearNewPredictions();
+function dismissDedupNotice() {
+  const rest = { ...route.query };
+  delete rest.from;
+  router.replace({ query: rest });
 }
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
@@ -85,7 +78,25 @@ const total = computed(() => data.value?.total ?? 0);
   <div class="predictions-page">
     <PredictionFilters :disable="auth.isEmptyScope" class="predictions-page__filters" />
 
-    <ChangesBanner @reload="onReload" @show-critical="onShowCritical" />
+    <el-alert
+      v-if="fromDashboard"
+      type="info"
+      :closable="true"
+      show-icon
+      title="Показаны все строки журнала"
+      description="На аналитической панели счётчики дедуплицированы по сочетанию «цель + тип инцидента», поэтому строк здесь может быть больше."
+      @close="dismissDedupNotice"
+    />
+
+    <el-alert
+      v-if="route.query.from === 'header' && route.query.status === 'NEW'"
+      type="info"
+      :closable="true"
+      show-icon
+      class="predictions-page__hint"
+    >
+      Показаны критические прогнозы без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
+    </el-alert>
 
     <el-card
       class="predictions-page__table"
@@ -123,7 +134,7 @@ const total = computed(() => data.value?.total ?? 0);
 
   <SidePanel
     :visible="isPanelOpen"
-    :title="detail?.prediction.incidentType ?? 'Прогноз'"
+    :title="detail ? incidentTypeLabel(detail.prediction.incidentType) : 'Прогноз'"
     size="600px"
     @close="closePanel"
   >

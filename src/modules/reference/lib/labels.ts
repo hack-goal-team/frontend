@@ -8,10 +8,3 @@ export function findCodeLabel(codes: Code[] | undefined, code: string): string {
   const found = codes?.find((c) => c.code === code);
   return found?.description ?? code;
 }
-
-/**
- * Обёртка для причин решений.
- */
-export function findReasonLabel(reasons: Code[] | undefined, code: string): string {
-  return findCodeLabel(reasons, code);
-}

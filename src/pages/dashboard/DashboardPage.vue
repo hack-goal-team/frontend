@@ -1,30 +1,64 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { InfoFilled } from "@element-plus/icons-vue";
 import { useDashboardQuery } from "@/modules/dashboard/composables/useDashboardQuery";
 import { useAuthStore } from "@/modules/auth/store";
+import { useRiskNavigation } from "@/modules/predictions/composables/useRiskNavigation";
+import { useNow } from "@/shared/composables/useNow";
 import { formatDateTime } from "@/shared/lib/date";
 import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
+import RecentNotifications from "@/modules/notifications/components/RecentNotifications.vue";
 import DashboardCard from "./components/DashboardCard.vue";
 import RiskBreakdown from "./components/RiskBreakdown.vue";
 
+type DashboardState = "empty-scope" | "loading" | "error" | "no-predictions" | "no-active" | "has-active";
+
 const auth = useAuthStore();
+const { openActive, openCritical, openUnreviewed } = useRiskNavigation();
 const { data, isLoading, isError, error } = useDashboardQuery();
 
+// Date.now() внутри computed не пересчитывается — возраст висел бы на первом рендере
+const now = useNow(30_000);
+
 const latestText = computed(() => {
-  if (!data.value?.latestPredictionAt) return "Нет данных";
-  return formatDateTime(data.value.latestPredictionAt);
+  const iso = data.value?.latestPredictionAt;
+  return iso ? formatDateTime(iso) : "нет данных";
 });
 
 const ageText = computed(() => {
-  if (!data.value?.latestPredictionAt) return "—";
-  const ms = Date.now() - Date.parse(data.value.latestPredictionAt);
+  const iso = data.value?.latestPredictionAt;
+  if (!iso) return "—";
+
+  const ms = now.value.getTime() - Date.parse(iso);
+  if (Number.isNaN(ms)) return "—";
+
   const minutes = Math.floor(ms / 60_000);
   if (minutes < 1) return "только что";
   if (minutes < 60) return `${minutes} мин назад`;
+
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} ч назад`;
-  const days = Math.floor(hours / 24);
-  return `${days} дн назад`;
+
+  return `${Math.floor(hours / 24)} дн назад`;
+});
+
+const generatedText = computed(() => {
+  const iso = data.value?.generatedAt;
+  return iso ? formatDateTime(iso) : "—";
+});
+
+/**
+ * Отсутствие прогнозов не доказывает отсутствие проблем, поэтому «всё в норме»
+ * тут не пишется: нет расчётов — «прогнозы не рассчитаны», расчёты были, но
+ * истекли — «нет актуальных прогнозов» с временем последнего расчёта.
+ */
+const state = computed<DashboardState>(() => {
+  if (auth.isEmptyScope) return "empty-scope";
+  if (isLoading.value) return "loading";
+  if (isError.value) return "error";
+  if (!data.value?.latestPredictionAt) return "no-predictions";
+  if (data.value.activePredictions === 0) return "no-active";
+  return "has-active";
 });
 </script>
 
@@ -34,24 +68,44 @@ const ageText = computed(() => {
   </Teleport>
 
   <div class="dashboard-page">
-    <!-- EMPTY scope — объяснение -->
-    <EmptyScopeNotice v-if="auth.isEmptyScope" />
+    <EmptyScopeNotice v-if="state === 'empty-scope'" />
 
-    <!-- Ошибка -->
     <el-alert
-      v-else-if="isError"
+      v-else-if="state === 'error'"
       type="error"
       :title="`Ошибка загрузки: ${(error as Error)?.message ?? 'неизвестно'}`"
       :closable="false"
       show-icon
     />
 
-    <!-- Скелетон -->
-    <el-skeleton v-else-if="isLoading" :rows="6" animated />
+    <el-skeleton v-else-if="state === 'loading'" :rows="6" animated />
 
-    <!-- Данные -->
+    <el-empty v-else-if="state === 'no-predictions'" description="Прогнозы пока не рассчитаны" />
+
+    <el-empty v-else-if="state === 'no-active'" description="Нет актуальных прогнозов на текущий момент">
+      <p class="dashboard-page__empty-hint">Последний расчёт: {{ latestText }} · {{ ageText }}</p>
+    </el-empty>
+
     <template v-else-if="data">
-      <!-- Верхний ряд: ключевые метрики -->
+      <div class="dashboard-page__meta">
+        <div class="dashboard-page__meta-item">
+          <span class="dashboard-page__meta-label">Последний расчёт прогноза:</span>
+          <span>{{ latestText }}</span>
+          <span class="dashboard-page__age">· {{ ageText }}</span>
+          <el-tooltip
+            placement="top"
+            content="Время последнего расчёта учитывает в том числе прогнозы, срок действия которых уже завершился."
+          >
+            <el-icon class="dashboard-page__help"><InfoFilled /></el-icon>
+          </el-tooltip>
+        </div>
+
+        <div class="dashboard-page__meta-item">
+          <span class="dashboard-page__meta-label">Сводка сформирована:</span>
+          <span>{{ generatedText }}</span>
+        </div>
+      </div>
+
       <div class="dashboard-grid">
         <DashboardCard
           title="Активные прогнозы"
@@ -59,14 +113,18 @@ const ageText = computed(() => {
           hint="Уникальные сочетания «цель + тип»"
           icon="Warning"
           color="warning"
+          clickable
+          @click="openActive"
         />
 
         <DashboardCard
-          title="Строк журнала"
-          :value="data.predictionRows"
-          hint="Может быть больше активных при повторных расчётах"
-          icon="Document"
-          color="info"
+          title="Высокий риск"
+          :value="data.riskCounts.HIGH"
+          hint="Прогнозы с уровнем риска HIGH"
+          icon="WarningFilled"
+          color="danger"
+          clickable
+          @click="openCritical"
         />
 
         <DashboardCard
@@ -74,24 +132,32 @@ const ageText = computed(() => {
           :value="data.unreviewedPredictions"
           hint="Статус NEW — решение не зафиксировано"
           icon="Bell"
-          color="danger"
+          color="info"
+          clickable
+          @click="openUnreviewed"
         />
       </div>
 
-      <!-- Разбивка по рискам -->
+      <div class="dashboard-page__caption">
+        Активных строк журнала: {{ data.predictionRows }}. В счётчиках учитывается только последний актуальный прогноз
+        по сочетанию «цель + тип инцидента».
+        <el-tooltip
+          placement="top"
+          content="Одну цель модель считает несколько раз. В журнале строк может быть больше, чем показывает счётчик, — это не расхождение."
+        >
+          <el-icon class="dashboard-page__help"><InfoFilled /></el-icon>
+        </el-tooltip>
+      </div>
+
       <el-card shadow="never" class="dashboard-page__risks">
         <template #header>
-          <div class="dashboard-page__risks-header">
-            <span>Распределение по уровню риска</span>
-            <span class="dashboard-page__updated">
-              Данные обновлены: {{ latestText }}
-              <span class="dashboard-page__age">({{ ageText }})</span>
-            </span>
-          </div>
+          <span>Распределение по уровню риска</span>
         </template>
 
         <RiskBreakdown :counts="data.riskCounts" />
       </el-card>
+
+      <RecentNotifications />
     </template>
   </div>
 </template>
@@ -106,6 +172,47 @@ const ageText = computed(() => {
   overflow: auto;
 }
 
+.dashboard-page__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.dashboard-page__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-page__meta-label {
+  color: var(--el-text-color-secondary);
+}
+
+.dashboard-page__age {
+  color: var(--el-text-color-placeholder);
+}
+
+.dashboard-page__help {
+  color: var(--el-text-color-secondary);
+}
+
+.dashboard-page__caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+
+.dashboard-page__empty-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -114,24 +221,7 @@ const ageText = computed(() => {
 }
 
 .dashboard-page__risks {
-  flex: 1;
-  min-height: 0;
-}
-
-.dashboard-page__risks-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dashboard-page__updated {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.dashboard-page__age {
-  color: var(--el-text-color-placeholder);
+  flex-shrink: 0;
 }
 
 .page-title {

@@ -7,6 +7,11 @@ let livePredictions: Prediction[] = [...mockPredictions];
 
 let nextId = 10000;
 
+/** Живой журнал: моки /dashboard и /predictions должны видеть порождённые SSE-прогнозы. */
+export function getLivePredictions(): Prediction[] {
+  return livePredictions;
+}
+
 /**
  * Имитирует появление нового критического прогноза.
  * Вызывается по таймеру из SSE-хендлера.
@@ -29,7 +34,7 @@ export function spawnCriticalPrediction(): Prediction {
       sensorType: "Датчик температуры",
       engineeringSystem: "Температурная подсистема",
     },
-    incidentType: "FLOODING",
+    incidentType: "FLOOD",
     probability: 0.85 + Math.random() * 0.15,
     riskLevel: "HIGH",
     computedAt: now.toISOString(),

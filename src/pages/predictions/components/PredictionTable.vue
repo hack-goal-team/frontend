@@ -19,7 +19,7 @@ function handleRowClick(row: Prediction) {
   emit("rowClick", row.id);
 }
 
-const { reasonLabel } = useLabels();
+const { reasonLabel, incidentTypeLabel } = useLabels();
 </script>
 
 <template>
@@ -35,7 +35,11 @@ const { reasonLabel } = useLabels();
     show-overflow-tooltip
     @row-click="handleRowClick"
   >
-    <el-table-column prop="incidentType" label="Тип" min-width="140" />
+    <el-table-column label="Тип инцидента" min-width="170">
+      <template #default="{ row }">
+        {{ incidentTypeLabel(row.incidentType) }}
+      </template>
+    </el-table-column>
     <el-table-column label="Вероятность" min-width="120">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}

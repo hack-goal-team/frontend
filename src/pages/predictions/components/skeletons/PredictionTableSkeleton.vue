@@ -13,7 +13,7 @@ withDefaults(
 );
 
 const COLUMNS = [
-  { key: "incidentType", width: "140px", kind: "text", textWidth: "80%" },
+  { key: "incidentType", width: "170px", kind: "text", textWidth: "80%" },
   { key: "probability", width: "120px", kind: "text", textWidth: "60%" },
   { key: "horizonUntil", width: "160px", kind: "text", textWidth: "90%" },
   { key: "object", width: "200px", kind: "text", textWidth: "80%" },

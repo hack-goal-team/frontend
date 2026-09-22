@@ -51,7 +51,12 @@ export function useSse() {
 
           try {
             const page = JSON.parse(event.data) as PredictionPage;
-            store.onSnapshot(page.items);
+            const fresh = store.onSnapshot(page.items);
+
+            // Новый критический прогноз меняет и сводку панели — не ждём рефетч по времени
+            if (fresh.length > 0) {
+              queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+            }
           } catch (e) {
             console.warn("[SSE] failed to parse message", e);
           }

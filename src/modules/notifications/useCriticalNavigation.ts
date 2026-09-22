@@ -17,7 +17,9 @@ export function useCriticalNavigation() {
       query: {
         activeOnly: "true",
         minProbability: String(high),
+        status: "NEW",
         offset: "0",
+        from: "header",
       },
     });
   }

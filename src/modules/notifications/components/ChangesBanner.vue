@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useNotificationsStore } from "../store";
 import { formatNewPredictions } from "../lib/format";
+import { useNotificationsStore } from "../store";
 
 const emit = defineEmits<{
   reload: [];
@@ -12,7 +12,6 @@ const store = useNotificationsStore();
 
 const message = computed(() => formatNewPredictions(store.newPredictionIds.length));
 </script>
-
 <template>
   <el-alert v-if="store.hasNewPredictions" type="info" show-icon :closable="true" @close="store.clearNewPredictions()">
     <template #title>

@@ -2,7 +2,7 @@ import type { Code } from "@/shared/api/types";
 
 export interface ReferenceData {
   reasons: Code[];
-  incidentTypes: string[];
+  incidentTypes: Code[];
   riskThresholds: { medium: number; high: number };
-  predictionStatuses: string[];
+  predictionStatuses: Code[];
 }

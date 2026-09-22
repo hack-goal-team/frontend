@@ -5,6 +5,8 @@ import { useSse } from "@/modules/notifications/useSse";
 import Sidebar from "./components/Sidebar.vue";
 
 useSse();
+
+// Справочник грузит роутер перед входом на защищённую страницу (router.beforeEach)
 </script>
 
 <template>

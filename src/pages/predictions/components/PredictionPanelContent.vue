@@ -5,13 +5,12 @@ import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import StatusTag from "./StatusTag.vue";
 import { useLabels } from "@/modules/reference/composables/useLabels.ts";
-import { incidentTypeLabel } from "@/modules/reference/lib/incidentTypes.ts";
 
 defineProps<{
   detail: PredictionDetail;
 }>();
 
-const { reasonLabel } = useLabels();
+const { reasonLabel, incidentTypeLabel } = useLabels();
 </script>
 
 <template>

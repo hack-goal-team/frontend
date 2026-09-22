@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useReferenceStore } from "@/modules/reference/store";
 
 const route = useRoute();
 const router = useRouter();
 const reference = useReferenceStore();
-
-onMounted(() => reference.load());
 
 const incidentType = computed({
   get: () => (route.query.incidentType as string) ?? "",
@@ -50,13 +48,23 @@ defineProps<{ disable: boolean }>();
   <el-form :disabled="disable" :inline="true" class="prediction-filters">
     <el-form-item label="Тип инцидента">
       <el-select v-model="incidentType" clearable placeholder="Все" style="min-width: 200px">
-        <el-option v-for="t in reference.data?.incidentTypes ?? []" :key="t" :label="t" :value="t" />
+        <el-option
+          v-for="t in reference.data?.incidentTypes ?? []"
+          :key="t.code"
+          :label="t.description"
+          :value="t.code"
+        />
       </el-select>
     </el-form-item>
 
     <el-form-item label="Статус">
       <el-select v-model="status" clearable placeholder="Все" style="min-width: 160px">
-        <el-option v-for="s in reference.data?.predictionStatuses ?? []" :key="s" :label="s" :value="s" />
+        <el-option
+          v-for="s in reference.data?.predictionStatuses ?? []"
+          :key="s.code"
+          :label="s.description"
+          :value="s.code"
+        />
       </el-select>
     </el-form-item>
 

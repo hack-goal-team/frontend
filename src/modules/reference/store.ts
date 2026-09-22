@@ -8,8 +8,18 @@ export const useReferenceStore = defineStore("reference", () => {
   const loading = ref(false);
   const error = ref<Error | null>(null);
 
-  async function load(force = false) {
-    if (data.value && !force) return;
+  // Справочник грузит guard роутера, а навигации могут пересекаться: кто пришёл
+  // во время полёта — ждёт этот же запрос, а не плодит новый. После ошибки data
+  // остаётся null, поэтому следующая навигация попробует снова.
+  let inflight: Promise<void> | null = null;
+
+  function load(): Promise<void> {
+    if (data.value) return Promise.resolve();
+    inflight ??= fetchOnce();
+    return inflight;
+  }
+
+  async function fetchOnce(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
@@ -18,6 +28,7 @@ export const useReferenceStore = defineStore("reference", () => {
       error.value = e as Error;
     } finally {
       loading.value = false;
+      inflight = null;
     }
   }
 
