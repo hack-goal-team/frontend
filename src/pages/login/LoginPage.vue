@@ -16,13 +16,23 @@ const isMockMode = import.meta.env.VITE_USE_MOCK === "true";
 
 const canSubmit = computed(() => form.username.trim().length > 0 && form.password.length > 0);
 
+/**
+ * Путь из ?redirect= берём только внутренний: `//host` браузер прочитает как
+ * protocol-relative и уведёт за пределы приложения.
+ */
+function redirectPath(redirect: unknown): string {
+  if (typeof redirect === "string" && redirect.startsWith("/") && !redirect.startsWith("//")) {
+    return redirect;
+  }
+  return "/dashboard";
+}
+
 async function onSubmit() {
   if (!canSubmit.value || auth.loading) return;
 
   try {
     await auth.login(form.username, form.password);
-    const redirect = (route.query.redirect as string) || "/predictions";
-    router.push(redirect);
+    router.push(redirectPath(route.query.redirect));
   } catch {
     // ошибка уже в auth.error
   }

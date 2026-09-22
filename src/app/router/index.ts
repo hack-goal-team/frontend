@@ -15,9 +15,11 @@ export const router = createRouter({
           path: "",
           name: "login",
           component: () => import("@/pages/login/LoginPage.vue"),
+          meta: { public: true },
         },
       ],
     },
+    // --- Страница 403: для авторизованного, но без нужного права ---
     {
       path: "/403",
       component: () => import("@/app/layouts/AuthLayout.vue"),
@@ -34,20 +36,19 @@ export const router = createRouter({
     {
       path: "/",
       component: () => import("@/app/layouts/AppLayout.vue"),
-      meta: { requiresAuth: true },
       children: [
-        { path: "", redirect: "/predictions" },
+        { path: "", redirect: "/dashboard" },
         {
           path: "predictions",
           name: "predictions",
           component: () => import("@/pages/predictions/PredictionsPage.vue"),
-          meta: { requiresAuth: true, permission: PERMISSIONS.PREDICTION_READ },
+          meta: { permission: PERMISSIONS.PREDICTION_READ },
         },
         {
           path: "dashboard",
           name: "dashboard",
           component: () => import("@/pages/dashboard/DashboardPage.vue"),
-          meta: { requiresAuth: true, permission: PERMISSIONS.PREDICTION_READ },
+          meta: { permission: PERMISSIONS.PREDICTION_READ },
         },
       ],
     },
@@ -69,20 +70,23 @@ export const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
+  // Защита по умолчанию: публичный маршрут только тот, что помечен `public`.
+  // Так неизвестный путь и 404 тоже уводят на /login, а не показываются без сессии.
+  const isPublic = to.meta.public === true;
 
   // 1. Восстановить сессию, если нужно
-  if (!auth.user && to.meta.requiresAuth) {
+  if (!auth.user && !isPublic) {
     await auth.fetchMe();
   }
 
   // 2. Не авторизован → /login
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+  if (!isPublic && !auth.isAuthenticated) {
     return { name: "login", query: { redirect: to.fullPath } };
   }
 
   // 3. Уже авторизован → не пускать на /login
   if (to.name === "login" && auth.isAuthenticated) {
-    return { name: "predictions" };
+    return { name: "dashboard" };
   }
 
   // 4. Проверка прав
@@ -94,7 +98,7 @@ router.beforeEach(async (to) => {
   // 5. Справочник до рендера: подписи кодов и пороги риска нужны первому кадру,
   //    иначе страница на миг показывает FLOOD вместо «Подтопление». Ошибку load
   //    глотает сам стор — навигация из-за недоступного справочника не встанет.
-  if (to.meta.requiresAuth) {
+  if (!isPublic) {
     await useReferenceStore().load();
   }
 });
