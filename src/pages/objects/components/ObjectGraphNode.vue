@@ -12,18 +12,21 @@ import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
  * Узел объекта. Подпись и риск — те же компоненты, что в таблице реестра: на графе
  * диспетчер не должен встречать другой язык разметки.
  *
- * Уровень риска окрашивает карточку целиком (рамка + фон), левая полоса — тот же цвет,
- * но плотнее: на сильном риске карточка обязана читаться издалека, когда текста уже не разобрать.
- * Цвет не заменяет текстовую подпись: он нерабочий ни для дальтоников, ни на печати.
+ * Карточка залита тем же цветом, что и полоса слева: риск обязан читаться издалека, когда
+ * текста уже не разобрать. Отсюда белый текст внутри — `--el-text-color-*` на dense-заливке
+ * не читаются ни в светлой, ни в тёмной теме. Цвет не заменяет текстовую подпись: он
+ * нерабочий ни для дальтоников, ни на печати.
  */
 const props = defineProps<NodeProps<ObjectNodeData>>();
 
 const riskClass = computed(() => `object-node_risk-${props.data.risk?.level?.toLowerCase() ?? "unknown"}`);
+/** Заливка только у карточки с уровнем: «нет данных» и «прогнозов нет» остаются светлыми. */
+const filled = computed(() => !!props.data.risk?.level);
 const derived = computed(() => props.data.risk?.source === "derived" && !!props.data.risk?.level);
 </script>
 
 <template>
-  <div class="object-node" :class="[riskClass, { 'object-node_focus': data.focused }]">
+  <div class="object-node" :class="[riskClass, { 'object-node_focus': data.focused, 'object-node_filled': filled }]">
     <Handle type="target" :position="Position.Left" />
 
     <div class="object-node__head">
@@ -63,31 +66,43 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
   border: 1px solid var(--el-border-color);
   border-left-width: 4px;
   background: var(--el-bg-color-overlay);
+  /* Текст узла: на светлой карточке — обычные цвета темы, на залитой цветом риска — белый. */
+  --node-text: var(--el-text-color-primary);
+  --node-muted: var(--el-text-color-secondary);
 }
 
 .object-node_risk-high {
-  border-color: var(--el-color-danger-light-7);
-  border-left-color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
+  --node-fill: var(--el-color-danger);
+  --node-edge: var(--el-color-danger-light-7);
 }
 
 .object-node_risk-medium {
-  border-color: var(--el-color-warning-light-7);
-  border-left-color: var(--el-color-warning);
-  background: var(--el-color-warning-light-9);
+  --node-fill: var(--el-color-warning);
+  --node-edge: var(--el-color-warning-light-7);
 }
 
 .object-node_risk-low {
-  border-color: var(--el-color-success-light-7);
-  border-left-color: var(--el-color-success);
-  background: var(--el-color-success-light-9);
+  --node-fill: var(--el-color-success);
+  --node-edge: var(--el-color-success-light-7);
+}
+
+/*
+ * Карточка залита цветом полосы слева. Рамку оставляем светлее: узлы одного уровня стоят
+ * вплотную, и без более светлого контура колонка объектов слиплась бы в одно пятно.
+ */
+.object-node_filled {
+  border-color: var(--node-edge);
+  border-left-color: var(--node-fill);
+  background: var(--node-fill);
+  --node-text: var(--el-color-white);
+  --node-muted: rgba(255, 255, 255, 0.85);
 }
 
 .object-node_risk-unknown {
   border-left-color: var(--el-border-color-darker);
 }
 
-/* После цветов риска: рамка фокуса перечёркивает цветную рамку, а тон карточки остаётся. */
+/* После цветов риска: рамка фокуса перечёркивает цветную рамку, а заливка карточки остаётся. */
 .object-node_focus {
   border-color: var(--el-color-primary);
   border-left-color: var(--el-color-primary);
@@ -104,7 +119,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 .object-node__name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--node-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,11 +127,16 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
 .object-node__mark {
   flex-shrink: 0;
-  color: var(--el-text-color-secondary);
+  color: var(--node-muted);
 }
 
+/* Оранжевый warning на красной и на оранжевой заливке не видно — форма иконки остаётся. */
 .object-node__mark_warning {
   color: var(--el-color-warning);
+}
+
+.object-node_filled .object-node__mark_warning {
+  color: var(--node-text);
 }
 
 .object-node__meta {
@@ -129,7 +149,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
 .object-node__sub {
   font-size: 11px;
-  color: var(--el-text-color-secondary);
+  color: var(--node-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -137,5 +157,21 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 
 .object-node__risk {
   font-size: 12px;
+}
+
+/*
+ * ObjectRiskDot — отдельный компонент со своими scoped-цветами, отсюда они не переопределяются.
+ * Точку обводим белым: цвет риска на фоне цвета риска — это невидимка.
+ */
+.object-node_filled :deep(.object-risk__text) {
+  color: var(--node-text);
+}
+
+.object-node_filled :deep(.object-risk__mark) {
+  color: var(--node-muted);
+}
+
+.object-node_filled :deep(.object-risk__dot) {
+  box-shadow: 0 0 0 1px var(--el-color-white);
 }
 </style>
