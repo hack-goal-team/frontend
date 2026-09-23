@@ -49,8 +49,14 @@ export interface RiskMaps {
    * тем же правилом, что и уровень.
    */
   predictionByChannel: Map<string, string>;
-  /** Прогнозы, у которых `context.objectId` пуст: их нельзя никуда приписать (ADR-003). */
+  /** Прогнозы без `context.objectId`: их нельзя приписать объекту (ADR-003). */
   unattributed: number;
+  /**
+   * Прогнозы без `context.channelId` — то же ограничение для канала. Отдельный счётчик:
+   * прогноз, привязанный к каналу, объекту не теряется, и глушить ○ у всех каналов подряд
+   * означало бы терять уверенность там, где её терять не за чем.
+   */
+  unattributedToChannel: number;
 }
 
 function merge(target: Map<string, RiskAggregate>, key: string, prediction: Prediction): void {
@@ -82,28 +88,32 @@ export function buildRiskMaps(predictions: Prediction[]): RiskMaps {
   const byChannel = new Map<string, RiskAggregate>();
   const winnerByChannel = new Map<string, Prediction>();
   let unattributed = 0;
+  let unattributedToChannel = 0;
 
   for (const prediction of predictions) {
     const context = prediction?.context;
     if (!context) {
       unattributed += 1;
+      unattributedToChannel += 1;
       continue;
     }
     if (context.objectId) merge(byObject, context.objectId, prediction);
+    else unattributed += 1;
     if (context.channelId) {
       merge(byChannel, context.channelId, prediction);
       const held = winnerByChannel.get(context.channelId);
       if (!held || RISK_RANK[prediction.riskLevel] > RISK_RANK[held.riskLevel]) {
         winnerByChannel.set(context.channelId, prediction);
       }
+    } else {
+      unattributedToChannel += 1;
     }
-    if (!context.objectId && !context.channelId) unattributed += 1;
   }
 
   const predictionByChannel = new Map<string, string>();
   winnerByChannel.forEach((prediction, channelId) => predictionByChannel.set(channelId, prediction.id));
 
-  return { byObject, byChannel, predictionByChannel, unattributed };
+  return { byObject, byChannel, predictionByChannel, unattributed, unattributedToChannel };
 }
 
 /**
@@ -157,6 +167,8 @@ export interface ResolveRiskInput {
   derived?: RiskAggregate;
   /** Полнота скана: "none" — скана не было (ошибка/не запущен), "partial" — упёрся в стоп-кран. */
   coverage: RiskCoverage;
+  /** Есть активные прогнозы, которым не нашлось цели: ○ здесь была бы ложью. */
+  hasUnattributed: boolean;
 }
 
 /**
@@ -169,14 +181,15 @@ export interface ResolveRiskInput {
  * | `risk: { riskLevel: null }`                  | `{ level: null, source: "registry" }`             | ○ «без прогноза» — это утверждение бэка    |
  * | поля `risk` нет, производный есть            | `{ level, source: "derived", derived: true }`     | тот же цвет + сноска «выведено из прогнозов»|
  * | поля нет, скан завершён, объекта в карте нет | `{ level: null, coverage: "complete" }`           | ○ «без прогноза»                           |
+ * | то же, но есть прогнозы без цели             | `{ level: null, hasUnattributed: true }`          | «—»: прогноз есть, просто не сводится сюда  |
  * | поля нет, скан обрезан стоп-краном          | `{ coverage: "partial" }`                         | нейтрально, НИКОГДА не ○                   |
  * | ни реестра, ни скана                        | `null`                                            | «—» и подпись «нет данных»                 |
  *
- * Последние две строки — смысл `coverage`: «мы не знаем» и «риска нет» обязаны
+ * Последние строки — смысл `coverage` и `hasUnattributed`: «мы не знаем» и «риска нет» обязаны
  * выглядеть по-разному, иначе неполнота будет выдана диспетчеру за спокойную картину.
  */
 export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
-  const { registryRisk, support, derived, coverage } = input;
+  const { registryRisk, support, derived, coverage, hasUnattributed } = input;
 
   if (support === "supported" && registryRisk) {
     return {
@@ -186,6 +199,8 @@ export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
       coverage: "complete",
       activeCount: registryRisk.activePredictions,
       unreviewedCount: registryRisk.unreviewedPredictions,
+      // Решение бэка, и полнота нашего скана на него не влияет.
+      hasUnattributed: false,
     };
   }
 
@@ -199,6 +214,7 @@ export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
       coverage,
       activeCount: derived.activeCount,
       unreviewedCount: derived.unreviewedCount,
+      hasUnattributed,
     };
   }
 
@@ -209,5 +225,19 @@ export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
     coverage,
     activeCount: 0,
     unreviewedCount: 0,
+    hasUnattributed,
   };
+}
+
+/**
+ * Имеет ли право UI утверждать «прогнозов нет» (○).
+ *
+ * Реестр отвечает сам за себя; производный уровень — только при завершённом скане, в котором
+ * не осталось прогнозов без цели. Иначе ○ читалось бы как «здесь спокойно», хотя прогноз есть
+ * и просто не привязан к этому объекту.
+ */
+export function isRiskCertain(risk: NodeRisk | null): boolean {
+  if (!risk) return false;
+  if (risk.source === "registry") return true;
+  return risk.coverage === "complete" && !risk.hasUnattributed;
 }

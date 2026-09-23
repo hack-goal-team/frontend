@@ -3,7 +3,6 @@ import { computed } from "vue";
 import { Handle, Position, type NodeProps } from "@vue-flow/core";
 import { pluralize } from "@/shared/lib/pluralize";
 import {
-  AUX_CLICK_HINT,
   AUX_RETRY_HINT,
   CHANNELS_EMPTY,
   CHANNELS_ERROR,
@@ -36,12 +35,13 @@ const text = computed(() => {
 });
 
 const clickable = computed(() => props.data.aux.startsWith("more-") || props.data.aux === "channels-error");
-const hint = computed(() => (props.data.aux === "channels-error" ? AUX_RETRY_HINT : AUX_CLICK_HINT));
+/** «+ ещё» и курсор говорят про клик сами; подсказка нужна одному узлу — упавшему запросу. */
+const hint = computed(() => (props.data.aux === "channels-error" ? AUX_RETRY_HINT : ""));
 const variant = computed(() => (props.data.aux === "channels-error" ? "error" : "muted"));
 </script>
 
 <template>
-  <el-tooltip :content="hint" placement="top" :disabled="!clickable">
+  <el-tooltip :content="hint" placement="top" :disabled="!hint">
     <div class="aux-node" :class="[`aux-node_${variant}`, { 'aux-node_clickable': clickable }]">
       <Handle type="target" :position="Position.Left" />
       <span class="aux-node__text">{{ text }}</span>

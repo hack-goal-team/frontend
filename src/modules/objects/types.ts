@@ -107,4 +107,9 @@ export interface NodeRisk {
   coverage: RiskCoverage;
   activeCount: number;
   unreviewedCount: number;
+  /**
+   * Есть прогнозы, которые скан не смог приписать этой цели. При таком ○ «без прогноза»
+   * было бы ложной уверенностью: прогноз существует, просто не сворачивается сюда.
+   */
+  hasUnattributed: boolean;
 }

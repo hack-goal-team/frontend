@@ -74,7 +74,7 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
     () => (options.enabled === undefined ? true : toValue(options.enabled)) && !auth.isEmptyScope,
   );
 
-  const { data, isLoading, isFetching, isError, error } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: objectsKeys.riskMap(),
     queryFn: scanActivePredictions,
     staleTime: 30_000,
@@ -89,12 +89,14 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
     byChannel: new Map(),
     predictionByChannel: new Map(),
     unattributed: 0,
+    unattributedToChannel: 0,
   };
 
   const byObject = computed(() => data.value?.byObject ?? empty.byObject);
   const byChannel = computed(() => data.value?.byChannel ?? empty.byChannel);
   const predictionByChannel = computed(() => data.value?.predictionByChannel ?? empty.predictionByChannel);
   const unattributed = computed(() => data.value?.unattributed ?? 0);
+  const unattributedToChannel = computed(() => data.value?.unattributedToChannel ?? 0);
 
   /**
    * Пока скан не отработал, полноты нет: "none" заставляет `resolveRisk` вернуть null,
@@ -110,6 +112,7 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
     byChannel,
     predictionByChannel,
     unattributed,
+    unattributedToChannel,
     coverage,
     scanned,
     pages,
@@ -117,5 +120,6 @@ export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> 
     isFetching,
     isError,
     error,
+    refetch,
   };
 }

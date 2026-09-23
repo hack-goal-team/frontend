@@ -220,6 +220,9 @@ watch(objectId, () => {
   channelLimit.value = CHANNEL_NODE_LIMIT;
   childrenExpanded.value = false;
   scanVerdict.value = null;
+  // Прогноз прошлого объекта в панели — уже не про то, что на экране: панель оставляем только
+  // тогда, когда её сюда привёл «Показать на схеме» самого прогноза.
+  if (selectedPrediction.value) closePredictionPanel();
 });
 
 function selectObject(id: string) {

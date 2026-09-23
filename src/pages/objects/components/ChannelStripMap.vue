@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { channelStripHiddenText, NO_PREDICTIONS_LABEL, UNKNOWN_VALUE } from "@/modules/objects/consts";
-import { RISK_LABEL } from "@/modules/predictions/consts";
+import { channelStripHiddenText } from "@/modules/objects/consts";
+import { isRiskCertain } from "@/modules/objects/lib/risk";
 import type { NodeRisk } from "@/modules/objects/types";
 import type { Channel } from "@/modules/channels/types";
 
@@ -15,6 +15,10 @@ import type { Channel } from "@/modules/channels/types";
  *
  * Порядок сегментов = порядок выдачи `/channels`, и это НЕ порядок на трассе (см. JSDoc в
  * `mergeChannelPages`), поэтому полоса не подписывается «участками» и по риску не масштабируется.
+ *
+ * Подписей на сегментах нет: нативный `title` браузер показывает на любом наведении, и
+ * полоса из нескольких сотен сегментов превращается в шум. Детали — клик, он выводит узел
+ * на графе.
  *
  * Сегменты сняты с tab-последовательности, а трек в `aria-hidden`: те же каналы доступны
  * с клавиатуры узлами графа, а две тысячи повторов в озвучке только мешают.
@@ -42,25 +46,10 @@ const counterText = computed(() => {
 });
 
 /** ○ «без прогноза» вправе утверждать только завершённый источник — остальное «не знаем». */
-function certain(risk: NodeRisk | null): boolean {
-  return !!risk && (risk.source === "registry" || risk.coverage === "complete");
-}
-
 function variant(channel: Channel): string {
   const risk = props.riskOf(channel);
   if (risk?.level) return risk.level.toLowerCase();
-  return certain(risk) ? "none" : "muted";
-}
-
-function segmentTitle(channel: Channel): string {
-  const risk = props.riskOf(channel);
-  const riskText = risk?.level
-    ? `${RISK_LABEL[risk.level]} риск`
-    : certain(risk)
-      ? NO_PREDICTIONS_LABEL
-      : UNKNOWN_VALUE;
-  const name = channel.name?.trim() || `Канал #${channel.id}`;
-  return `${name} · ${channel.sensorType} · ${riskText}${channel.known ? "" : " · нет в реестре"}`;
+  return isRiskCertain(risk) ? "none" : "muted";
 }
 </script>
 
@@ -84,7 +73,6 @@ function segmentTitle(channel: Channel): string {
             strip__segment_highlighted: channel.id === highlightedId,
           },
         ]"
-        :title="segmentTitle(channel)"
         @click="emit('select', channel.id)"
       />
     </div>

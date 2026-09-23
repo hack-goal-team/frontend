@@ -6,8 +6,10 @@ import {
   NO_PREDICTIONS_LABEL,
   RISK_DERIVED_NOTE,
   RISK_SCAN_PARTIAL_ALERT,
+  RISK_UNATTRIBUTED_NOTE,
   UNKNOWN_VALUE,
 } from "../consts";
+import { isRiskCertain } from "../lib/risk";
 import type { NodeRisk } from "../types";
 
 /**
@@ -16,46 +18,44 @@ import type { NodeRisk } from "../types";
  * Различия, которые нельзя терять:
  * - `source: "registry"` с `level` → тег уровня без сноски;
  * - `source: "registry"` с `level: null` → ○ «без прогноза»: это утверждение бэка;
- * - `source: "derived"` → тот же цвет, но подпись «выведено из активных прогнозов»
- *   (снимается с колонки, а в tooltip — число прогнозов);
+ * - `source: "derived"` → тот же цвет, но звёздочка, а расшифровка — в подписи/легенде;
  * - `coverage: "partial"` без уровня → НЕЙТРАЛЬНО, никогда не ○: мы не досмотрели;
+ * - прогноз есть, но не сворачивается сюда (`hasUnattributed`) → тоже НЕЙТРАЛЬНО: ○ было бы
+ *   ложной уверенностью;
  * - `risk === null` → «—» и «нет данных».
+ *
+ * Тултип — редкий гость: только там, где есть что сказать сверх подписи на экране.
+ * На каждой строке таблицы и на каждом узле графа он превращается в шум.
  */
 const props = defineProps<{
   risk: NodeRisk | null;
 }>();
 
 const level = computed(() => props.risk?.level ?? null);
-/** ○ «без прогноза» допустимо только когда источник утвердителен: реестр либо завершённый скан. */
-const certain = computed(() => props.risk?.source === "registry" || props.risk?.coverage === "complete");
+/** ○ «без прогноза» допустимо только когда источник утвердителен: реестр либо чистый завершённый скан. */
+const certain = computed(() => isRiskCertain(props.risk));
 const label = computed(() => {
   if (level.value) return `${RISK_LABEL[level.value]} риск`;
-  return props.risk && certain.value ? NO_PREDICTIONS_LABEL : UNKNOWN_VALUE;
+  return certain.value ? NO_PREDICTIONS_LABEL : UNKNOWN_VALUE;
 });
 const variant = computed(() => {
   if (level.value) return level.value.toLowerCase();
-  return props.risk && certain.value ? "none" : "muted";
+  return certain.value ? "none" : "muted";
 });
 
-const hint = computed(() => {
+const hint = computed<string | null>(() => {
   const risk = props.risk;
   if (!risk) return NO_DATA_NOTE;
-
-  const notes: string[] = [risk.source === "registry" ? "сводка реестра" : RISK_DERIVED_NOTE];
-  if (risk.coverage === "partial") notes.push(RISK_SCAN_PARTIAL_ALERT);
-  notes.push(
-    risk.level === null && certain.value
-      ? "активных прогнозов нет"
-      : `активных: ${risk.activeCount}, без решения: ${risk.unreviewedCount}`,
-  );
-
-  return notes.join(" · ");
+  if (risk.coverage === "partial") return RISK_SCAN_PARTIAL_ALERT;
+  if (!level.value && !certain.value) return RISK_UNATTRIBUTED_NOTE;
+  if (risk.source === "derived") return RISK_DERIVED_NOTE;
+  return null;
 });
 </script>
 
 <template>
-  <el-tooltip :content="hint" placement="top">
-    <span class="object-risk" :class="{ 'object-risk_derived': risk?.source === 'derived' && level }">
+  <el-tooltip :content="hint ?? ''" placement="top" :disabled="!hint">
+    <span class="object-risk">
       <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
       <span class="object-risk__text">{{ label }}</span>
       <span v-if="risk?.source === 'derived' && level" class="object-risk__mark">*</span>

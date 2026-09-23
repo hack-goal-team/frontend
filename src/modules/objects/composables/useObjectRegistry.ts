@@ -4,7 +4,7 @@ import { useAuthStore } from "@/modules/auth/store";
 import type { Channel } from "@/modules/channels/types";
 import { fetchObjects } from "../api";
 import { objectsKeys } from "../keys";
-import { RISK_DERIVED_NOTE, RISK_UNSUPPORTED_HINT } from "../consts";
+import { RISK_DERIVED_NOTE, RISK_DERIVED_SHORT, RISK_UNSUPPORTED_HINT } from "../consts";
 import { ancestorChain, buildObjectTree } from "../lib/tree";
 import { detectRiskSupport, resolveRisk, rollUpRisks } from "../lib/risk";
 import type { InfrastructureObject, NodeRisk, ObjectTreeNode, ObjectsQuery } from "../types";
@@ -69,18 +69,33 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
       support: riskSupport.value,
       derived: rolledRisks.value.get(node.id),
       coverage: scan.coverage.value,
+      hasUnattributed: scan.unattributed.value > 0,
     });
   }
 
   /**
-   * Подпись источника риска для подписи колонки: диспетчер обязан видеть,
-   * что уровень выведен, а не прислан сервисом.
+   * Подпись источника риска. Развёрнутая — для постоянной подписи над таблицей, короткая —
+   * для шапки колонки, где длинный текст не помещается. `null` — риск прислан сервисом,
+   * пояснять нечего.
    */
-  const riskNote = computed<string | null>(() => {
+  function riskSourceNote(derivedText: string): string | null {
     if (riskSupport.value === "supported") return null;
     if (scan.coverage.value === "none") return RISK_UNSUPPORTED_HINT;
-    return RISK_DERIVED_NOTE;
-  });
+    return derivedText;
+  }
+
+  const riskNote = computed(() => riskSourceNote(RISK_DERIVED_NOTE));
+  const riskNoteShort = computed(() => riskSourceNote(RISK_DERIVED_SHORT));
+
+  /**
+   * Риска нет ни с одним источником: реестр поле не отдаёт, а скан не завершился.
+   * Про «не завершился» имеем право сказать только после первой попытки — на лету
+   * (`isLoading`) решения ещё нет, а повтор от уже упавшего скана обязан оставаться
+   * на экране, иначе кнопка «Повторить» исчезнет в момент нажатия.
+   */
+  const riskUnavailable = computed(
+    () => riskSupport.value !== "supported" && scan.coverage.value === "none" && !scan.isLoading.value,
+  );
 
   function objectById(id: string | null | undefined): InfrastructureObject | null {
     if (!id) return null;
@@ -107,6 +122,7 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
       support: riskSupport.value,
       derived: scan.byChannel.value.get(channel.id),
       coverage: scan.coverage.value,
+      hasUnattributed: scan.unattributedToChannel.value > 0,
     });
   }
 
@@ -131,8 +147,12 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     riskCoverage: scan.coverage,
     riskScanned: scan.scanned,
     riskScanPages: scan.pages,
+    riskScanBusy: scan.isFetching,
     riskUnattributed: scan.unattributed,
     riskNote,
+    riskNoteShort,
+    riskUnavailable,
+    refetchRiskMap: scan.refetch,
     riskOf,
     riskOfChannel,
     riskByChannel: scan.byChannel,

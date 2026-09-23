@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { InfoFilled } from "@element-plus/icons-vue";
 import { OBJECT_KIND_LABEL, ORPHAN_TAG, UNKNOWN_VALUE } from "@/modules/objects/consts";
-import { objectIdNote, objectLabel } from "@/modules/objects/lib/label";
+import { objectLabel } from "@/modules/objects/lib/label";
 import ObjectLevelTag from "@/modules/objects/components/ObjectLevelTag.vue";
 import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
 import type { NodeRisk, ObjectKind, ObjectTreeNode } from "@/modules/objects/types";
@@ -17,7 +17,7 @@ import { formatDateTime } from "@/shared/lib/date";
 const props = defineProps<{
   items: ObjectTreeNode[];
   riskOf: (node: ObjectTreeNode) => NodeRisk | null;
-  /** Подпись колонки: null — риск прислан сервисом, показывать нечего. */
+  /** Подпись колонки, короткая форма: null — риск прислан сервисом, показывать нечего. */
   riskNote: string | null;
   expandRowKeys: string[];
   loading?: boolean;
@@ -93,9 +93,7 @@ function kindLabel(kind: ObjectKind): string {
 
     <el-table-column label="ID" width="140">
       <template #default="{ row }">
-        <el-tooltip :content="objectIdNote(row.object)" placement="top">
-          <span class="objects-table__id">{{ row.id }}</span>
-        </el-tooltip>
+        <span class="objects-table__id">{{ row.id }}</span>
       </template>
     </el-table-column>
 

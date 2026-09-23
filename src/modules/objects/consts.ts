@@ -27,7 +27,8 @@ export const NO_RISK_FILTER_VALUE = "NONE";
 
 /**
  * Честность про отсутствие топологии — в UI, а не только в документации.
- * Показывается постоянно: подписью под легендой и в el-tooltip на иконке info в шапке графа.
+ * Одно постоянное место: подпись под графом (`ObjectGraphLegend`). Второго — tooltip в шапке —
+ * больше нет: тот же текст на двух элементах значит два текста, расходящихся при каждой правке.
  */
 export const RELATIONS_HINT =
   "Показаны связи двух типов: иерархия объектов (родитель → потомок) и владение каналом (объект → канал). " +
@@ -54,20 +55,26 @@ export const UNKNOWN_VALUE = "—";
 export const RISK_UNSUPPORTED_HINT = "Сведения о риске не приходят от сервиса";
 /** ○ — утверждение «активных прогнозов нет», его вправе давать только завершённый источник. */
 export const NO_PREDICTIONS_LABEL = "Без прогноза";
-export const RISK_FILTER_DISABLED_TIP =
-  "Сервис ещё не отдаёт сводку риска: параметр withRisk принят, но поле risk не приходит";
+/** Диспетчеру не нужно знать про `withRisk`; технические детали — в подписи под таблицей. */
+export const RISK_FILTER_DISABLED_TIP = "Фильтр по риску пока недоступен";
 export const RISK_DERIVED_NOTE = "выведено из активных прогнозов";
+/** Тот же смысл для узкого места — шапки колонки. */
+export const RISK_DERIVED_SHORT = "из прогнозов";
+/** ○ при незакрытой атрибуции была бы ложью: прогноз есть, просто не сводится к этой цели. */
+export const RISK_UNATTRIBUTED_NOTE = "есть прогнозы вне объектов";
 export const RISK_SCAN_PARTIAL_ALERT = "Показаны риски не по всем активным прогнозам";
 export const NO_DATA_NOTE = "нет данных";
 export const ORPHAN_TAG = "Родитель не найден в реестре";
+/** Короткая форма для узла графа: на 248px длинная подпись съедает имя объекта. */
+export const ORPHAN_SHORT = "нет родителя";
 export const CHANNEL_UNKNOWN_BADGE = "нет в реестре";
 /** Подсказка на карточке канала: показывается только там, где прогноз реально найден. */
-export const CHANNEL_OPEN_PREDICTION_HINT = "Открыть детали прогноза канала";
+export const CHANNEL_OPEN_PREDICTION_HINT = "Открыть прогноз";
 export const OBJECT_NOT_FOUND = "Объект не найден в вашей области видимости";
 export const CHANNEL_NOT_FOUND = "Канал не найден среди {n} загруженных из {m} каналов объекта";
 export const SHOW_ON_GRAPH = "Показать на схеме";
 export const SHOW_ON_GRAPH_SHORT = "На схеме →";
-export const NO_OBJECT_HINT = "Прогноз не сводится к объекту";
+export const NO_OBJECT_HINT = "Нет привязки к объекту";
 
 // ---- Служебные узлы графа (колонка k+1) ----
 
@@ -76,7 +83,7 @@ export const MORE_PREFIX = "+ ещё";
 export const CHANNELS_LOADING = "Каналы загружаются…";
 export const CHANNELS_ERROR = "Каналы не загрузились";
 export const CHANNELS_EMPTY = "Каналов нет";
-export const AUX_CLICK_HINT = "Нажмите на узел, чтобы догрузить";
+/** Курсор и текст «+ ещё» говорят про клик сами; подсказка нужна только на ошибке. */
 export const AUX_RETRY_HINT = "Нажмите на узел, чтобы повторить запрос";
 
 // ---- Каналы: поиск подсветки и полоса-мини-карта ----

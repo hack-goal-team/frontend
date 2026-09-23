@@ -43,9 +43,7 @@ const clickable = computed(() => !!props.data.predictionId);
       <Handle type="target" :position="Position.Left" />
 
       <div class="channel-node__head">
-        <el-tooltip :content="`ID: ${data.channel.id}`" placement="top">
-          <span class="channel-node__name">{{ label }}</span>
-        </el-tooltip>
+        <span class="channel-node__name">{{ label }}</span>
         <el-tag v-if="!data.channel.known" type="info" size="small" effect="plain">
           {{ CHANNEL_UNKNOWN_BADGE }}
         </el-tag>

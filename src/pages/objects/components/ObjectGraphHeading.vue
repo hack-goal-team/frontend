@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { InfoFilled } from "@element-plus/icons-vue";
-import { GRAPH_TITLE, LEVEL_LABEL, ORPHAN_TAG, RELATIONS_HINT } from "@/modules/objects/consts";
+import { GRAPH_TITLE, LEVEL_LABEL, ORPHAN_TAG } from "@/modules/objects/consts";
 import { objectLabel } from "@/modules/objects/lib/label";
 import type { InfrastructureObject } from "@/modules/objects/types";
 
 /**
- * Шапка экрана объекта: заголовок разделa + селект объекта + постоянная подсказка про природу
- * связей. Селект — единственный способ сменить объект, не возвращаясь в реестр; состояние
- * живёт в URL (`/objects/:id`), отсюда только `select(id)`.
+ * Шапка экрана объекта: заголовок разделa + селект объекта. Селект — единственный способ
+ * сменить объект, не возвращаясь в реестр; состояние живёт в URL (`/objects/:id`),
+ * отсюда только `select(id)`. Про природу связей здесь не напоминаем: тот же текст стоит
+ * постоянной подписью под графом, и два места с одной фразой разъезжаются при первой же правке.
  */
 const props = defineProps<{
   objects: InfrastructureObject[];
@@ -75,10 +75,6 @@ const allOptions = computed(() => {
       </el-select>
 
       <el-tag v-if="detached" type="warning" size="small" effect="plain">{{ ORPHAN_TAG }}</el-tag>
-
-      <el-tooltip :content="RELATIONS_HINT" placement="bottom-start" :show-after="200">
-        <el-icon class="graph-heading__help"><InfoFilled /></el-icon>
-      </el-tooltip>
     </div>
   </Teleport>
 </template>
@@ -104,10 +100,6 @@ const allOptions = computed(() => {
 
 .graph-heading__option-hint {
   font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.graph-heading__help {
   color: var(--el-text-color-secondary);
 }
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Handle, Position, type NodeProps } from "@vue-flow/core";
-import { InfoFilled, WarningFilled } from "@element-plus/icons-vue";
-import { ORPHAN_TAG, RISK_DERIVED_NOTE } from "@/modules/objects/consts";
-import { objectIdNote, objectLabel, objectSublabel } from "@/modules/objects/lib/label";
+import { WarningFilled } from "@element-plus/icons-vue";
+import { ORPHAN_SHORT } from "@/modules/objects/consts";
+import { objectLabel, objectSublabel } from "@/modules/objects/lib/label";
 import type { ObjectNodeData } from "@/modules/objects/lib/graph";
 import ObjectLevelTag from "@/modules/objects/components/ObjectLevelTag.vue";
 import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
@@ -11,6 +11,10 @@ import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
 /**
  * Узел объекта. Подпись и риск — те же компоненты, что в таблице реестра: на графе
  * диспетчер не должен встречать другой язык разметки.
+ *
+ * Тултипов на узле нет намеренно: узлов на экране десятки, и наведение на каждый — шум.
+ * Осиротевшая запись помечается знаком с текстом, происхождение уровня читается из звёздочки
+ * `ObjectRiskDot`, а расшифровывается всё это в легенде под графом.
  *
  * Карточка залита тем же цветом, что и полоса слева: риск обязан читаться издалека, когда
  * текста уже не разобрать. Отсюда белый текст внутри — `--el-text-color-*` на dense-заливке
@@ -22,7 +26,6 @@ const props = defineProps<NodeProps<ObjectNodeData>>();
 const riskClass = computed(() => `object-node_risk-${props.data.risk?.level?.toLowerCase() ?? "unknown"}`);
 /** Заливка только у карточки с уровнем: «нет данных» и «прогнозов нет» остаются светлыми. */
 const filled = computed(() => !!props.data.risk?.level);
-const derived = computed(() => props.data.risk?.source === "derived" && !!props.data.risk?.level);
 </script>
 
 <template>
@@ -30,15 +33,11 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
     <Handle type="target" :position="Position.Left" />
 
     <div class="object-node__head">
-      <el-tooltip :content="objectIdNote(data.object)" placement="top">
-        <span class="object-node__name">{{ objectLabel(data.object) }}</span>
-      </el-tooltip>
-      <el-tooltip v-if="data.detached" :content="ORPHAN_TAG" placement="top">
-        <el-icon class="object-node__mark object-node__mark_warning"><WarningFilled /></el-icon>
-      </el-tooltip>
-      <el-tooltip v-else-if="derived" :content="RISK_DERIVED_NOTE" placement="top">
-        <el-icon class="object-node__mark"><InfoFilled /></el-icon>
-      </el-tooltip>
+      <span class="object-node__name">{{ objectLabel(data.object) }}</span>
+      <span v-if="data.detached" class="object-node__orphan">
+        <el-icon class="object-node__orphan-icon"><WarningFilled /></el-icon>
+        {{ ORPHAN_SHORT }}
+      </span>
     </div>
 
     <div class="object-node__meta">
@@ -117,6 +116,7 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
 }
 
 .object-node__name {
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--node-text);
@@ -125,17 +125,27 @@ const derived = computed(() => props.data.risk?.source === "derived" && !!props.
   text-overflow: ellipsis;
 }
 
-.object-node__mark {
+/*
+ * Осиротевшая запись — знак с текстом, а не tooltip: «навести, чтобы понять, что с узлом
+ * что-то не так» диспетчером не читается, а узла на экране не один.
+ */
+.object-node__orphan {
+  box-sizing: border-box;
   flex-shrink: 0;
-  color: var(--node-muted);
-}
-
-/* Оранжевый warning на красной и на оранжевой заливке не видно — форма иконки остаётся. */
-.object-node__mark_warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: var(--el-border-radius-base);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
   color: var(--el-color-warning);
 }
 
-.object-node_filled .object-node__mark_warning {
+/* Оранжевый warning на красной и на оранжевой заливке не видно — форма иконки остаётся. */
+.object-node_filled .object-node__orphan {
   color: var(--node-text);
 }
 

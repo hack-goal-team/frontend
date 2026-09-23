@@ -3,6 +3,7 @@ import type { Channel } from "@/modules/channels/types";
 import { RISK_LABEL } from "@/modules/predictions/consts";
 import { CHANNEL_NODE_LIMIT, MAX_CHILD_OBJECT_NODES, UNKNOWN_VALUE } from "../consts";
 import { objectLabel } from "./label";
+import { isRiskCertain } from "./risk";
 import type { NodeRisk, ObjectTreeNode } from "../types";
 
 /**
@@ -129,7 +130,8 @@ export interface BuildGraphInput {
 
 function riskWords(risk: NodeRisk | null): string {
   if (!risk) return `риск ${UNKNOWN_VALUE}`;
-  if (!risk.level) return "активных прогнозов нет";
+  // Тот же критерий, что у ○ на карточке: «прогнозов нет» озвучиваем только когда это утверждение.
+  if (!risk.level) return isRiskCertain(risk) ? "активных прогнозов нет" : `риск ${UNKNOWN_VALUE}`;
   return `${RISK_LABEL[risk.level].toLowerCase()} риск`;
 }
 

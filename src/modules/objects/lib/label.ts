@@ -12,11 +12,6 @@ export function objectLabel(object: Pick<InfrastructureObject, "id" | "name"> | 
   return name ? name : `${NAME_FALLBACK_PREFIX}${object.id}`;
 }
 
-/** id осиротевшей записи — в tooltip, чтобы диспетчер мог свериться с выгрузкой. */
-export function objectIdNote(object: Pick<InfrastructureObject, "id"> | null | undefined): string {
-  return object ? `ID: ${object.id}` : "";
-}
-
 /**
  * Вторая строка подписи: вид, уровень, число каналов.
  * `channelCount` отсутствует или null → «каналов: —», а не «0»: отсутствие поля

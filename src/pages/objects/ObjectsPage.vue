@@ -12,6 +12,7 @@ import {
   NO_RISK_FILTER_VALUE,
   OBJECTS_TITLE,
   RISK_SCAN_PARTIAL_ALERT,
+  RISK_UNSUPPORTED_HINT,
 } from "@/modules/objects/consts";
 import type { HierarchyLevel, ObjectTreeNode } from "@/modules/objects/types";
 import { pluralize } from "@/shared/lib/pluralize";
@@ -32,8 +33,12 @@ const {
   riskCoverage,
   riskScanned,
   riskScanPages,
+  riskScanBusy,
   riskUnattributed,
   riskNote,
+  riskNoteShort,
+  riskUnavailable,
+  refetchRiskMap,
   riskOf,
   isLoading,
   isFetching,
@@ -179,6 +184,18 @@ function openObject(id: string) {
       show-icon
     />
 
+    <el-alert
+      v-else-if="riskUnavailable"
+      class="objects-page__alert"
+      type="warning"
+      :title="RISK_UNSUPPORTED_HINT"
+      :closable="false"
+      show-icon
+    >
+      <!-- Скан уже падал: без повтора диспетчеру остаётся перезагружать всю страницу. -->
+      <el-button size="small" :loading="riskScanBusy" @click="refetchRiskMap()">Повторить скан</el-button>
+    </el-alert>
+
     <el-card
       class="objects-page__table"
       shadow="never"
@@ -204,7 +221,7 @@ function openObject(id: string) {
         v-else
         :items="visibleRoots"
         :risk-of="riskOf"
-        :risk-note="riskNote"
+        :risk-note="riskNoteShort"
         :expand-row-keys="expandedIds"
         :loading="isFetching"
         @row-click="openObject"
