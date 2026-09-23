@@ -45,7 +45,7 @@ const filled = computed(() => !!props.data.risk?.level);
       <ObjectLevelTag :level="data.object.hierarchyLevel" />
     </div>
 
-    <ObjectRiskDot :risk="data.risk" class="object-node__risk" />
+    <ObjectRiskDot :risk="data.risk" />
 
     <Handle type="source" :position="Position.Right" />
   </div>
@@ -163,10 +163,6 @@ const filled = computed(() => !!props.data.risk?.level);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.object-node__risk {
-  font-size: 12px;
 }
 
 /*

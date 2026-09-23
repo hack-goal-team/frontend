@@ -115,16 +115,20 @@ const shown = computed(() => countTreeNodes(visibleRoots.value));
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
 
 /**
- * Подпись источника риска. `riskNote` у реестра закрывает «выведено»; упавший скан подписи
- * не даёт (`null`) — о нём говорит el-alert с кнопкой «Повторить», дублировать нельзя.
- * Для "unknown" (пустая выдача — поля risk нет ни в одной записи) своего текста нет,
- * и пустой реестр ничего про withRisk не доказывает — формулируем здесь. Последний
- * fallback — реестр сам прислал `risk`.
+ * Подпись источника риска. «unknown» (пустая выдача) обязана идти первой: `riskNote`
+ * перехватит её, как только скан завершится (coverage ≠ "none") и вернёт «выведено» —
+ * хотя пустой реестр ничего про withRisk не доказывает. Пока реестр грузится или упал,
+ * подписи нет — говорят скелетон и el-alert. Упавший скан подписи тоже не даёт
+ * (`riskNote` = null) — о нём el-alert с кнопкой «Повторить», дублировать нельзя.
+ * Последний fallback — реестр сам прислал `risk`.
  */
 const riskSummaryText = computed<string | null>(() => {
+  if (riskSupport.value === "unknown") {
+    // Пустая выдача ничего не доказывает, текст уместен только когда реестр реально пуст.
+    return isEmpty.value ? "Сведений о риске нет: реестр пуст, вывод о withRisk сделать нельзя" : null;
+  }
   if (riskNote.value) return riskNote.value;
   if (riskCoverage.value === "none" && riskSupport.value !== "supported") return null;
-  if (riskSupport.value === "unknown") return "Сведений о риске нет: реестр пуст, вывод о withRisk сделать нельзя";
   return "Уровень риска — из сводки реестра";
 });
 
@@ -171,7 +175,7 @@ function openObject(id: string) {
     <div class="objects-page__caption">
       <span v-if="hasFilter">Показано {{ shown }} из {{ stats.nodes }}</span>
       <span v-else>Всего узлов: {{ stats.nodes }}</span>
-      <span class="objects-page__risk-note">{{ riskSummaryText }}</span>
+      <span v-if="riskSummaryText" class="objects-page__risk-note">{{ riskSummaryText }}</span>
       <el-tooltip :content="statsText" placement="top">
         <el-icon class="objects-page__help"><InfoFilled /></el-icon>
       </el-tooltip>
