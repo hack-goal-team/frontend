@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { GRAPH_TITLE, LEVEL_LABEL, ORPHAN_TAG } from "@/modules/objects/consts";
+import { ArrowLeft } from "@element-plus/icons-vue";
+import { GRAPH_TITLE, LEVEL_LABEL, OBJECTS_TITLE, ORPHAN_TAG } from "@/modules/objects/consts";
 import { objectLabel } from "@/modules/objects/lib/label";
 import type { InfrastructureObject } from "@/modules/objects/types";
 
@@ -17,7 +18,7 @@ const props = defineProps<{
   disabled?: boolean;
 }>();
 
-const emit = defineEmits<{ select: [id: string] }>();
+const emit = defineEmits<{ select: [id: string]; back: [] }>();
 
 /**
  * Дедуп по id — то же правило «первая запись выигрывает», что в `buildObjectTree`.
@@ -56,6 +57,10 @@ const allOptions = computed(() => {
 <template>
   <Teleport defer to="#header-left">
     <div class="graph-heading">
+      <el-button text :icon="ArrowLeft" class="graph-heading__back" @click="emit('back')">
+        {{ OBJECTS_TITLE }}
+      </el-button>
+
       <span class="page-title">{{ GRAPH_TITLE }}</span>
 
       <el-select
@@ -85,6 +90,11 @@ const allOptions = computed(() => {
   align-items: center;
   gap: 12px;
   min-width: 0;
+}
+
+.graph-heading__back {
+  flex-shrink: 0;
+  padding-left: 0;
 }
 
 .graph-heading__select {

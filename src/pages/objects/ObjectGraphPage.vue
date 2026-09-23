@@ -231,6 +231,20 @@ function selectObject(id: string) {
 }
 
 /**
+ * «Назад» из шапки ведёт в реестр. Пришли из реестра — браузерный назад вернёт его
+ * вместе с фильтрами в URL; пришли по ссылке (прогнозы, уведомления) или перезагрузкой —
+ * истории реестра нет, и назад увёл бы из приложения, поэтому прямой переход на /objects.
+ */
+function goToRegistry() {
+  const back = router.options.history.state.back;
+  if (typeof back === "string" && (back === "/objects" || back.startsWith("/objects?"))) {
+    router.back();
+  } else {
+    router.push({ name: "objects" });
+  }
+}
+
+/**
  * Клик по карточке канала — детали прогноза, который этот канал и раскрасил. Прогноза нет
  * (в смысле — канал не светится активным) и карта пустая: молча выходим, мёртвый клик
  * хуже отсутствующей подсказки.
@@ -277,6 +291,7 @@ function onAuxClick(id: string) {
     :detached="focus?.detached ?? false"
     :disabled="!isReady"
     @select="selectObject"
+    @back="goToRegistry"
   />
 
   <div class="object-graph">
