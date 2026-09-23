@@ -115,12 +115,15 @@ const shown = computed(() => countTreeNodes(visibleRoots.value));
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
 
 /**
- * Подпись источника риска. `riskNote` у реестра закрывает «не приходит» и «выведено»;
- * для "unknown" (пустая выдача — поля risk нет ни в одной записи) своего текста там нет,
- * и пустой реестр ничего про withRisk не доказывает — формулируем здесь.
+ * Подпись источника риска. `riskNote` у реестра закрывает «выведено»; упавший скан подписи
+ * не даёт (`null`) — о нём говорит el-alert с кнопкой «Повторить», дублировать нельзя.
+ * Для "unknown" (пустая выдача — поля risk нет ни в одной записи) своего текста нет,
+ * и пустой реестр ничего про withRisk не доказывает — формулируем здесь. Последний
+ * fallback — реестр сам прислал `risk`.
  */
-const riskSummaryText = computed(() => {
+const riskSummaryText = computed<string | null>(() => {
   if (riskNote.value) return riskNote.value;
+  if (riskCoverage.value === "none" && riskSupport.value !== "supported") return null;
   if (riskSupport.value === "unknown") return "Сведений о риске нет: реестр пуст, вывод о withRisk сделать нельзя";
   return "Уровень риска — из сводки реестра";
 });

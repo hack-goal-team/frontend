@@ -4,7 +4,7 @@ import { useAuthStore } from "@/modules/auth/store";
 import type { Channel } from "@/modules/channels/types";
 import { fetchObjects } from "../api";
 import { objectsKeys } from "../keys";
-import { RISK_DERIVED_NOTE, RISK_DERIVED_SHORT, RISK_UNSUPPORTED_HINT } from "../consts";
+import { RISK_DERIVED_NOTE, RISK_DERIVED_SHORT } from "../consts";
 import { ancestorChain, buildObjectTree } from "../lib/tree";
 import { detectRiskSupport, resolveRisk, rollUpRisks } from "../lib/risk";
 import type { InfrastructureObject, NodeRisk, ObjectTreeNode, ObjectsQuery } from "../types";
@@ -75,12 +75,13 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
 
   /**
    * Подпись источника риска. Развёрнутая — для постоянной подписи над таблицей, короткая —
-   * для шапки колонки, где длинный текст не помещается. `null` — риск прислан сервисом,
-   * пояснять нечего.
+   * для шапки колонки, где длинный текст не помещается. `null` — пояснять нечего: риск
+   * прислан сервисом, либо скан упал — тогда говорит el-alert с кнопкой «Повторить»
+   * (`riskUnavailable`), и дублировать его текст в подписи нельзя.
    */
   function riskSourceNote(derivedText: string): string | null {
     if (riskSupport.value === "supported") return null;
-    if (scan.coverage.value === "none") return RISK_UNSUPPORTED_HINT;
+    if (scan.coverage.value === "none") return null;
     return derivedText;
   }
 

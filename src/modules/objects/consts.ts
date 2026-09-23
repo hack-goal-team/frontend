@@ -63,7 +63,6 @@ export const RISK_DERIVED_SHORT = "из прогнозов";
 /** ○ при незакрытой атрибуции была бы ложью: прогноз есть, просто не сводится к этой цели. */
 export const RISK_UNATTRIBUTED_NOTE = "есть прогнозы вне объектов";
 export const RISK_SCAN_PARTIAL_ALERT = "Показаны риски не по всем активным прогнозам";
-export const NO_DATA_NOTE = "нет данных";
 export const ORPHAN_TAG = "Родитель не найден в реестре";
 /** Короткая форма для узла графа: на 248px длинная подпись съедает имя объекта. */
 export const ORPHAN_SHORT = "нет родителя";

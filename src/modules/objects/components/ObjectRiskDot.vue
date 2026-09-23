@@ -2,7 +2,6 @@
 import { computed } from "vue";
 import { RISK_LABEL } from "@/modules/predictions/consts";
 import {
-  NO_DATA_NOTE,
   NO_PREDICTIONS_LABEL,
   RISK_DERIVED_NOTE,
   RISK_SCAN_PARTIAL_ALERT,
@@ -22,7 +21,8 @@ import type { NodeRisk } from "../types";
  * - `coverage: "partial"` без уровня → НЕЙТРАЛЬНО, никогда не ○: мы не досмотрели;
  * - прогноз есть, но не сворачивается сюда (`hasUnattributed`) → тоже НЕЙТРАЛЬНО: ○ было бы
  *   ложной уверенностью;
- * - `risk === null` → «—» и «нет данных».
+ * - `risk === null` → «—» без тултипа: повторять «нет данных» на каждой строке — шум,
+ *   а причину (упавший скан) объясняет el-alert над таблицей.
  *
  * Тултип — редкий гость: только там, где есть что сказать сверх подписи на экране.
  * На каждой строке таблицы и на каждом узле графа он превращается в шум.
@@ -45,7 +45,7 @@ const variant = computed(() => {
 
 const hint = computed<string | null>(() => {
   const risk = props.risk;
-  if (!risk) return NO_DATA_NOTE;
+  if (!risk) return null;
   if (risk.coverage === "partial") return RISK_SCAN_PARTIAL_ALERT;
   if (!level.value && !certain.value) return RISK_UNATTRIBUTED_NOTE;
   if (risk.source === "derived") return RISK_DERIVED_NOTE;
