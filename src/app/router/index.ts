@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/modules/auth/store";
 import { useReferenceStore } from "@/modules/reference/store";
 import { PERMISSIONS } from "@/modules/auth/consts";
+import { defaultRouteFor } from "@/modules/auth/lib/defaultRoute";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -62,6 +63,24 @@ export const router = createRouter({
           component: () => import("@/pages/objects/ObjectGraphPage.vue"),
           meta: { permission: PERMISSIONS.PREDICTION_READ },
         },
+        {
+          path: "reports",
+          name: "reports",
+          component: () => import("@/pages/reports/ReportsPage.vue"),
+          meta: { permission: PERMISSIONS.REPORT_READ },
+        },
+        {
+          path: "settings",
+          name: "settings",
+          component: () => import("@/pages/settings/SettingsPage.vue"),
+          meta: { permission: PERMISSIONS.SETTINGS_WRITE },
+        },
+        {
+          path: "audit",
+          name: "audit",
+          component: () => import("@/pages/audit/AuditPage.vue"),
+          meta: { permission: PERMISSIONS.AUDIT_READ },
+        },
       ],
     },
 
@@ -96,9 +115,9 @@ router.beforeEach(async (to) => {
     return { name: "login", query: { redirect: to.fullPath } };
   }
 
-  // 3. Уже авторизован → не пускать на /login
+  // 3. Уже авторизован → не пускать на /login, вести на его главную по правам
   if (to.name === "login" && auth.isAuthenticated) {
-    return { name: "dashboard" };
+    return defaultRouteFor(auth.user);
   }
 
   // 4. Проверка прав

@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRouter } from "vue-router";
-import { useQueryClient } from "@tanstack/vue-query";
-import { ElMessage } from "element-plus";
 import { ArrowDown, SwitchButton } from "@element-plus/icons-vue";
 import { useAuthStore } from "../store";
+import { useLogout } from "../composables/useLogout";
 
 const auth = useAuthStore();
-const router = useRouter();
-const queryClient = useQueryClient();
+const { logout } = useLogout();
 
 const displayName = computed(() => auth.user?.displayName ?? auth.user?.username ?? "Пользователь");
 
@@ -46,20 +43,9 @@ const avatarColor = computed(() => {
   }
 });
 
-async function onLogout() {
-  try {
-    await auth.logout();
-  } catch {
-    ElMessage.warning("Сессия закрыта локально. Сервер не ответил.");
-  } finally {
-    queryClient.clear();
-    router.replace({ name: "login" });
-  }
-}
-
 function onCommand(command: string) {
   if (command === "logout") {
-    onLogout();
+    logout();
   }
 }
 </script>

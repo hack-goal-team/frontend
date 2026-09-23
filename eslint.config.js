@@ -21,6 +21,9 @@ export default tseslint.config(
   {
     files: ["**/*.vue"],
     languageOptions: {
+      // В .vue no-undef не отключается типами (в отличие от .ts), а браузерных
+      // глобалов в конфиге нет — declaring `window` точечно, без всей библиотеки globals.
+      globals: { window: "readonly" },
       parserOptions: {
         parser: tseslint.parser,
       },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/modules/auth/store";
+import { defaultRouteFor } from "@/modules/auth/lib/defaultRoute";
 import { computed, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -18,13 +19,14 @@ const canSubmit = computed(() => form.username.trim().length > 0 && form.passwor
 
 /**
  * Путь из ?redirect= берём только внутренний: `//host` браузер прочитает как
- * protocol-relative и уведёт за пределы приложения.
+ * protocol-relative и уведёт за пределы приложения. Без валидного redirect —
+ * маршрут по правам, а не хардкод: admin уедет на /settings, а не на 403.
  */
-function redirectPath(redirect: unknown): string {
+function safeRedirect(redirect: unknown): string | null {
   if (typeof redirect === "string" && redirect.startsWith("/") && !redirect.startsWith("//")) {
     return redirect;
   }
-  return "/dashboard";
+  return null;
 }
 
 async function onSubmit() {
@@ -32,7 +34,7 @@ async function onSubmit() {
 
   try {
     await auth.login(form.username, form.password);
-    router.push(redirectPath(route.query.redirect));
+    router.push(safeRedirect(route.query.redirect) ?? defaultRouteFor(auth.user));
   } catch {
     // ошибка уже в auth.error
   }
