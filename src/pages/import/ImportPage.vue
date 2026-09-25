@@ -158,7 +158,7 @@ function formatBytes(bytes: number): string {
         title="Не удалось получить статус задачи"
       />
 
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="2" border style="padding-top: 16px">
         <el-descriptions-item label="Прочитано строк">{{ job.rowsRead ?? "—" }}</el-descriptions-item>
         <el-descriptions-item label="Сохранено строк">{{ job.rowsStored ?? "—" }}</el-descriptions-item>
         <el-descriptions-item label="Дубликаты">{{ job.duplicates ?? "—" }}</el-descriptions-item>
