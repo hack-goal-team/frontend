@@ -12,31 +12,41 @@ withDefaults(
   },
 );
 
-const COLUMNS = [
-  { key: "name", width: "300px", kind: "text", textWidth: "70%" },
-  { key: "level", width: "130px", kind: "tag" },
-  { key: "channels", width: "110px", kind: "text", textWidth: "40%" },
-  { key: "risk", width: "170px", kind: "text", textWidth: "60%" },
-  { key: "id", width: "140px", kind: "text", textWidth: "50%" },
-  { key: "snapshot", width: "160px", kind: "text", textWidth: "80%" },
+// Три кластера вместо плоской сетки: 1fr / auto / 1fr держит середину по центру при любой ширине.
+const CLUSTERS = [
+  { key: "left", columns: [{ key: "name", kind: "text", width: "60%" }] },
+  {
+    key: "center",
+    columns: [
+      { key: "level", kind: "tag" },
+      { key: "risk", kind: "text", width: "102px" },
+    ],
+  },
+  {
+    key: "right",
+    columns: [
+      { key: "id", kind: "text", width: "70px" },
+      { key: "snapshot", kind: "text", width: "128px" },
+    ],
+  },
 ] as const;
-
-const templateColumns = COLUMNS.map((c) => c.width).join(" ");
 </script>
 
 <template>
   <div class="table-skeleton">
     <el-skeleton :animated="animated" :throttle="throttle">
       <template #template>
-        <div
-          v-for="i in rows"
-          :key="`row-${i}`"
-          class="table-skeleton__row"
-          :style="{ gridTemplateColumns: templateColumns }"
-        >
-          <div v-for="col in COLUMNS" :key="col.key" class="table-skeleton__cell">
-            <el-skeleton-item v-if="col.kind === 'tag'" variant="rect" class="table-skeleton__tag" />
-            <el-skeleton-item v-else variant="text" :style="{ width: col.textWidth }" class="table-skeleton__text" />
+        <div v-for="i in rows" :key="`row-${i}`" class="table-skeleton__row">
+          <div
+            v-for="cluster in CLUSTERS"
+            :key="cluster.key"
+            class="table-skeleton__cluster"
+            :class="`table-skeleton__cluster_${cluster.key}`"
+          >
+            <template v-for="col in cluster.columns" :key="col.key">
+              <el-skeleton-item v-if="col.kind === 'tag'" variant="rect" class="table-skeleton__tag" />
+              <el-skeleton-item v-else variant="text" :style="{ width: col.width }" class="table-skeleton__text" />
+            </template>
           </div>
         </div>
       </template>
@@ -54,16 +64,30 @@ const templateColumns = COLUMNS.map((c) => c.width).join(" ");
 
 .table-skeleton__row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
+  gap: 12px;
   padding: 0 12px;
-  min-height: 48px;
+  min-height: 40px;
   border-bottom: 1px solid var(--el-table-border-color, var(--el-border-color-lighter));
 }
 
-.table-skeleton__cell {
-  padding: 0 12px;
+.table-skeleton__cluster {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.table-skeleton__cluster_left {
+  justify-self: stretch;
+}
+
+.table-skeleton__cluster_center {
+  justify-self: center;
+}
+
+.table-skeleton__cluster_right {
+  justify-self: end;
 }
 
 .table-skeleton__text {

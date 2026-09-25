@@ -125,7 +125,7 @@ const total = computed(() => data.value?.total ?? 0);
         show-icon
       />
 
-      <PredictionTableSkeleton v-else-if="isLoading" :rows="20" />
+      <PredictionTableSkeleton v-else-if="isLoading" :rows="25" />
 
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
