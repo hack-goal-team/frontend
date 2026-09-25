@@ -200,7 +200,7 @@ function openObject(id: string) {
         show-icon
       />
 
-      <ObjectsTableSkeleton v-else-if="true" :rows="25" />
+      <ObjectsTableSkeleton v-else-if="isLoading" :rows="25" />
 
       <el-empty v-else-if="isEmpty" description="Реестр пуст">
         <p class="objects-page__empty-hint">{{ riskSummaryText }}</p>
