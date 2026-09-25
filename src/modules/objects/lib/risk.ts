@@ -1,21 +1,5 @@
 import type { Prediction, RiskLevel } from "@/modules/predictions/types";
-import type { InfrastructureObject, NodeRisk, ObjectTreeNode, ObjectRisk, RiskCoverage, RiskSupport } from "../types";
-
-/**
- * Реализован ли `withRisk` на сервисе.
- *
- * `risk` «in» объект — единственный различимый признак: если Java-сериализатор глотает null,
- * случаи «не реализовано» и «прогнозов нет» неразличимы. Поэтому при unsupported UI говорит
- * «Сведения о риске не приходят от сервиса», а не «риска нет» — второе было бы утверждением
- * о спокойной обстановке, которого у нас нет.
- *
- * Пустая выдача — "unknown": пустой массив ничего не доказывает (объектов может не быть
- * в области видимости), поэтому и вывод о поддержке делать нельзя.
- */
-export function detectRiskSupport(items: InfrastructureObject[]): RiskSupport {
-  if (items.length === 0) return "unknown";
-  return items.some((item) => item && "risk" in item) ? "supported" : "unsupported";
-}
+import type { ObjectTreeNode, RiskCoverage, NodeRisk } from "../types";
 
 // ---- Производный риск ----
 
@@ -77,8 +61,8 @@ function merge(target: Map<string, RiskAggregate>, key: string, prediction: Pred
  * а догадываться о привязке прогноза к объекту хуже, чем признать `unattributed`.
  *
  * Ссылка «канал → прогноз» рождается здесь же, потому что иного источника нет:
- * у `/predictions` фильтра по `channelId` в контракте нет (§ 13 плана — ждём подтверждения),
- * а скан активных прогнозов уже идёт. Выбранный прогноз — сильнейший по уровню; при равенстве
+ * фильтра `channelId` у `/predictions` в контракте нет — скан идёт по `objectId`, а каналу
+ * прогноз приписывается по `context.channelId`. Выбранный прогноз — сильнейший по уровню; при равенстве
  * берётся первый принятый (строгого `>` хватает: порядок выдачи сервером не обещан, но он
  * фиксирован для одного ответа, значит выбор детерминирован). Прогноза в карте нет — клика
  * по каналу нет: «не досмотрели» и «прогнозов нет» различает `coverage`, а не мёртвая кнопка.
@@ -160,9 +144,6 @@ function combine(a: RiskAggregate | null, b: RiskAggregate): RiskAggregate {
 }
 
 export interface ResolveRiskInput {
-  /** Поле `risk` записи реестра: undefined — поля нет, null — пришёл null. */
-  registryRisk?: ObjectRisk | null;
-  support: RiskSupport;
   /** Свёрнутый по поддереву риск из скана активных прогнозов; undefined — объекта в карте нет. */
   derived?: RiskAggregate;
   /** Полнота скана: "none" — скана не было (ошибка/не запущен), "partial" — упёрся в стоп-кран. */
@@ -177,40 +158,23 @@ export interface ResolveRiskInput {
  *
  * | ситуация                                   | результат                                        | UI                                        |
  * |---------------------------------------------|--------------------------------------------------|-------------------------------------------|
- * | `risk` пришло объектом                       | `{ level, source: "registry" }`                   | тег риска, без сноски                      |
- * | `risk: { riskLevel: null }`                  | `{ level: null, source: "registry" }`             | ○ «без прогноза» — это утверждение бэка    |
- * | поля `risk` нет, производный есть            | `{ level, source: "derived", derived: true }`     | тот же цвет + сноска «выведено из прогнозов»|
- * | поля нет, скан завершён, объекта в карте нет | `{ level: null, coverage: "complete" }`           | ○ «без прогноза»                           |
- * | то же, но есть прогнозы без цели             | `{ level: null, hasUnattributed: true }`          | «—»: прогноз есть, просто не сводится сюда  |
- * | поля нет, скан обрезан стоп-краном          | `{ coverage: "partial" }`                         | нейтрально, НИКОГДА не ○                   |
- * | ни реестра, ни скана                        | `null`                                            | «—» и подпись «нет данных»                 |
+ * | производный есть                            | `{ level, ... }`                                  | тот же цвет + сноска «выведено из прогнозов»|
+ * | скан завершён, объекта в карте нет          | `{ level: null, coverage: "complete" }`           | ○ «без прогноза»                           |
+ * | то же, но есть прогнозы без цели            | `{ level: null, hasUnattributed: true }`          | «—»: прогноз есть, просто не сводится сюда  |
+ * | скан обрезан стоп-краном                    | `{ coverage: "partial" }`                         | нейтрально, НИКОГДА не ○                   |
+ * | скана не было                               | `null`                                            | «—» и подпись «нет данных»                 |
  *
  * Последние строки — смысл `coverage` и `hasUnattributed`: «мы не знаем» и «риска нет» обязаны
  * выглядеть по-разному, иначе неполнота будет выдана диспетчеру за спокойную картину.
  */
 export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
-  const { registryRisk, support, derived, coverage, hasUnattributed } = input;
-
-  if (support === "supported" && registryRisk) {
-    return {
-      level: registryRisk.riskLevel,
-      source: "registry",
-      derived: false,
-      coverage: "complete",
-      activeCount: registryRisk.activePredictions,
-      unreviewedCount: registryRisk.unreviewedPredictions,
-      // Решение бэка, и полнота нашего скана на него не влияет.
-      hasUnattributed: false,
-    };
-  }
+  const { derived, coverage, hasUnattributed } = input;
 
   if (coverage === "none") return null;
 
   if (derived) {
     return {
       level: derived.level,
-      source: "derived",
-      derived: true,
       coverage,
       activeCount: derived.activeCount,
       unreviewedCount: derived.unreviewedCount,
@@ -220,8 +184,6 @@ export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
 
   return {
     level: null,
-    source: "derived",
-    derived: true,
     coverage,
     activeCount: 0,
     unreviewedCount: 0,
@@ -232,12 +194,11 @@ export function resolveRisk(input: ResolveRiskInput): NodeRisk | null {
 /**
  * Имеет ли право UI утверждать «прогнозов нет» (○).
  *
- * Реестр отвечает сам за себя; производный уровень — только при завершённом скане, в котором
+ * Производный уровень — только при завершённом скане, в котором
  * не осталось прогнозов без цели. Иначе ○ читалось бы как «здесь спокойно», хотя прогноз есть
  * и просто не привязан к этому объекту.
  */
 export function isRiskCertain(risk: NodeRisk | null): boolean {
   if (!risk) return false;
-  if (risk.source === "registry") return true;
   return risk.coverage === "complete" && !risk.hasUnattributed;
 }

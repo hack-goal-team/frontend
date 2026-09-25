@@ -1,4 +1,4 @@
-import { NAME_FALLBACK_PREFIX, OBJECT_KIND_LABEL, UNKNOWN_VALUE } from "../consts";
+import { NAME_FALLBACK_PREFIX, OBJECT_KIND_LABEL } from "../consts";
 import type { InfrastructureObject, ObjectTreeNode } from "../types";
 
 /**
@@ -12,16 +12,8 @@ export function objectLabel(object: Pick<InfrastructureObject, "id" | "name"> | 
   return name ? name : `${NAME_FALLBACK_PREFIX}${object.id}`;
 }
 
-/**
- * Вторая строка подписи: вид, уровень, число каналов.
- * `channelCount` отсутствует или null → «каналов: —», а не «0»: отсутствие поля
- * ничего не утверждает о числе каналов (см. § 5 плана).
- */
+/** Вторая строка подписи узла: вид объекта; числа каналов в контракте v0 нет. */
 export function objectSublabel(object: InfrastructureObject | ObjectTreeNode): string {
   const source = "object" in object ? object.object : object;
-  const channels =
-    source.channelCount === undefined || source.channelCount === null ? UNKNOWN_VALUE : String(source.channelCount);
-
-  const kind = OBJECT_KIND_LABEL[source.kind] ?? source.kind;
-  return `${kind} · каналов: ${channels}`;
+  return OBJECT_KIND_LABEL[source.kind] ?? source.kind;
 }

@@ -1,5 +1,7 @@
 import type { Prediction, PredictionPage } from "@/modules/predictions/types";
 import { mockPredictions } from "./predictions";
+import { channelsOf } from "./channels";
+import { mockLevel3Objects } from "./objects";
 import { sortPredictions } from "../lib/sortPredictions";
 
 // Мутабельная копия — мок меняет её, чтобы имитировать новые прогнозы
@@ -15,24 +17,29 @@ export function getLivePredictions(): Prediction[] {
 /**
  * Имитирует появление нового критического прогноза.
  * Вызывается по таймеру из SSE-хендлера.
+ *
+ * Объект и канал — реальные: прогноз обязан перекрашивать существующий узел графа,
+ * а не пустоту. Объект без каналов (97) возможен — тогда прогноз светится только у объекта.
  */
 export function spawnCriticalPrediction(): Prediction {
   const now = new Date();
   const horizon = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
-  const objectId = String(Math.floor(Math.random() * 20) + 1);
+  const object = mockLevel3Objects[Math.floor(Math.random() * mockLevel3Objects.length)];
+  const channels = channelsOf(object.id);
+  const channel = channels.length > 0 ? channels[Math.floor(Math.random() * channels.length)] : null;
 
   const p: Prediction = {
     id: String(nextId++),
     targetKind: "channel",
-    targetRef: `channel/${objectId}-${Math.floor(Math.random() * 1000)}`,
+    targetRef: `channel/${channel?.id ?? object.id}`,
     context: {
-      objectId,
-      objectName: `Объект ${objectId}`,
-      channelId: null,
-      sensorName: "Датчик температуры",
-      sensorType: "Датчик температуры",
-      engineeringSystem: "Температурная подсистема",
+      objectId: object.id,
+      objectName: object.name ?? `Объект ${object.id}`,
+      channelId: channel?.id ?? null,
+      sensorName: channel?.name ?? null,
+      sensorType: channel?.sensorType ?? null,
+      engineeringSystem: channel?.engineeringSystem ?? null,
     },
     incidentType: "FLOOD",
     probability: 0.85 + Math.random() * 0.15,

@@ -19,11 +19,12 @@ const EMPTY: MergedChannels = { items: [], total: null, hasMore: false, duplicat
  * стабильного порядка перекрывает страницы, а дубликат id на графе — это два узла Vue Flow
  * с одним ключом, то есть поломка отрисовки. Выигрывает первая встреча.
  *
- * ПОРЯДОК остаётся «как пришло», и это НЕ утверждение о трассе: позиция узла = индекс
- * в конкатенации страниц. Если бэк не гарантирует физический порядок выдачи каналов,
- * граф — перечень, а не контур, и соседство узлов ничего не утверждает; в UI то же
- * говорит `RELATIONS_HINT`. Сортировки по риску здесь сознательно нет — она закодировала
- * бы ложное «проблемный канал идёт следующим по трассе».
+ * ПОРЯДОК после склейки — по пикету `piket` (физическая трасса), null — в конец, при
+ * равенстве — по id, чтобы порядок был детерминирован. Сортировка наша, а не обещание
+ * бэка: сегодня бэк отдаёт страницы уже по пикетам, но контракт этого не гарантирует,
+ * и между страницами порядок мог бы перемешаться. Колонка каналов и полоса-мини-карта
+ * благодаря этому идут вдоль трассы. Сортировки по риску здесь сознательно нет — она
+ * закодировала бы ложное «проблемный канал идёт следующим по трассе».
  */
 export function mergeChannelPages(pages: ChannelsPage[] | undefined): MergedChannels {
   if (!pages?.length) return EMPTY;
@@ -46,6 +47,16 @@ export function mergeChannelPages(pages: ChannelsPage[] | undefined): MergedChan
   }
 
   const last = pages[pages.length - 1];
+  const items = [...byId.values()];
+  items.sort(compareByPiket);
 
-  return { items: [...byId.values()], total, hasMore: last?.hasMore === true, duplicates };
+  return { items, total, hasMore: last?.hasMore === true, duplicates };
+}
+
+/** По пикету (трасса), null — в конец; равные пикеты — по id ради детерминизма. */
+function compareByPiket(a: Channel, b: Channel): number {
+  const pa = a.piket ?? Infinity;
+  const pb = b.piket ?? Infinity;
+  if (pa !== pb) return pa < pb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }

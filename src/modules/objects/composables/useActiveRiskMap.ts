@@ -18,7 +18,10 @@ export interface RiskScan extends RiskMaps {
 }
 
 /**
- * Адаптивный скан `/predictions?activeOnly=true`.
+ * Адаптивный скан активных прогнозов. Без `objectId` — вся область видимости
+ * (`/predictions?activeOnly=true`), с `objectId` — прогнозы одного объекта
+ * (`/predictions?activeOnly=true&objectId=…`): фильтра `channelId` в контракте нет,
+ * поэтому канал атрибутируется по `context.channelId` внутри объектного множества.
  *
  * Страницы идут ПОСЛЕДОВАТЕЛЬНО: offset-пагинация без обещанного ORDER BY параллельного
  * чтения не терпит (страницы пересекаются). Число страниц считается от `X-Total-Count`
@@ -28,7 +31,7 @@ export interface RiskScan extends RiskMaps {
  * `total` у `fetchPredictions` не различает «0» и «заголовка нет» (файл правке не подлежит),
  * поэтому на прогресс он идёт только когда строго больше нуля.
  */
-export async function scanActivePredictions(): Promise<RiskScan> {
+export async function scanActivePredictions(objectId?: string | null): Promise<RiskScan> {
   const limit = RISK_SCAN_PAGE_SIZE;
   const items: Prediction[] = [];
 
@@ -39,7 +42,7 @@ export async function scanActivePredictions(): Promise<RiskScan> {
   let truncated = false;
 
   while (hasMore) {
-    const page = await fetchPredictions({ activeOnly: true, limit, offset });
+    const page = await fetchPredictions({ activeOnly: true, objectId: objectId ?? undefined, limit, offset });
     items.push(...(page.items ?? []));
     pages += 1;
     hasMore = page.hasMore === true;
@@ -65,18 +68,28 @@ export async function scanActivePredictions(): Promise<RiskScan> {
  * Карта риска из АКТИВНЫХ прогнозов. Инвалидируется по SSE (см. useSse.ts): производный
  * риск построен именно на них, а снапшот реестра — нет.
  *
- * `enabled` даёт вызывающая сторона: скан не нужен, когда реестр сам отдаёт `risk`.
+ * `objectId` ограничивает скан одним объектом (колонка каналов на графе) — ключ при этом
+ * другой (`riskMapFor`), так что глобальный и объектные сканы живут в кэше независимо.
+ * Без `objectId` скан покрывает всю область видимости — для объектных узлов графа и реестра.
+ *
+ * `enabled` даёт вызывающая сторона: канальный скан на графе нужен только на уровне объекта.
  */
-export function useActiveRiskMap(options: { enabled?: MaybeRefOrGetter<boolean> } = {}) {
+export function useActiveRiskMap(
+  options: {
+    objectId?: MaybeRefOrGetter<string | null | undefined>;
+    enabled?: MaybeRefOrGetter<boolean>;
+  } = {},
+) {
   const auth = useAuthStore();
 
+  const objectId = computed(() => toValue(options.objectId) ?? null);
   const enabled = computed(
     () => (options.enabled === undefined ? true : toValue(options.enabled)) && !auth.isEmptyScope,
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
-    queryKey: objectsKeys.riskMap(),
-    queryFn: scanActivePredictions,
+    queryKey: computed(() => (objectId.value ? objectsKeys.riskMapFor(objectId.value) : objectsKeys.riskMap())),
+    queryFn: () => scanActivePredictions(objectId.value),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     placeholderData: (prev) => prev,

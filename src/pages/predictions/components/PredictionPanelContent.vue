@@ -24,6 +24,9 @@ const { reasonLabel, incidentTypeLabel } = useLabels();
 const objectId = computed(() => props.detail.prediction.context?.objectId ?? null);
 const channelId = computed(() => props.detail.prediction.context?.channelId ?? null);
 
+/** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
+const lastDecision = computed(() => props.detail.decisions[0] ?? null);
+
 function showOnGraph() {
   if (!objectId.value) return;
   emit("showOnGraph", objectId.value, channelId.value ?? undefined);
@@ -93,9 +96,9 @@ function showOnGraph() {
       </el-descriptions-item>
 
       <el-descriptions-item label="Последнее решение">
-        <span v-if="detail.prediction.lastDecision">
-          {{ reasonLabel(detail.prediction.lastDecision.reasonCode) }}
-          <span class="text-muted"> от {{ formatDateTime(detail.prediction.lastDecision.decidedAt) }} </span>
+        <span v-if="lastDecision">
+          {{ reasonLabel(lastDecision.reasonCode) }}
+          <span class="text-muted"> от {{ formatDateTime(lastDecision.decidedAt) }} </span>
         </span>
         <span v-else class="text-muted">Нет</span>
       </el-descriptions-item>

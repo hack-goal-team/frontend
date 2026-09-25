@@ -1,24 +1,21 @@
 import type { HierarchyLevel, InfrastructureObject, ObjectKind } from "@/modules/objects/types";
-import { makePickers } from "../lib/seededRandom";
 
 /**
  * Реестр объектов для мока `GET /objects`.
  *
- * Держимся контракта (`docs/openapi-frontend.yaml` v0.2.0, схема `InfrastructureObject`)
- * буквально, иначе проверка экрана ничего не проверяет:
+ * Держимся реального контракта v0 буквально, иначе проверка экрана ничего не проверяет:
+ * схема `InfrastructureObject` = {id, parentId, hierarchyLevel, kind, name, snapshotAt}.
+ * Поля `risk` и `channelCount` мок не выдумывает — риск реестра фронт выводит сканом
+ * `/predictions?activeOnly=true`, число каналов — из `X-Total-Count` `/channels`.
  *
- * - `risk` НЕ отдаём никогда, хотя фронт шлёт `withRisk=true` — параметр принимается,
- *   поля нет (yaml:420-422). Это единственный способ увидеть живую фолбэк-цепочку
- *   «реестр → производный из активных прогнозов → недоступен».
  * - выдача — ГОЛЫЙ массив, пагинации нет; счётчик в `X-Total-Count` отдаёт хендлер.
- * - `parentId` может вести на объект, которого в реестре нет (yaml:950-954) — «не чиним,
- *   отдаём как есть».
- * - названия обезличены греческими буквами, как говорит описание ручки (yaml:415).
+ * - `parentId` может вести на объект, которого в реестре нет — «не чиним, отдаём как есть».
+ * - названия обезличены греческими буквами, как говорит описание ручки.
  *
- * Отдельно разложены id: их специально берём из диапазона 1…100, потому что
- * `data/generatePredictions.ts` атрибутит прогнозы на `context.objectId = 1…100`.
- * Только так производный риск в реестре nonzero, а `spawnCriticalPrediction` (objectIds
- * 1…20) по SSE перекрашивает существующие узлы, а не пустоту.
+ * Id уровня 3 — источник для прогнозов: `data/generatePredictions.ts` привязывает контекст
+ * к реальным объектам отсюда (`mockLevel3Objects`) и их каналам (`channelsOf`), поэтому
+ * производный риск в реестре nonzero, а `spawnCriticalPrediction` по SSE перекрашивает
+ * существующие узлы, а не пустоту.
  */
 
 const GREEK = [
@@ -66,9 +63,7 @@ export const OBJECT_UNKNOWN_PARENT_ID = "91";
 export const CYCLE_OBJECT_IDS = ["92", "93"] as const;
 /** Этот id встречается в выдаче дважды → дедупликация дерева, `stats.duplicates = 1`. */
 export const DUPLICATED_OBJECT_ID = "7";
-/** `channelCount: null` при живых каналах → колонка «—», а «+ ещё N» считается по заголовку. */
-export const OBJECT_UNKNOWN_CHANNEL_COUNT_ID = "33";
-/** Много каналов: 30 узлов + «+ ещё N» и догрузка по клику. */
+/** Много каналов (120 — см. `SPECIAL_CHANNEL_COUNTS` в data/channels.ts): 30 узлов + «+ ещё N». */
 export const MANY_CHANNELS_ID = "94";
 /** 2 500 каналов: 25 страниц по 100 — дальше `HIGHLIGHT_SCAN_MAX_PAGES` обрывает скан. */
 export const HUGE_CHANNELS_ID = "95";
@@ -76,11 +71,6 @@ export const HUGE_CHANNELS_ID = "95";
 export const OBJECT_WITHOUT_CHANNELS_ID = "97";
 /** Хендлер `/channels` отвечает на этот объект 503 → узел «Каналы не загрузились» + повтор по клику. */
 export const OBJECT_CHANNELS_DOWN_ID = "96";
-
-export const MANY_CHANNELS_COUNT = 120;
-export const HUGE_CHANNELS_COUNT = 2_500;
-/** Сколько каналов реально отдать для `OBJECT_UNKNOWN_CHANNEL_COUNT_ID`, если `channelCount` = null. */
-export const UNKNOWN_COUNT_CHANNEL_SIZE = 12;
 
 const KIND_BY_LEVEL: Record<HierarchyLevel, ObjectKind> = {
   1: "district",
@@ -100,10 +90,8 @@ const DISTRICTS: { id: string; name: string }[] = [
 /** Комплексы: id 10…29, висячие каналы у них не бывают — уровень 2 по контракту без каналов. */
 const COMPLEX_IDS = range(10, 29);
 /**
- * Объекты уровня 3: id 1…9 и 30…80 — всего 60 записей. Диапазон выбран так, чтобы
- * пересекаться с `context.objectId` мок-прогнозов (1…100) — иначе производный риск в
- * реестре был бы всюду пустой. Id 80 удобен для проверки «вне области видимости»: он
- * существует для scope ALL, но не входит в поддерево техника.
+ * Объекты уровня 3: id 1…9 и 30…80 — всего 60 записей. Id 80 удобен для проверки
+ * «вне области видимости»: он существует для scope ALL, но не входит в поддерево техника.
  */
 const OBJECT_IDS = [...range(1, 9), ...range(30, 80)];
 
@@ -113,14 +101,8 @@ function range(from: number, to: number): string[] {
   return out;
 }
 
-function object(
-  id: string,
-  level: HierarchyLevel,
-  parentId: string | null,
-  name: string | null,
-  channelCount?: number | null,
-): InfrastructureObject {
-  const record: InfrastructureObject = {
+function object(id: string, level: HierarchyLevel, parentId: string | null, name: string | null): InfrastructureObject {
+  return {
     id,
     parentId,
     hierarchyLevel: level,
@@ -128,13 +110,9 @@ function object(
     name,
     snapshotAt: SNAPSHOT_AT,
   };
-  // Уровень 1 остаётся без поля: «нет данных» ≠ «0 каналов» ≠ «прогнозов нет».
-  if (channelCount !== undefined) record.channelCount = channelCount;
-  return record;
 }
 
 function buildRegistry(): InfrastructureObject[] {
-  const { int, chance } = makePickers(20260922);
   const items: InfrastructureObject[] = [];
 
   DISTRICTS.forEach((district) => {
@@ -145,7 +123,7 @@ function buildRegistry(): InfrastructureObject[] {
   const districtId = (i: number) => DISTRICTS[i % DISTRICTS.length].id;
 
   COMPLEX_IDS.forEach((id, i) => {
-    items.push(object(id, 2, districtId(i), `Комплекс ${GREEK[i % GREEK.length]}`, 0));
+    items.push(object(id, 2, districtId(i), `Комплекс ${GREEK[i % GREEK.length]}`));
   });
 
   // «Объект Альфа» под id 5 — намеренно: так в моке сходятся реестр и scope техника.
@@ -153,27 +131,42 @@ function buildRegistry(): InfrastructureObject[] {
     id === OBJECT_TECHNICIAN_SCOPE_ID ? "Объект Альфа" : `Объект ${GREEK[i % GREEK.length]}-${id}`;
 
   OBJECT_IDS.forEach((id, i) => {
-    // 3…38 каналов и у четверти объектов сразу +30: иначе «+ ещё N» никто не увидит.
-    const channels = id === OBJECT_UNKNOWN_CHANNEL_COUNT_ID ? null : int(3, 38) + (chance(0.25) ? 30 : 0);
-    items.push(object(id, 3, COMPLEX_IDS[i % COMPLEX_IDS.length], nameFor(id, i), channels));
+    items.push(object(id, 3, COMPLEX_IDS[i % COMPLEX_IDS.length], nameFor(id, i)));
   });
 
   // ---- Специальные записи: каждая закрывает строку матрицы проверки ----
 
-  items.push(object(OBJECT_NO_NAME_ID, 3, COMPLEX_IDS[0], null, 8));
-  items.push(object(OBJECT_UNKNOWN_PARENT_ID, 3, "999999", "Объект с потерянным родителем", 6));
-  items.push(object(CYCLE_OBJECT_IDS[0], 2, CYCLE_OBJECT_IDS[1], "Комплекс Цикл-А", 0));
-  items.push(object(CYCLE_OBJECT_IDS[1], 2, CYCLE_OBJECT_IDS[0], "Комплекс Цикл-Б", 0));
-  items.push(object(MANY_CHANNELS_ID, 3, COMPLEX_IDS[1], "Магистральный коллектор-120", MANY_CHANNELS_COUNT));
-  items.push(object(HUGE_CHANNELS_ID, 3, COMPLEX_IDS[2], "Коллектор-2500 (проверка стоп-крана)", HUGE_CHANNELS_COUNT));
-  items.push(object(OBJECT_CHANNELS_DOWN_ID, 3, COMPLEX_IDS[3], "Объект без реестра каналов (503)", 40));
-  items.push(object(OBJECT_WITHOUT_CHANNELS_ID, 3, COMPLEX_IDS[4], "Объект без каналов", 0));
+  items.push(object(OBJECT_NO_NAME_ID, 3, COMPLEX_IDS[0], null));
+  items.push(object(OBJECT_UNKNOWN_PARENT_ID, 3, "999999", "Объект с потерянным родителем"));
+  items.push(object(CYCLE_OBJECT_IDS[0], 2, CYCLE_OBJECT_IDS[1], "Комплекс Цикл-А"));
+  items.push(object(CYCLE_OBJECT_IDS[1], 2, CYCLE_OBJECT_IDS[0], "Комплекс Цикл-Б"));
+  items.push(object(MANY_CHANNELS_ID, 3, COMPLEX_IDS[1], "Магистральный коллектор-120"));
+  items.push(object(HUGE_CHANNELS_ID, 3, COMPLEX_IDS[2], "Коллектор-2500 (проверка стоп-крана)"));
+  items.push(object(OBJECT_CHANNELS_DOWN_ID, 3, COMPLEX_IDS[3], "Объект без реестра каналов (503)"));
+  items.push(object(OBJECT_WITHOUT_CHANNELS_ID, 3, COMPLEX_IDS[4], "Объект без каналов"));
 
   // Дубликат — ровно одна повторная запись того же id: «первая выигрывает» в buildObjectTree.
-  items.push(object(DUPLICATED_OBJECT_ID, 3, COMPLEX_IDS[5], `${nameFor(DUPLICATED_OBJECT_ID, 5)} (дубликат)`, 7));
+  items.push(object(DUPLICATED_OBJECT_ID, 3, COMPLEX_IDS[5], `${nameFor(DUPLICATED_OBJECT_ID, 5)} (дубликат)`));
 
   return items;
 }
 
-/** 95 записей, как обещает описание ручки (yaml:417): 6 + 20 + 60 + 8 + 1 дубликат. */
+/** 95 записей: 6 + 20 + 60 + 8 + 1 дубликат. */
 export const mockObjects: InfrastructureObject[] = buildRegistry();
+
+/**
+ * Объекты уровня 3 без дубликатов — база привязки прогнозов к объектам и каналам
+ * (`generatePredictions`, `spawnCriticalPrediction`). Дедуп по id — то же правило
+ * «первая запись выигрывает», что в buildObjectTree.
+ */
+export const mockLevel3Objects: InfrastructureObject[] = (() => {
+  const seen = new Set<string>();
+  const result: InfrastructureObject[] = [];
+  for (const item of mockObjects) {
+    if (item.hierarchyLevel !== 3) continue;
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    result.push(item);
+  }
+  return result;
+})();

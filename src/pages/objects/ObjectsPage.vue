@@ -11,8 +11,8 @@ import {
   ALLOW_RISK_FILTER_FROM_DERIVED,
   NO_RISK_FILTER_VALUE,
   OBJECTS_TITLE,
+  RISK_SCAN_FAILED_HINT,
   RISK_SCAN_PARTIAL_ALERT,
-  RISK_UNSUPPORTED_HINT,
 } from "@/modules/objects/consts";
 import type { HierarchyLevel, ObjectTreeNode } from "@/modules/objects/types";
 import { pluralize } from "@/shared/lib/pluralize";
@@ -29,7 +29,6 @@ const {
   stats,
   items,
   total,
-  riskSupport,
   riskCoverage,
   riskScanned,
   riskScanPages,
@@ -57,17 +56,16 @@ const riskFilter = computed<string | null>(() => (route.query.risk as string) ||
 const search = computed(() => ((route.query.q as string) ?? "").trim().toLowerCase());
 
 /**
- * Фильтр по риску активен, пока реестр реально отдаёт `risk`. Включить производный риск —
- * значит поднять ALLOW_RISK_FILTER_FROM_DERIVED и выполнить рецепт из его JSDoc,
- * иначе диспетчер сможет отфильтровать по тому, чего мы не знаем.
+ * Фильтр по риску включается `ALLOW_RISK_FILTER_FROM_DERIVED` и рецептом из его JSDoc:
+ * риск всегда производный, и фильтровать по нему можно только осознанно.
  */
-const riskFilterEnabled = computed(() => riskSupport.value === "supported" || ALLOW_RISK_FILTER_FROM_DERIVED);
+const riskFilterEnabled = computed(() => ALLOW_RISK_FILTER_FROM_DERIVED);
 
 /**
  * «Без прогноза» — утверждение об отсутствии активных прогнозов, а не «мы не досмотрели»:
- * предлагать его вправе только завершённый источник.
+ * предлагать его вправе только завершённый скан.
  */
-const noRiskFilterEnabled = computed(() => riskSupport.value === "supported" || riskCoverage.value === "complete");
+const noRiskFilterEnabled = computed(() => riskCoverage.value === "complete");
 
 /**
  * Значение узла для фильтра по риску. Отличается от того, что показывает колонка:
@@ -75,11 +73,6 @@ const noRiskFilterEnabled = computed(() => riskSupport.value === "supported" || 
  * скану нельзя (рецепт включения — в JSDoc у ALLOW_RISK_FILTER_FROM_DERIVED).
  */
 function filterValueOf(node: ObjectTreeNode): string | null {
-  if (!ALLOW_RISK_FILTER_FROM_DERIVED) {
-    const risk = node.object.risk;
-    return risk ? (risk.riskLevel ?? NO_RISK_FILTER_VALUE) : null;
-  }
-
   const resolved = riskOf(node);
   if (!resolved) return null;
   if (resolved.level === null) return resolved.coverage === "partial" ? null : NO_RISK_FILTER_VALUE;
@@ -115,22 +108,11 @@ const shown = computed(() => countTreeNodes(visibleRoots.value));
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
 
 /**
- * Подпись источника риска. «unknown» (пустая выдача) обязана идти первой: `riskNote`
- * перехватит её, как только скан завершится (coverage ≠ "none") и вернёт «выведено» —
- * хотя пустой реестр ничего про withRisk не доказывает. Пока реестр грузится или упал,
- * подписи нет — говорят скелетон и el-alert. Упавший скан подписи тоже не даёт
- * (`riskNote` = null) — о нём el-alert с кнопкой «Повторить», дублировать нельзя.
- * Последний fallback — реестр сам прислал `risk`.
+ * Подпись источника риска — всегда «выведено из прогнозов», риск в контракте v0 только
+ * производный. Упавший скан подписи не даёт (`riskNote` = null) — о нём el-alert с кнопкой
+ * «Повторить», дублировать его текст нельзя.
  */
-const riskSummaryText = computed<string | null>(() => {
-  if (riskSupport.value === "unknown") {
-    // Пустая выдача ничего не доказывает, текст уместен только когда реестр реально пуст.
-    return isEmpty.value ? "Сведений о риске нет: реестр пуст, вывод о withRisk сделать нельзя" : null;
-  }
-  if (riskNote.value) return riskNote.value;
-  if (riskCoverage.value === "none" && riskSupport.value !== "supported") return null;
-  return "Уровень риска — из сводки реестра";
-});
+const riskSummaryText = computed<string | null>(() => riskNote.value);
 
 /**
  * Чем именно ограничен обрезанный скан: диспетчер должен видеть масштаб неполноты,
@@ -195,7 +177,7 @@ function openObject(id: string) {
       v-else-if="riskUnavailable"
       class="objects-page__alert"
       type="warning"
-      :title="RISK_UNSUPPORTED_HINT"
+      :title="RISK_SCAN_FAILED_HINT"
       :closable="false"
       show-icon
     >

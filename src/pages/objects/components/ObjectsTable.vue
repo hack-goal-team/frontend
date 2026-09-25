@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { InfoFilled } from "@element-plus/icons-vue";
-import { OBJECT_KIND_LABEL, ORPHAN_TAG, UNKNOWN_VALUE } from "@/modules/objects/consts";
+import { OBJECT_KIND_LABEL, ORPHAN_TAG } from "@/modules/objects/consts";
 import { objectLabel } from "@/modules/objects/lib/label";
 import ObjectLevelTag from "@/modules/objects/components/ObjectLevelTag.vue";
 import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
@@ -11,13 +11,13 @@ import { formatDateTime } from "@/shared/lib/date";
  * Дерево реестра. Про роутинг не знает — наружу только `rowClick(id)`, как в PredictionTable.vue,
  * чтобы таблица оставалась проекцией данных, а состояние держал URL страницы.
  *
- * `riskOf` — уже разрешённый риск (реестр → производный → неизвестно): источник знания о риске
+ * `riskOf` — уже разрешённый производный риск: источник знания о риске
  * знает только реестр, таблица его не выводит и не переспрашивает.
  */
 const props = defineProps<{
   items: ObjectTreeNode[];
   riskOf: (node: ObjectTreeNode) => NodeRisk | null;
-  /** Подпись колонки, короткая форма: null — риск прислан сервисом, показывать нечего. */
+  /** Подпись колонки, короткая форма: null — скан не отработал, показывать нечего. */
   riskNote: string | null;
   expandRowKeys: string[];
   loading?: boolean;
@@ -68,12 +68,6 @@ function kindLabel(kind: ObjectKind): string {
     <el-table-column label="Уровень" width="130" align="center">
       <template #default="{ row }">
         <ObjectLevelTag :level="row.object.hierarchyLevel" />
-      </template>
-    </el-table-column>
-
-    <el-table-column label="Каналов" width="110" align="right">
-      <template #default="{ row }">
-        {{ row.object.channelCount ?? UNKNOWN_VALUE }}
       </template>
     </el-table-column>
 

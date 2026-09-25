@@ -1,7 +1,7 @@
 import type { Edge, Node } from "@vue-flow/core";
 import type { Channel } from "@/modules/channels/types";
 import { RISK_LABEL } from "@/modules/predictions/consts";
-import { CHANNEL_NODE_LIMIT, MAX_CHILD_OBJECT_NODES, UNKNOWN_VALUE } from "../consts";
+import { MAX_CHILD_OBJECT_NODES, UNKNOWN_VALUE } from "../consts";
 import { objectLabel } from "./label";
 import { isRiskCertain } from "./risk";
 import type { NodeRisk, ObjectTreeNode } from "../types";
@@ -13,10 +13,11 @@ import type { NodeRisk, ObjectTreeNode } from "../types";
  * (иерархия) и `Channel.objectId` (владение каналом). Топологии потока здесь нет — ребро
  * «участок → участок» было бы выдумкой, весь смысл названия раздела («Иерархия объекта»).
  *
- * Порядок каналов — «как пришло», позиция = индекс в конкатенации страниц. Соседство узлов
- * НЕ утверждает соседства на трассе: ORDER BY на `/channels` контрактом не обещан. Отсюда же
- * запрет сортировать каналы и детей по риску — сортировка закодировала бы ложное
- * «проблемный канал идёт следующим по трассе».
+ * Порядок каналов — по пикетам (`mergeChannelPages` сортирует по `piket`, null в конец),
+ * поэтому колонка идёт вдоль физической трассы. Соседство узлов при этом — всё ещё не
+ * соединение «участок → участок»: такого ребра в контракте нет, и подписей участков фронт
+ * не знает. Запрет сортировать каналы и детей по риску остаётся — сортировка закодировала
+ * бы ложное «проблемный канал идёт следующим по трассе».
  *
  * Функции чистые и без Vue: `buildObjectGraph` — структура, `layoutGraph` — координаты,
  * `toFlowNodes`/`toFlowEdges` — единственная граница с типами Vue Flow.
@@ -280,7 +281,9 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
   }
 
   if (channelColumnPresent && channelState !== "off") {
-    const shown = channels.slice(0, CHANNEL_NODE_LIMIT);
+    // Потолок каналов применяет страница (channelLimit в ObjectGraphPage) до вызова:
+    // повторный slice здесь фиксировал бы лимит, и «Показать ещё» не срабатывал бы.
+    const shown = channels;
     for (const channel of shown) {
       const risk = riskOfChannel?.(channel) ?? null;
       const predictionId = predictionOfChannel?.(channel) ?? null;

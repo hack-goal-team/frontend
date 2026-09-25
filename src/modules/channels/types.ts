@@ -1,5 +1,5 @@
 /**
- * Типы канала — строго `docs/openapi-frontend.yaml` v0.2.0 (схема `Channel`).
+ * Типы канала — строго по реальному контракту v0 (схема `Channel`).
  * Домен отдельный от `objects`: у `/channels` своя пагинация и будущий
  * `/channels/{id}/measurements`, иначе objects свалкой станет.
  */
@@ -13,6 +13,11 @@ export interface Channel {
   name: string | null;
   /** false — канал в потоке, но вне реестра (ADR-014): показывать, не терять. */
   known: boolean;
+  /** Пикет в числовой форме; отсутствует, когда сервис его не знает. */
+  piket?: number;
+  /** Сырое строковое значение пикета (формат сервиса, без нормализации). */
+  piketRaw?: string;
+  pointId?: string;
 }
 
 export interface ChannelsQuery {

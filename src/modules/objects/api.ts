@@ -6,6 +6,10 @@ import type { InfrastructureObject, ObjectRegistryPage, ObjectsQuery } from "./t
  * `GET /objects` отдаёт ГОЛЫЙ массив, поэтому возвращаем `{ items, total }` по образцу
  * `fetchPredictions` — иначе `X-Total-Count` теряется.
  *
+ * Контракт v0: параметр только `level` (никакого `withRisk`), а сам объект — без `risk`
+ * и `channelCount`. Риск для реестра выводится сканом `/predictions?activeOnly=true`
+ * (useObjectRegistry), число каналов — из `X-Total-Count` `/channels`.
+ *
  * Про `total`: у `/objects` пагинации нет, так что `items.length` и есть истина.
  * Расхождение с заголовком разрешается в пользу `items.length` с предупреждением
  * (заголовок там — перестраховка контракта). `null` из `parseTotal` при этом остаётся

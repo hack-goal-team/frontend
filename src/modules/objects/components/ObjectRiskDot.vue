@@ -13,11 +13,11 @@ import type { NodeRisk } from "../types";
 
 /**
  * Риск одной записи — уже разрешённый `resolveRisk`, здесь только отрисовка.
+ * Риск всегда производный (контракт v0 поле `risk` не отдаёт), отсюда звёздочка у уровня.
  *
  * Различия, которые нельзя терять:
- * - `source: "registry"` с `level` → тег уровня без сноски;
- * - `source: "registry"` с `level: null` → ○ «без прогноза»: это утверждение бэка;
- * - `source: "derived"` → тот же цвет, но звёздочка, а расшифровка — в подписи/легенде;
+ * - `level` → тег уровня со звёздочкой, расшифровка — в подписи/легенде;
+ * - `level: null` при определённом скане → ○ «без прогноза»: это утверждение;
  * - `coverage: "partial"` без уровня → НЕЙТРАЛЬНО, никогда не ○: мы не досмотрели;
  * - прогноз есть, но не сворачивается сюда (`hasUnattributed`) → тоже НЕЙТРАЛЬНО: ○ было бы
  *   ложной уверенностью;
@@ -32,7 +32,7 @@ const props = defineProps<{
 }>();
 
 const level = computed(() => props.risk?.level ?? null);
-/** ○ «без прогноза» допустимо только когда источник утвердителен: реестр либо чистый завершённый скан. */
+/** ○ «без прогноза» допустимо только когда скан завершён и прогнозов без цели не осталось. */
 const certain = computed(() => isRiskCertain(props.risk));
 const label = computed(() => {
   if (level.value) return `${RISK_LABEL[level.value]} риск`;
@@ -48,8 +48,7 @@ const hint = computed<string | null>(() => {
   if (!risk) return null;
   if (risk.coverage === "partial") return RISK_SCAN_PARTIAL_ALERT;
   if (!level.value && !certain.value) return RISK_UNATTRIBUTED_NOTE;
-  if (risk.source === "derived") return RISK_DERIVED_NOTE;
-  return null;
+  return RISK_DERIVED_NOTE;
 });
 </script>
 
@@ -58,7 +57,7 @@ const hint = computed<string | null>(() => {
     <span class="object-risk">
       <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
       <span class="object-risk__text">{{ label }}</span>
-      <span v-if="risk?.source === 'derived' && level" class="object-risk__mark">*</span>
+      <span v-if="level" class="object-risk__mark">*</span>
     </span>
   </el-tooltip>
 </template>

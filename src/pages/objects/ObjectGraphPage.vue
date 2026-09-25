@@ -23,7 +23,11 @@ import {
   toFlowNodes,
   type ChannelColumnState,
 } from "@/modules/objects/lib/graph";
+import { useActiveRiskMap } from "@/modules/objects/composables/useActiveRiskMap";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
+import { resolveRisk } from "@/modules/objects/lib/risk";
+import type { NodeRisk } from "@/modules/objects/types";
+import type { Channel } from "@/modules/channels/types";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery";
 import { useLabels } from "@/modules/reference/composables/useLabels";
 import SidePanel from "@/shared/ui/SidePanel.vue";
@@ -95,6 +99,28 @@ const channelsEnabled = computed(() => focus.value?.object.hierarchyLevel === 3)
 const channels = useObjectChannelsQuery(objectId, { enabled: channelsEnabled });
 
 /**
+ * Риск каналов — отдельный скан по `objectId`, не глобальный: без фильтра пришлось бы
+ * тянуть до 2000 прогнозов всей области видимости ради колонки, которой они не принадлежат.
+ * Фильтра `channelId` в контракте нет, поэтому скан объекта, а канал атрибутируется
+ * по `context.channelId` внутри этого множества.
+ */
+const channelScan = useActiveRiskMap({ objectId, enabled: channelsEnabled });
+
+/** Риск канала — из объектного скана; null, пока скан не завершился (см. resolveRisk). */
+function riskOfChannel(channel: Channel): NodeRisk | null {
+  return resolveRisk({
+    derived: channelScan.byChannel.value.get(channel.id),
+    coverage: channelScan.coverage.value,
+    hasUnattributed: channelScan.unattributedToChannel.value > 0,
+  });
+}
+
+/** Прогноз канала — из того же объектного скана: сильнейший по уровню (см. buildRiskMaps). */
+function predictionOfChannel(channel: Channel): string | null {
+  return channelScan.predictionByChannel.value.get(channel.id) ?? null;
+}
+
+/**
  * Колоночное состояние для `buildObjectGraph`. «empty» утверждается только когда запрос
  * завершился и страниц больше нет; на лету — «loading», иначе пустая колонка прочтётся
  * как «каналов нет».
@@ -119,8 +145,8 @@ const graph = computed(() => {
     channelTotal: channels.total.value,
     hasMoreChannels: channels.hasMore.value,
     riskOfNode: registry.riskOf,
-    riskOfChannel: registry.riskOfChannel,
-    predictionOfChannel: registry.predictionOfChannel,
+    riskOfChannel,
+    predictionOfChannel,
     highlightChannel: highlightChannel.value,
     childLimit: childrenExpanded.value ? Number.MAX_SAFE_INTEGER : MAX_CHILD_OBJECT_NODES,
   });
@@ -132,10 +158,8 @@ const flowEdges = computed(() => (graph.value ? toFlowEdges(graph.value) : []));
 /** Сколько сегментов полосы уже есть на графе — остальные затемняются. */
 const shownChannels = computed(() => Math.min(channelLimit.value, channels.items.value.length));
 
-/** Легенда обязана говорить, откуда взялся уровень: реестр или свёртка по активным прогнозам. */
-const derivedRisk = computed(
-  () => registry.riskSupport.value !== "supported" && registry.riskCoverage.value !== "none",
-);
+/** Легенда обязана говорить, откуда взялся уровень: риск здесь всегда производный — из скана прогнозов. */
+const derivedRisk = computed(() => registry.riskCoverage.value !== "none");
 
 const isEmptyScope = computed(() => auth.isEmptyScope);
 const isReady = computed(() => !registry.isLoading.value && !registry.isError.value);
@@ -250,7 +274,7 @@ function goToRegistry() {
  * хуже отсутствующей подсказки.
  */
 function openChannelPrediction(channelId: string) {
-  const predictionId = registry.predictionByChannel.value.get(channelId);
+  const predictionId = channelScan.predictionByChannel.value.get(channelId);
   if (predictionId) router.replace({ query: { ...route.query, selectedId: predictionId } });
 }
 
@@ -315,7 +339,7 @@ function onAuxClick(id: string) {
       <ChannelStripMap
         v-if="channelsEnabled && channels.items.value.length"
         :channels="channels.items.value"
-        :risk-of="registry.riskOfChannel"
+        :risk-of="riskOfChannel"
         :shown-count="shownChannels"
         :highlighted-id="highlightChannel"
         :total="channels.total.value"

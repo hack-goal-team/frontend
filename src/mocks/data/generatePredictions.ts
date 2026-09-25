@@ -1,5 +1,8 @@
 // src/mocks/data/generatePredictions.ts
 import type { Prediction, RiskLevel, PredictionStatus, TargetContext, Decision } from "@/modules/predictions/types";
+import type { Channel } from "@/modules/channels/types";
+import { mockLevel3Objects } from "./objects";
+import { channelsOf } from "./channels";
 
 // --- Справочники ---
 
@@ -14,40 +17,6 @@ const MODEL_VERSIONS = ["v1.3.0", "v1.4.0", "v1.4.2", "v1.5.0"] as const;
 const REASON_CODES = ["WEATHER", "WEAR", "LOAD", "SENSOR", "OTHER"] as const;
 
 const DECIDED_BY = ["dispatcher-01", "dispatcher-02", "dispatcher-03"] as const;
-
-const OBJECT_NAMES = [
-  "Объект Альфа",
-  "Объект Бета",
-  "Объект Гамма",
-  "Объект Дельта",
-  "Объект Эпсилон",
-  "Объект Дзета",
-  "Объект Эта",
-  "Объект Тета",
-  "Объект Йота",
-  "Объект Каппа",
-  "Объект Лямбда",
-  "Объект Мю",
-];
-
-const SENSOR_TYPES = [
-  "Датчик температуры",
-  "Датчик давления",
-  "Датчик дыма",
-  "Датчик движения",
-  "Датчик уровня",
-  "Датчик влажности",
-];
-
-const ENGINEERING_SYSTEMS = [
-  "Температурная подсистема",
-  "Подсистема пожаротушения",
-  "Подсистема водоотведения",
-  "Подсистема вентиляции",
-  "Подсистема электроснабжения",
-];
-
-const SENSOR_NAMES = ["ДТ-01", "ДД-02", "ДД-03", "ДД-04", "ДУ-05", "ДВ-06", "ДД-07", "ДТ-08"];
 
 // --- PRNG ---
 
@@ -79,6 +48,13 @@ function isoAt(msOffsetFromNow: number): string {
 
 // --- Генерация контекста ---
 
+/**
+ * Контекст — из реальных данных: случайный объект уровня 3 из реестра и (обычно) его канал.
+ * Это то направление зависимости, которого требует контракт: прогноз приписывается к объекту
+ * и каналу, а не наоборот. ~15% контекста пустые (прогнозы без цели), и ещё доля — с `objectId`,
+ * но без `channelId`: так живыми остаются оба счётчика неатрибутированных прогнозов.
+ * Объект без каналов (97) тоже возможен — тогда `channelId` всегда null.
+ */
 function generateContext(): TargetContext {
   const isEmpty = rand() < 0.15;
 
@@ -93,13 +69,17 @@ function generateContext(): TargetContext {
     };
   }
 
+  const object = pick(mockLevel3Objects);
+  const channels = channelsOf(object.id);
+  const channel: Channel | null = channels.length > 0 && rand() > 0.15 ? pick(channels) : null;
+
   return {
-    objectId: String(randInt(1, 100)),
-    objectName: pick(OBJECT_NAMES),
-    channelId: String(randInt(1000, 9999)),
-    sensorName: pick(SENSOR_NAMES),
-    sensorType: pick(SENSOR_TYPES),
-    engineeringSystem: pick(ENGINEERING_SYSTEMS),
+    objectId: object.id,
+    objectName: object.name ?? `Объект ${object.id}`,
+    channelId: channel?.id ?? null,
+    sensorName: channel?.name ?? null,
+    sensorType: channel?.sensorType ?? null,
+    engineeringSystem: channel?.engineeringSystem ?? null,
   };
 }
 

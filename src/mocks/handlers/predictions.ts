@@ -37,6 +37,9 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   const incidentType = p.get("incidentType");
   if (incidentType) q.incidentType = incidentType;
 
+  const objectId = p.get("objectId");
+  if (objectId) q.objectId = objectId;
+
   const targetKind = p.get("targetKind");
   if (targetKind) q.targetKind = targetKind;
 
@@ -72,6 +75,7 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
 
   return items.filter((p) => {
     if (q.incidentType && p.incidentType !== q.incidentType) return false;
+    if (q.objectId && p.context?.objectId !== q.objectId) return false;
     if (q.targetKind && p.targetKind !== q.targetKind) return false;
     if (q.targetRef && !p.targetRef.includes(q.targetRef)) return false;
     if (q.status && p.status !== q.status) return false;

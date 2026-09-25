@@ -1,11 +1,10 @@
 import type { Channel } from "@/modules/channels/types";
 import type { InfrastructureObject } from "@/modules/objects/types";
-import { mockPredictions } from "./predictions";
 import {
   HUGE_CHANNELS_ID,
   MANY_CHANNELS_ID,
-  OBJECT_UNKNOWN_CHANNEL_COUNT_ID,
-  UNKNOWN_COUNT_CHANNEL_SIZE,
+  OBJECT_CHANNELS_DOWN_ID,
+  OBJECT_WITHOUT_CHANNELS_ID,
   mockObjects,
 } from "./objects";
 import { makePickers } from "../lib/seededRandom";
@@ -13,20 +12,23 @@ import { makePickers } from "../lib/seededRandom";
 /**
  * Реестр каналов для мока `GET /channels`.
  *
- * Число каналов на объект берётся из `channelCount` реестра (`data/objects.ts`), иначе
- * колонка «Каналов» и «+ ещё N» на графе расходились бы — и проверка показывала бы баг
- * там, где его нет. Исключение — `OBJECT_UNKNOWN_CHANNEL_COUNT_ID`: там `channelCount: null`,
- * а каналы живые, ровно чтобы увидеть «прочерк в списке + счётчик по X-Total-Count».
+ * Число каналов на объект — локальная карта `SPECIAL_CHANNEL_COUNTS` + формула: поля
+ * `channelCount` у объекта в контракте v0 нет, и «+ ещё N» на графе считается только
+ * по X-Total-Count `/channels`. Спец-сценарии (33 → 12, 94 → 120, 95 → 2500, 96 → 40,
+ * 97 → 0) закрывают строки матрицы проверки.
  *
- * Часть id не выдумана, а взята из `context.channelId` мок-прогнозов: только так каналы
- * светятся производным риском, а полоса-мини-карта показывает разные уровни, а не серый ряд.
+ * Id каналов собственные числовые (`^[1-9][0-9]{0,18}$`), НЕ из прогнозов: направление
+ * зависимости теперь «прогнозы ссылаются на каналы» (`generatePredictions` выбирает канал
+ * объекта), а не наоборот. Раньше каналы заимствовали id из `context.channelId` прогнозов —
+ * объектный скан `/predictions?objectId=` с реестром каналов тогда не сходился.
  *
- * Физический порядок — порядок генерации. По риску не сортируем: бэк порядка выдачи
- * `/channels` не обещал (вопрос бэкенду № 1), поэтому «соседний узел ≠ соседний на трассе»,
- * и любая перестановка была бы выдумкой.
+ * Пикеты у каналов случайные (85% каналов), порядок генерации им не соответствует — как
+ * и на реальном бэке, порядок по трассе наводит фронт (`mergeChannelPages` сортирует по
+ * `piket`, null в конец). По риску не сортируем: «проблемный канал идёт следующим» —
+ * выдумка о трассе.
  */
 
-/** Те же подписи, что в `data/generatePredictions.ts`: канал и прогноз говорят одним языком. */
+/** Подписи каналов — источник для `context` прогнозов: канал и прогноз говорят одним языком. */
 const SENSOR_TYPES = [
   "Датчик температуры",
   "Датчик давления",
@@ -44,41 +46,28 @@ const ENGINEERING_SYSTEMS = [
   "Подсистема электроснабжения",
 ];
 
-function realChannelIds(): string[] {
-  const now = Date.now();
-  const seen = new Set<string>();
-
-  for (const prediction of mockPredictions) {
-    const id = prediction.context?.channelId;
-    if (!id) continue;
-    // Только активные на момент загрузки: производный риск строится по
-    // `/predictions?activeOnly=true`, истёкший прогноз канал не раскрасит.
-    if (Date.parse(prediction.computedAt) > now || now >= Date.parse(prediction.horizonUntil)) continue;
-    seen.add(id);
-  }
-
-  // Сортировка по числу — детерминизм: порядок Set зависит от порядка прогнозов,
-  // а перестановка тут молча перекрасила бы всё демо.
-  return [...seen].sort((a, b) => Number(a) - Number(b));
-}
-
-function litTarget(object: InfrastructureObject, total: number): number {
-  if (object.id === HUGE_CHANNELS_ID) return 20;
-  if (object.id === MANY_CHANNELS_ID) return 12;
-  return Math.max(1, Math.min(4, Math.round(total / 8)));
-}
+/**
+ * Число каналов для объектов матрицы проверки; остальные объекты уровня 3 — формулой
+ * `3…38` и у четверти сразу `+30`, иначе «+ ещё N» никто не увидит.
+ * 33 — обычный объект с 12 каналами: счётчик «+ ещё N» считается по X-Total-Count.
+ */
+const SPECIAL_CHANNEL_COUNTS: Record<string, number> = {
+  "33": 12,
+  [MANY_CHANNELS_ID]: 120,
+  [HUGE_CHANNELS_ID]: 2_500,
+  [OBJECT_CHANNELS_DOWN_ID]: 40,
+  [OBJECT_WITHOUT_CHANNELS_ID]: 0,
+};
 
 function buildChannels(objects: InfrastructureObject[]): Channel[] {
   const { int, chance } = makePickers(19720101);
-  const pool = realChannelIds();
   const channels: Channel[] = [];
 
-  let cursor = 0;
   let synthetic = 100_000;
 
-  // Дедуп по id — то же правило «первая запись выигрывает», что в buildObjectTree.
-  // Без него повторная строка id «7» удвоила бы список каналов, и «Каналов» в списке
-  // перестал бы сходиться с X-Total-Count — ровно тот баг, который здесь ищут глазами.
+  // Дедуп по id объекта — то же правило «первая запись выигрывает», что в buildObjectTree.
+  // Без него повторная строка id «7» удвоила бы список каналов, и число каналов перестал бы
+  // сходиться с X-Total-Count — ровно тот баг, который здесь ищут глазами.
   const done = new Set<string>();
 
   for (const item of objects) {
@@ -86,19 +75,13 @@ function buildChannels(objects: InfrastructureObject[]): Channel[] {
     if (done.has(item.id)) continue;
     done.add(item.id);
 
-    const total = item.id === OBJECT_UNKNOWN_CHANNEL_COUNT_ID ? UNKNOWN_COUNT_CHANNEL_SIZE : (item.channelCount ?? 0);
-
-    // Подсвеченные каналы разбрасываем по списку, а не ставим в начало: иначе полоса-карта
-    // выглядела бы как «риск только в начале», хотя она про положение на объекте.
-    const want = Math.max(0, Math.min(litTarget(item, total), pool.length - cursor, total));
-    const litPositions = new Set<number>();
-    for (let i = 0; i < want; i += 1) {
-      litPositions.add(Math.floor(((i + 1) * total) / (want + 1)));
-    }
+    const total = SPECIAL_CHANNEL_COUNTS[item.id] ?? int(3, 38) + (chance(0.25) ? 30 : 0);
 
     for (let position = 0; position < total; position += 1) {
       const sensorType = SENSOR_TYPES[(position + int(0, 1)) % SENSOR_TYPES.length];
-      const id = litPositions.has(position) ? (pool[cursor++] as string) : String(synthetic++);
+      const id = String(synthetic++);
+      // Пикет есть не у всех: поле в контракте optional — «нет данных» должно встречаться.
+      const piket = chance(0.85) ? int(1, 9999) : undefined;
 
       channels.push({
         id,
@@ -108,13 +91,15 @@ function buildChannels(objects: InfrastructureObject[]): Channel[] {
         // null name — штатный случай: узел обязан показать id, а не пустую подпись.
         name: chance(0.15) ? null : `${sensorType} №${position + 1}`,
         known: chance(0.96),
+        piket,
+        piketRaw: piket === undefined ? undefined : `ПК${piket}+${int(0, 99)}`,
+        pointId: `point:${id}`,
       });
     }
   }
 
   // Три стабильных id для ручной проверки переходов и особых состояний канала. Менять
-  // нельзя — на них ссылает описание ниже. Позиции 0/1 и хвост: подсвеченные id из пула
-  // стоят глубже, так что ни один прогноз-носитель не теряется.
+  // нельзя — на них ссылает описание ниже.
   //
   //   /objects/94?highlightChannel=900000001 — канал на первой странице, граф центрируется;
   //   /objects/94?highlightChannel=900000002 — known: false (ADR-014): узел показывается
@@ -122,9 +107,6 @@ function buildChannels(objects: InfrastructureObject[]): Channel[] {
   //   /objects/95?highlightChannel=900000003 — хвост за 20 страницами из 25: скан
   //     останавливается на HIGHLIGHT_SCAN_MAX_PAGES и пишет «упёрлись в лимит», а не «нет»;
   //   /objects/94?highlightChannel=999999 — id нет нигде: «не найден среди N из M каналов».
-  //
-  // Все id — строки из цифр по схеме контракта (^[1-9][0-9]{0,18}$): «ch-…» прошло бы тип
-  // string, но выглядело бы как данные из другой системы и сломало бы любой числовой порядок.
   retarget(channels, MANY_CHANNELS_ID, 0, "900000001", true);
   retarget(channels, MANY_CHANNELS_ID, 1, "900000002", false);
   retarget(channels, HUGE_CHANNELS_ID, -1, "900000003", true);
@@ -153,7 +135,7 @@ for (const channel of mockChannels) {
   else channelsByObject.set(key, [channel]);
 }
 
-/** Каналы одного объекта в физическом порядке; `objectId: null` в индекс не попадает. */
+/** Каналы одного объекта в порядке генерации (по пикету отсортирует `mergeChannelPages`); `objectId: null` в индекс не попадает. */
 export function channelsOf(objectId: string): Channel[] {
   return channelsByObject.get(objectId) ?? [];
 }

@@ -17,14 +17,11 @@ function parseLevel(raw: string | null): HierarchyLevel | null {
 
 export const objectHandlers = [
   /**
-   * `GET /objects` — голый массив + `X-Total-Count`, пагинации нет (yaml:411-445).
+   * `GET /objects` — голый массив + `X-Total-Count`, пагинации нет (контракт v0).
    *
-   * Про `withRisk`: параметр принимается и молча игнорируется — ровно как на настоящем
-   * сервисе (yaml:420-422). Это осознанно: фолбэк-цепочка «реестр → производный из
-   * активных прогнозов → недоступен» проверяется только на выдаче БЕЗ поля `risk`.
-   * Захотите увидеть ветку «реестр умеет» — добавьте `risk` в `data/objects.ts`, и фронт
-   * подхватит её без правок: `detectRiskSupport` переключится на "supported", скан
-   * активных прогнозов сам выключится, а фильтр по риску станет активен.
+   * Параметр — только `level`; полей `risk` и `channelCount` объект не несёт, и мок их
+   * не выдумывает: риск реестра фронт выводит сканом `/predictions?activeOnly=true`,
+   * число каналов — из `X-Total-Count` `/channels`.
    */
   http.get(`${BASE}/objects`, async ({ request }) => {
     const user = getCurrentUser();
