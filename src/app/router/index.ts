@@ -76,6 +76,12 @@ export const router = createRouter({
           meta: { permission: PERMISSIONS.SETTINGS_WRITE },
         },
         {
+          path: "import",
+          name: "import",
+          component: () => import("@/pages/import/ImportPage.vue"),
+          meta: { permission: PERMISSIONS.SETTINGS_WRITE },
+        },
+        {
           path: "audit",
           name: "audit",
           component: () => import("@/pages/audit/AuditPage.vue"),

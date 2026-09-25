@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/modules/auth/store";
 import { PERMISSIONS } from "@/modules/auth/consts";
-import { DataBoard, Warning, OfficeBuilding, Document, Setting, List } from "@element-plus/icons-vue";
+import { DataBoard, Warning, OfficeBuilding, Document, Setting, List, UploadFilled } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import logoLight from "@/app/layouts/components/assets/logo-light.png";
 import logoDark from "@/app/layouts/components/assets/logo-dark.png";
@@ -54,6 +54,13 @@ const ALL_ITEMS: NavItem[] = [
     path: "/settings",
     label: "Настройки",
     icon: Setting,
+    permission: PERMISSIONS.SETTINGS_WRITE,
+  },
+  {
+    name: "import",
+    path: "/import",
+    label: "Импорт журналов",
+    icon: UploadFilled,
     permission: PERMISSIONS.SETTINGS_WRITE,
   },
   {

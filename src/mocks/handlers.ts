@@ -5,6 +5,7 @@ import { notificationHandlers } from "./handlers/notifications";
 import { dashboardHandlers } from "./handlers/dashboard";
 import { objectHandlers } from "./handlers/objects";
 import { channelHandlers } from "./handlers/channels";
+import { importHandlers } from "./handlers/import";
 
 export const handlers = [
   ...authHandlers,
@@ -14,4 +15,5 @@ export const handlers = [
   ...dashboardHandlers,
   ...objectHandlers,
   ...channelHandlers,
+  ...importHandlers,
 ];

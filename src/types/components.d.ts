@@ -47,6 +47,7 @@ declare module 'vue' {
     ElTimeline: typeof import('element-plus/es')['ElTimeline']
     ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }
@@ -92,6 +93,7 @@ declare global {
   const ElTimeline: typeof import('element-plus/es')['ElTimeline']
   const ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
   const ElTooltip: typeof import('element-plus/es')['ElTooltip']
+  const ElUpload: typeof import('element-plus/es')['ElUpload']
   const RouterLink: typeof import('vue-router')['RouterLink']
   const RouterView: typeof import('vue-router')['RouterView']
 }
