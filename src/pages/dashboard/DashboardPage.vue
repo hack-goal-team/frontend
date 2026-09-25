@@ -20,6 +20,7 @@ import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
 import RecentNotifications from "@/modules/notifications/components/RecentNotifications.vue";
 import DashboardCard from "./components/DashboardCard.vue";
 import RiskBreakdown from "./components/RiskBreakdown.vue";
+import DashboardSkeleton from "./components/skeletons/DashboardSkeleton.vue";
 
 type DashboardState = "empty-scope" | "loading" | "error" | "no-predictions" | "no-active" | "has-active";
 
@@ -112,7 +113,7 @@ function openObjects() {
       show-icon
     />
 
-    <el-skeleton v-else-if="state === 'loading'" :rows="6" animated />
+    <DashboardSkeleton v-else-if="state === 'loading'" />
 
     <el-empty v-else-if="state === 'no-predictions'" description="Прогнозы пока не рассчитаны" />
 
