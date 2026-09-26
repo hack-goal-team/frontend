@@ -103,10 +103,11 @@ function showOnGraph() {
       <div v-else class="prediction-panel__timeline">
         <el-timeline>
           <el-timeline-item
-            v-for="d in detail.decisions"
+            v-for="(d, index) in detail.decisions"
             :key="d.id"
             :timestamp="formatDateTime(d.decidedAt)"
             placement="top"
+            :class="{ 'prediction-panel__timeline-item_last': index === 0 }"
           >
             <div class="prediction-panel__decision">
               <div>
@@ -160,6 +161,14 @@ function showOnGraph() {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
+  padding-top: 4px;
+}
+
+/* Узел последнего (самого нового) решения: обычный узел — серый, этот — primary с кольцом */
+.prediction-panel__timeline-item_last :deep(.el-timeline-item__node) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 4px var(--el-color-primary-light-9);
 }
 
 .prediction-panel__form {
