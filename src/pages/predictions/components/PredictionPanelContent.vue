@@ -26,7 +26,6 @@ const objectId = computed(() => props.detail.prediction.context?.objectId ?? nul
 const channelId = computed(() => props.detail.prediction.context?.channelId ?? null);
 
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
-const lastDecision = computed(() => props.detail.decisions[0] ?? null);
 
 const hasDecisions = computed(() => props.detail.decisions.length > 0);
 
@@ -68,6 +67,10 @@ function showOnGraph() {
         </div>
       </el-descriptions-item>
 
+      <el-descriptions-item label="Техническая цель">
+        <span class="text-muted"> {{ detail.prediction.targetKind }} / {{ detail.prediction.targetRef }} </span>
+      </el-descriptions-item>
+
       <el-descriptions-item label="Датчик">
         <span v-if="detail.prediction.context?.sensorName">
           {{ detail.prediction.context.sensorName }}
@@ -88,22 +91,6 @@ function showOnGraph() {
 
       <el-descriptions-item label="Вычислен">
         {{ formatDateTime(detail.prediction.computedAt) }}
-      </el-descriptions-item>
-
-      <el-descriptions-item label="Модель">
-        <span class="text-muted">{{ detail.prediction.modelVersion }}</span>
-      </el-descriptions-item>
-
-      <el-descriptions-item label="Техническая цель">
-        <span class="text-muted"> {{ detail.prediction.targetKind }} / {{ detail.prediction.targetRef }} </span>
-      </el-descriptions-item>
-
-      <el-descriptions-item label="Последнее решение">
-        <span v-if="lastDecision">
-          {{ reasonLabel(lastDecision.reasonCode) }}
-          <span class="text-muted"> от {{ formatDateTime(lastDecision.decidedAt) }} </span>
-        </span>
-        <span v-else class="text-muted">Нет</span>
       </el-descriptions-item>
     </el-descriptions>
 
