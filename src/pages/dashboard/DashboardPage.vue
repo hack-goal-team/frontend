@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { InfoFilled } from "@element-plus/icons-vue";
 import { useDashboardQuery } from "@/modules/dashboard/composables/useDashboardQuery";
+import { PERMISSIONS } from "@/modules/auth/consts";
 import { useAuthStore } from "@/modules/auth/store";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
 import {
@@ -28,6 +29,9 @@ const auth = useAuthStore();
 const router = useRouter();
 const { openActive, openCritical, openUnreviewed } = useRiskNavigation();
 const { data, isLoading, isError, error } = useDashboardQuery();
+
+/** «Без решения» — счётчик диспетчерской работы; технику (без DECISION_CREATE) он не показываем. */
+const canDecide = computed(() => auth.hasPermission(PERMISSIONS.DECISION_CREATE));
 
 /** Карточке нужно только число записей (`X-Total-Count`) — свёртку риска на бэке не оплачиваем. */
 const registry = useObjectRegistry({ withRisk: false });
@@ -113,7 +117,7 @@ function openObjects() {
       show-icon
     />
 
-    <DashboardSkeleton v-else-if="state === 'loading'" />
+    <DashboardSkeleton v-else-if="state === 'loading'" :cards="canDecide ? 4 : 3" />
 
     <el-empty v-else-if="state === 'no-predictions'" description="Прогнозы пока не рассчитаны" />
 
@@ -163,6 +167,7 @@ function openObjects() {
         />
 
         <DashboardCard
+          v-if="canDecide"
           title="Без решения"
           :value="data.unreviewedPredictions"
           hint="Статус NEW — решение не зафиксировано"
