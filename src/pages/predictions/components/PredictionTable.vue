@@ -36,17 +36,17 @@ const { incidentTypeLabel } = useLabels();
     show-overflow-tooltip
     @row-click="handleRowClick"
   >
-    <el-table-column label="Тип инцидента" min-width="120">
+    <el-table-column label="Тип инцидента" min-width="300">
       <template #default="{ row }">
         {{ incidentTypeLabel(row.incidentType) }}
       </template>
     </el-table-column>
-    <el-table-column label="Вероятность" min-width="50">
+    <el-table-column label="Вероятность" min-width="120">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}
       </template>
     </el-table-column>
-    <el-table-column label="Горизонт" min-width="60">
+    <el-table-column label="Горизонт" min-width="150">
       <template #default="{ row }">
         {{ formatDateTime(row.horizonUntil) }}
       </template>
@@ -59,7 +59,7 @@ const { incidentTypeLabel } = useLabels();
         <span v-else class="text-muted">—</span>
       </template>
     </el-table-column>
-    <el-table-column label="Датчик" width="180">
+    <el-table-column label="Датчик" width="230">
       <template #default="{ row }">
         <span v-if="row.context.sensorName">
           {{ row.context.sensorName }}
@@ -67,22 +67,22 @@ const { incidentTypeLabel } = useLabels();
         <span v-else class="text-muted">—</span>
       </template>
     </el-table-column>
-    <el-table-column label="Риск" min-width="30">
+    <el-table-column label="Риск" min-width="90">
       <template #default="{ row }">
         <RiskTag :level="row.riskLevel" />
       </template>
     </el-table-column>
-    <el-table-column label="Состояние" min-width="90">
+    <el-table-column label="Состояние" min-width="130">
       <template #default="{ row }">
         <SensorStateTag :state="row.currentState" />
       </template>
     </el-table-column>
-    <el-table-column prop="status" label="Статус" min-width="120">
+    <el-table-column prop="status" label="Статус" min-width="260">
       <template #default="{ row }">
         <StatusTag :status="row.status" />
       </template>
     </el-table-column>
-    <el-table-column label="Время" min-width="60">
+    <el-table-column label="Время" min-width="150">
       <template #default="{ row }">
         {{ formatDateTime(row.computedAt) }}
       </template>
