@@ -1,5 +1,12 @@
 // src/mocks/data/generatePredictions.ts
-import type { Prediction, RiskLevel, PredictionStatus, TargetContext, Decision } from "@/modules/predictions/types";
+import type {
+  Prediction,
+  PredictionReason,
+  RiskLevel,
+  PredictionStatus,
+  TargetContext,
+  Decision,
+} from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
@@ -106,6 +113,43 @@ function generateDecision(predictionId: string, computedAt: string, horizonUntil
   };
 }
 
+// --- Генерация факторов прогноза (reasons) ---
+
+// Пул из живого ответа /predictions/{id}: контракт не перечисляет конкретные факторы,
+// мок воспроизводит реальный набор, а не выдуманную таксономию.
+const REASON_POOL: Omit<PredictionReason, "direction" | "contribution">[] = [
+  { factor: "Тип датчика", feature: "тип_датчика", group: "STATIC", value: "КД АВ" },
+  { factor: "Тег инженерной системы", feature: "тег_инженерной_системы", group: "STATIC", value: "645" },
+  { factor: "«Не замкнут» за 1 ч", feature: "value_cat__Не замкнут__sum_1h", group: "SENSOR_HISTORY", value: 2 },
+  { factor: "«Норма» за 1 ч", feature: "value_cat__Норма__sum_1h", group: "SENSOR_HISTORY", value: 3 },
+  { factor: "«Норма» за 3 сут", feature: "value_cat__Норма__sum_3d", group: "SENSOR_HISTORY", value: 3 },
+  { factor: "Среднее показание за 2 сут", feature: "value_float__mean_2d", group: "SENSOR_HISTORY", value: null },
+  { factor: "День недели", feature: "day_of_week", group: "CALENDAR", value: 6 },
+  { factor: "Давление через 16 ч", feature: "pressure_msl (hPa)__future_16h", group: "WEATHER", value: 1029.2 },
+  { factor: "Температура через 1 сут", feature: "temp_c (°C)__future_1d", group: "WEATHER", value: -3.4 },
+];
+
+/**
+ * Первый фактор объясняет бо́льшую часть вероятности, остальные — затухающий вклад.
+ * 75% побочных факторов толкуют риск вниз — как в живых ответах.
+ */
+function generateReasons(probability: number): PredictionReason[] {
+  const indices = REASON_POOL.map((_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  const count = randInt(5, 8);
+  return indices.slice(0, count).map((poolIndex, position) => {
+    const template = REASON_POOL[poolIndex];
+    const magnitude = position === 0 ? probability * (0.5 + rand() * 0.4) : 0.02 * rand() ** 2;
+    const negative = position !== 0 && rand() < 0.25;
+    const contribution = negative ? -magnitude : magnitude;
+    return { ...template, contribution, direction: contribution >= 0 ? "UP" : "DOWN" };
+  });
+}
+
 // --- Генерация прогнозов ---
 
 export function generatePredictions(count = 500): Prediction[] {
@@ -155,6 +199,7 @@ export function generatePredictions(count = 500): Prediction[] {
       modelVersion: pick(MODEL_VERSIONS),
       status,
       lastDecision,
+      reasons: generateReasons(probability),
     });
   }
 

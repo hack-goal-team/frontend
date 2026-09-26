@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Bottom, Top } from "@element-plus/icons-vue";
 import { formatDateTime } from "@/shared/lib/date";
-import { formatProbability } from "@/shared/lib/probability";
+import { formatContribution, formatProbability } from "@/shared/lib/probability";
 import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
+import { REASON_GROUP_LABEL } from "@/modules/predictions/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import StatusTag from "./StatusTag.vue";
@@ -26,6 +28,10 @@ const objectId = computed(() => props.detail.prediction.context?.objectId ?? nul
 const channelId = computed(() => props.detail.prediction.context?.channelId ?? null);
 
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
+
+const reasons = computed(() =>
+  [...(props.detail.prediction.reasons ?? [])].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution)),
+);
 
 const hasDecisions = computed(() => props.detail.decisions.length > 0);
 
@@ -94,8 +100,32 @@ function showOnGraph() {
       </el-descriptions-item>
     </el-descriptions>
 
+    <!-- Факторы прогноза -->
+    <div v-if="reasons.length > 0" class="prediction-panel__section">
+      <h3 class="prediction-panel__section-title">Факторы прогноза</h3>
+
+      <div class="prediction-panel__reasons">
+        <div v-for="(reason, index) in reasons" :key="`${reason.feature}-${index}`" class="prediction-panel__reason">
+          <el-icon :class="`prediction-panel__reason_direction_${reason.direction.toLowerCase()}`">
+            <Top v-if="reason.direction === 'UP'" />
+            <Bottom v-else />
+          </el-icon>
+
+          <span class="prediction-panel__reason-factor" :title="reason.feature">{{ reason.factor }}</span>
+
+          <span v-if="reason.value !== null" class="prediction-panel__reason-value">{{ reason.value }}</span>
+
+          <span class="prediction-panel__reason-group text-muted">
+            {{ REASON_GROUP_LABEL[reason.group] ?? reason.group }}
+          </span>
+
+          <span class="prediction-panel__reason-contribution">{{ formatContribution(reason.contribution) }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- История решений -->
-    <div class="prediction-panel__section" :class="{ 'prediction-panel__section_history': hasDecisions }">
+    <div class="prediction-panel__section">
       <h3 class="prediction-panel__section-title">История решений</h3>
 
       <el-empty v-if="!hasDecisions" description="Решений нет" :image-size="80" />
@@ -126,27 +156,81 @@ function showOnGraph() {
     </div>
 
     <!-- Форма принятия решения -->
-    <DecisionForm :prediction-id="detail.prediction.id" class="prediction-panel__form" />
+    <DecisionForm :prediction-id="detail.prediction.id" />
   </div>
 </template>
 
 <style scoped>
+/*
+ * Панель скроллится целиком телом el-drawer (у него overflow: auto).
+ * Жёсткая flex-колонка на height:100% с внутренними скроллами секций
+ * схлопывала «Факторы прогноза» в ноль: описания и форма выбирали
+ * всю высоту, а у элемента с overflow:auto минимальная высота — 0.
+ */
 .prediction-panel {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: 100%;
-  min-height: 0;
 }
 
 .prediction-panel__section {
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
-.prediction-panel__section_history {
+.prediction-panel__reasons {
+  padding-right: 4px;
+}
+
+.prediction-panel__reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.prediction-panel__reason:last-child {
+  border-bottom: none;
+}
+
+.prediction-panel__reason_direction_up {
+  color: var(--el-color-danger);
+}
+
+.prediction-panel__reason_direction_down {
+  color: var(--el-color-success);
+}
+
+.prediction-panel__reason-factor {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prediction-panel__reason-value {
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-regular);
+}
+
+.prediction-panel__reason-group {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.prediction-panel__reason-contribution {
+  flex-shrink: 0;
+  min-width: 64px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .prediction-panel__section-title {
@@ -156,25 +240,11 @@ function showOnGraph() {
   font-weight: 600;
 }
 
-.prediction-panel__timeline {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-  padding-top: 4px;
-}
-
 /* Узел последнего (самого нового) решения: обычный узел — серый, этот — primary с кольцом */
 .prediction-panel__timeline-item_last :deep(.el-timeline-item__node) {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   box-shadow: 0 0 0 4px var(--el-color-primary-light-9);
-}
-
-.prediction-panel__form {
-  flex-shrink: 0;
-  /* без решений секция не растягивается — форма всё равно прижата к низу панели */
-  margin-top: auto;
 }
 
 .prediction-panel__decision {

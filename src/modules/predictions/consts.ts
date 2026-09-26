@@ -32,6 +32,15 @@ export const STATUS_LABEL: Record<PredictionStatus, string> = {
   REVIEWED: "Рассмотрен",
 };
 
+// ---- Факторы прогноза (reasons) ----
+
+export const REASON_GROUP_LABEL: Record<string, string> = {
+  STATIC: "Статика",
+  SENSOR_HISTORY: "История датчика",
+  CALENDAR: "Календарь",
+  WEATHER: "Погода",
+};
+
 // ---- Пагинация ----
 
 export const DEFAULT_LIMIT = 50;

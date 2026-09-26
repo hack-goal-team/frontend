@@ -1,6 +1,18 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PredictionStatus = "NEW" | "REVIEWED";
 
+export type PredictionReasonDirection = "UP" | "DOWN";
+
+export interface PredictionReason {
+  factor: string;
+  feature: string;
+  /** В контракте просто `string`: STATIC / SENSOR_HISTORY / CALENDAR / WEATHER, бэк может расширить. */
+  group: string;
+  direction: PredictionReasonDirection;
+  contribution: number;
+  value: string | number | null;
+}
+
 export interface TargetContext {
   objectId: string | null;
   objectName: string | null;
@@ -23,6 +35,8 @@ export interface Prediction {
   modelVersion: string;
   status: PredictionStatus;
   lastDecision: Decision | null;
+  /** Возвращает GET /predictions/{id}; в списке моков и старых ответов может отсутствовать. */
+  reasons?: PredictionReason[];
 }
 
 export interface PredictionPage {
