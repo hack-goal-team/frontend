@@ -14,9 +14,9 @@ withDefaults(
 
 // Левый блок — как был: фиксированные колонки без изменений.
 const LEFT_COLUMNS = [
-  { key: "incidentType", width: "170px", textWidth: "80%" },
-  { key: "probability", width: "120px", textWidth: "60%" },
-  { key: "horizonUntil", width: "160px", textWidth: "90%" },
+  { key: "incidentType", width: "420px", textWidth: "80%" },
+  { key: "probability", width: "100px", textWidth: "60%" },
+  { key: "horizonUntil", width: "60px", textWidth: "90%" },
   { key: "object", width: "200px", textWidth: "80%" },
   { key: "target", width: "180px", textWidth: "70%" },
   { key: "sensor", width: "180px", textWidth: "60%" },
@@ -24,7 +24,7 @@ const LEFT_COLUMNS = [
 
 // Крайние блоки фиксированной ширины, середина — 1fr: «риск + решение» центрируются
 // в свободном месте между блоками (левый блок шире правого, поэтому не в центре строки).
-const CENTER_COLUMNS = [{ key: "risk" }, { key: "decision" }] as const;
+const CENTER_COLUMNS = [{ key: "risk" }] as const;
 
 const RIGHT_COLUMNS = [
   { key: "status", kind: "tag" },

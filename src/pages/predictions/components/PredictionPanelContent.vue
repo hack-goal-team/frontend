@@ -73,10 +73,6 @@ function showOnGraph() {
         </div>
       </el-descriptions-item>
 
-      <el-descriptions-item label="Техническая цель">
-        <span class="text-muted"> {{ detail.prediction.targetKind }} / {{ detail.prediction.targetRef }} </span>
-      </el-descriptions-item>
-
       <el-descriptions-item label="Датчик">
         <span v-if="detail.prediction.context?.sensorName">
           {{ detail.prediction.context.sensorName }}
