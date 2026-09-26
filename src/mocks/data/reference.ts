@@ -19,5 +19,6 @@ export const mockReferenceData: ReferenceData = {
   predictionStatuses: [
     { code: "NEW", description: "Новый, не разобран" },
     { code: "REVIEWED", description: "Разобран диспетчером" },
+    { code: "COVERED", description: "Покрыт решением по более свежему прогнозу" },
   ],
 };

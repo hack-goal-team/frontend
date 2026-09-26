@@ -1,4 +1,4 @@
-import type { RiskLevel, PredictionStatus } from "./types";
+import type { RiskLevel } from "./types";
 
 // ---- Риск ----
 
@@ -22,14 +22,11 @@ export const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
 
 // ---- Статус ----
 
-export const STATUS_TAG_TYPE: Record<PredictionStatus, "info" | "success"> = {
+// Подписи — справочником `/reference-data` (predictionStatuses), здесь только цвет;
+// неизвестный код (бэк добавляет их без релиза фронта) рендерится нейтральным «info».
+export const STATUS_TAG_TYPE: Record<string, "info" | "success"> = {
   NEW: "success",
   REVIEWED: "info",
-};
-
-export const STATUS_LABEL: Record<PredictionStatus, string> = {
-  NEW: "Новый",
-  REVIEWED: "Рассмотрен",
 };
 
 // ---- Факторы прогноза (reasons) ----

@@ -1,5 +1,5 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
-export type PredictionStatus = "NEW" | "REVIEWED";
+export type PredictionStatus = "NEW" | "REVIEWED" | "COVERED";
 
 export type PredictionReasonDirection = "UP" | "DOWN";
 

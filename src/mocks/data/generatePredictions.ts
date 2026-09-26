@@ -176,7 +176,8 @@ export function generatePredictions(count = 500): Prediction[] {
     const horizonUntil = isoAt(horizonOffsetMs);
 
     // --- status ---
-    const status: PredictionStatus = rand() < 0.3 ? "REVIEWED" : "NEW";
+    const statusRoll = rand();
+    const status: PredictionStatus = statusRoll < 0.1 ? "COVERED" : statusRoll < 0.35 ? "REVIEWED" : "NEW";
 
     // --- lastDecision: только у REVIEWED ---
     const id = String(1000 + i);

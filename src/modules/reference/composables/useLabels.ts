@@ -17,5 +17,9 @@ export function useLabels() {
     return findCodeLabel(reference.data?.incidentTypes, code);
   }
 
-  return { reasonLabel, incidentTypeLabel };
+  function statusLabel(code: string): string {
+    return findCodeLabel(reference.data?.predictionStatuses, code);
+  }
+
+  return { reasonLabel, incidentTypeLabel, statusLabel };
 }
