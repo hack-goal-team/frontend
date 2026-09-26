@@ -60,6 +60,13 @@ function handleClose() {
   font-size: 16px;
 }
 .side-panel__body {
-  height: 100%;
+  /*
+   * min-height вместо height: контент длиннее экрана должен растить тело,
+   * а не переливаться через него — иначе низ формы наезжает на padding drawer'а.
+   * Flex-колонка — чтобы панель могла прижать форму к низу на коротком контенте.
+   */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

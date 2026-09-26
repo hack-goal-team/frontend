@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { Bottom, Top } from "@element-plus/icons-vue";
+import { computed, ref } from "vue";
+import { ArrowRight, Bottom, Top } from "@element-plus/icons-vue";
 import { formatDateTime } from "@/shared/lib/date";
 import { formatContribution, formatProbability } from "@/shared/lib/probability";
 import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
@@ -34,6 +34,9 @@ const reasons = computed(() =>
 );
 
 const hasDecisions = computed(() => props.detail.decisions.length > 0);
+
+const reasonsOpen = ref(false);
+const historyOpen = ref(false);
 
 function showOnGraph() {
   if (!objectId.value) return;
@@ -98,9 +101,21 @@ function showOnGraph() {
 
     <!-- Факторы прогноза -->
     <div v-if="reasons.length > 0" class="prediction-panel__section">
-      <h3 class="prediction-panel__section-title">Факторы прогноза</h3>
+      <h3
+        class="prediction-panel__section-title prediction-panel__section-title_toggle"
+        role="button"
+        tabindex="0"
+        :aria-expanded="reasonsOpen"
+        @click="reasonsOpen = !reasonsOpen"
+        @keydown.enter.prevent="reasonsOpen = !reasonsOpen"
+      >
+        <el-icon class="prediction-panel__chevron" :class="{ 'prediction-panel__chevron_open': reasonsOpen }">
+          <ArrowRight />
+        </el-icon>
+        Факторы прогноза
+      </h3>
 
-      <div class="prediction-panel__reasons">
+      <div v-show="reasonsOpen" class="prediction-panel__reasons">
         <div v-for="(reason, index) in reasons" :key="`${reason.feature}-${index}`" class="prediction-panel__reason">
           <el-icon :class="`prediction-panel__reason_direction_${reason.direction.toLowerCase()}`">
             <Top v-if="reason.direction === 'UP'" />
@@ -122,37 +137,51 @@ function showOnGraph() {
 
     <!-- История решений -->
     <div class="prediction-panel__section">
-      <h3 class="prediction-panel__section-title">История решений</h3>
+      <h3
+        class="prediction-panel__section-title prediction-panel__section-title_toggle"
+        role="button"
+        tabindex="0"
+        :aria-expanded="historyOpen"
+        @click="historyOpen = !historyOpen"
+        @keydown.enter.prevent="historyOpen = !historyOpen"
+      >
+        <el-icon class="prediction-panel__chevron" :class="{ 'prediction-panel__chevron_open': historyOpen }">
+          <ArrowRight />
+        </el-icon>
+        История решений
+      </h3>
 
-      <el-empty v-if="!hasDecisions" description="Решений нет" :image-size="80" />
+      <div v-show="historyOpen">
+        <el-empty v-if="!hasDecisions" description="Решений нет" :image-size="80" />
 
-      <div v-else class="prediction-panel__timeline">
-        <el-timeline>
-          <el-timeline-item
-            v-for="(d, index) in detail.decisions"
-            :key="d.id"
-            :timestamp="formatDateTime(d.decidedAt)"
-            placement="top"
-            :class="{ 'prediction-panel__timeline-item_last': index === 0 }"
-          >
-            <div class="prediction-panel__decision">
-              <div>
-                {{ reasonLabel(d.reasonCode) }}
+        <div v-else class="prediction-panel__timeline">
+          <el-timeline>
+            <el-timeline-item
+              v-for="(d, index) in detail.decisions"
+              :key="d.id"
+              :timestamp="formatDateTime(d.decidedAt)"
+              placement="top"
+              :class="{ 'prediction-panel__timeline-item_last': index === 0 }"
+            >
+              <div class="prediction-panel__decision">
+                <div>
+                  {{ reasonLabel(d.reasonCode) }}
+                </div>
+                <div v-if="d.comment" class="prediction-panel__decision-comment">
+                  {{ d.comment }}
+                </div>
+                <div class="prediction-panel__decision-author">
+                  {{ d.decidedBy }}
+                </div>
               </div>
-              <div v-if="d.comment" class="prediction-panel__decision-comment">
-                {{ d.comment }}
-              </div>
-              <div class="prediction-panel__decision-author">
-                {{ d.decidedBy }}
-              </div>
-            </div>
-          </el-timeline-item>
-        </el-timeline>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
       </div>
     </div>
 
     <!-- Форма принятия решения -->
-    <DecisionForm :prediction-id="detail.prediction.id" />
+    <DecisionForm :prediction-id="detail.prediction.id" class="prediction-panel__form" />
   </div>
 </template>
 
@@ -167,6 +196,8 @@ function showOnGraph() {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  /* рост — чтобы прижать форму к низу на коротком контенте; длинный контент растягивает панель */
+  flex: 1 1 auto;
 }
 
 .prediction-panel__section {
@@ -234,6 +265,34 @@ function showOnGraph() {
   margin: 0 0 12px;
   font-size: 14px;
   font-weight: 600;
+}
+
+.prediction-panel__form {
+  /* всегда внизу панели: на коротком контенте — free space, на длинном — последний в прокрутке */
+  margin-top: auto;
+}
+
+.prediction-panel__section-title_toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.prediction-panel__section-title_toggle:hover {
+  color: var(--el-color-primary);
+}
+
+.prediction-panel__chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.2s ease;
+}
+
+.prediction-panel__chevron_open {
+  transform: rotate(90deg);
 }
 
 /* Узел последнего (самого нового) решения: обычный узел — серый, этот — primary с кольцом */
