@@ -59,5 +59,9 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "allowScripts": {
+    "vue-demi@0.14.10": true,
+    "msw": false
   }
 }
