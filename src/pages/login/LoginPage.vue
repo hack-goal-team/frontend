@@ -13,8 +13,6 @@ const form = reactive({
   password: "",
 });
 
-const isMockMode = import.meta.env.VITE_USE_MOCK === "true";
-
 const canSubmit = computed(() => form.username.trim().length > 0 && form.password.length > 0);
 
 /**
@@ -40,9 +38,16 @@ async function onSubmit() {
   }
 }
 
-function fillDemo(user: string) {
-  form.username = user;
-  form.password = user;
+const demoUsers = [
+  { username: "technician", password: import.meta.env.VITE_DEMO_TECHNICIAN_PASSWORD, label: "Technician" },
+  { username: "dispatcher", password: import.meta.env.VITE_DEMO_DISPATCHER_PASSWORD, label: "Dispatcher" },
+  { username: "cds", password: import.meta.env.VITE_DEMO_CDS_PASSWORD, label: "CDS" },
+  { username: "head", password: import.meta.env.VITE_DEMO_HEAD_PASSWORD, label: "Head" },
+];
+
+function fillDemo(user: { username: string; password: string }) {
+  form.username = user.username;
+  form.password = user.password;
 }
 </script>
 
@@ -96,18 +101,12 @@ function fillDemo(user: string) {
       </el-button>
     </el-form>
 
-    <template v-if="isMockMode" #footer>
+    <template #footer>
       <div class="login-card__demo">
-        <div class="login-card__demo-title">Демо-доступ (мок):</div>
+        <div class="login-card__demo-title">Демо-доступ:</div>
         <div class="login-card__demo-list">
-          <el-button
-            v-for="user in ['technician', 'district', 'global', 'head', 'admin', 'empty']"
-            :key="user"
-            text
-            size="small"
-            @click="fillDemo(user)"
-          >
-            {{ user }}
+          <el-button v-for="user in demoUsers" :key="user.username" text size="small" @click="fillDemo(user)">
+            {{ user.label }}
           </el-button>
         </div>
       </div>
