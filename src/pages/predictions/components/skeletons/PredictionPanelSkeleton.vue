@@ -7,14 +7,14 @@ withDefaults(
     throttle?: number | { leading?: number; trailing?: number; initVal?: boolean };
   }>(),
   {
-    descriptionRows: 12,
+    descriptionRows: 10,
     timelineItems: 2,
     animated: true,
     throttle: 200,
   },
 );
 
-const WIDTHS = ["40%", "25%", "30%", "35%", "50%", "60%", "45%", "40%", "35%", "30%", "55%", "70%"];
+const WIDTHS = ["40%", "25%", "30%", "35%", "50%", "60%", "45%", "40%", "35%", "30%"];
 
 function rowContentWidth(i: number): string {
   return WIDTHS[(i - 1) % WIDTHS.length];
