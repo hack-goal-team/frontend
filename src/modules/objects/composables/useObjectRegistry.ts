@@ -3,35 +3,28 @@ import { computed } from "vue";
 import { useAuthStore } from "@/modules/auth/store";
 import { fetchObjects } from "../api";
 import { objectsKeys } from "../keys";
-import { RISK_DERIVED_NOTE, RISK_DERIVED_SHORT } from "../consts";
 import { ancestorChain, buildObjectTree } from "../lib/tree";
-import { resolveRisk, rollUpRisks } from "../lib/risk";
+import { objectRiskOf } from "../lib/risk";
 import type { InfrastructureObject, NodeRisk, ObjectTreeNode, ObjectsQuery } from "../types";
-import { useActiveRiskMap } from "./useActiveRiskMap";
 
 /**
- * Единственный запрос реестра на приложение.
+ * Реестр на всё приложение: два ключа — с риском и без (см. `withRisk` ниже).
  *
  * Ключ НЕ зависит от level/risk/q: это клиентские проекции одного массива, и ключ,
  * зависящий от фильтров, породил бы три копии одного снапшота и рассинхрон
  * «шапка графа ↔ список». Отправка `level` на бэк вредна и содержательно — выдача
  * без родителей даёт сломанное дерево.
  *
- * Риска в `/objects` контракт v0 не несёт (ни поля `risk`, ни параметра `withRisk`),
- * поэтому риск узла — всегда производный, из скана `/predictions?activeOnly=true`.
- *
- * Реестр — снапшот (ADR-015), по SSE он НЕ инвалидируется; инвалидируется только
- * `objectsKeys.riskMap()` (см. useSse.ts).
+ * Риск — серверный (`withRisk=true`): `risk` приехал вместе с объектами, свёртку
+ * поддерева бэк считает сам. Отдельного скана активных прогнозов нет; по SSE
+ * инвалидируются оба ключа (см. useSse.ts). Но свёртка на бэке дорогая, и потребителю,
+ * которому нужен только `X-Total-Count` (карточка дашборда), её платить незачем —
+ * такой потребитель приходит с `withRisk: false` и получает прочерки вместо уровней.
  */
-export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
-  /**
-   * `withRisks: false` — для потребителей, которым нужно только число записей
-   * (карточка дашборда): скан активных прогнозов тогда не запускается.
-   */
-  const withRisks = options.withRisks ?? true;
+export function useObjectRegistry({ withRisk = true }: { withRisk?: boolean } = {}) {
   const auth = useAuthStore();
 
-  const query: ObjectsQuery = {};
+  const query: ObjectsQuery = { withRisk };
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: objectsKeys.list(query),
@@ -50,35 +43,10 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
   /** null — «неизвестно» (заголовка X-Total-Count нет), 0 — «реестр пуст». */
   const total = computed(() => data.value?.total ?? null);
 
-  /** Скан по всей области видимости: свёртку поддерева узла иначе не посчитать. */
-  const scan = useActiveRiskMap({ enabled: withRisks });
-
-  const rolledRisks = computed(() => rollUpRisks(roots.value, scan.byObject.value));
-
-  /** Риск узла — свёртка его поддерева из скана; null, пока скан не завершился (см. resolveRisk). */
+  /** Риск узла — серверный; null, если поле `risk` в запись не пришло (прочерк). */
   function riskOf(node: ObjectTreeNode): NodeRisk | null {
-    return resolveRisk({
-      derived: rolledRisks.value.get(node.id),
-      coverage: scan.coverage.value,
-      hasUnattributed: scan.unattributed.value > 0,
-    });
+    return objectRiskOf(node.object);
   }
-
-  /**
-   * Подпись источника риска. Развёрнутая — для постоянной подписи над таблицей, короткая —
-   * для шапки колонки, где длинный текст не помещается. `null` — пояснять нечего: скан
-   * упал — тогда говорит el-alert с кнопкой «Повторить» (`riskUnavailable`), и дублировать
-   * его текст в подписи нельзя.
-   */
-  const riskNote = computed(() => (scan.coverage.value === "none" ? null : RISK_DERIVED_NOTE));
-  const riskNoteShort = computed(() => (scan.coverage.value === "none" ? null : RISK_DERIVED_SHORT));
-
-  /**
-   * Скан не отработал. Про это имеем право сказать только после первой попытки — на лету
-   * (`isLoading`) решения ещё нет, а повтор от уже упавшего скана обязан оставаться
-   * на экране, иначе кнопка «Повторить» исчезнет в момент нажатия.
-   */
-  const riskUnavailable = computed(() => scan.coverage.value === "none" && !scan.isLoading.value);
 
   function objectById(id: string | null | undefined): InfrastructureObject | null {
     if (!id) return null;
@@ -102,15 +70,6 @@ export function useObjectRegistry(options: { withRisks?: boolean } = {}) {
     roots,
     stats,
     total,
-    riskCoverage: scan.coverage,
-    riskScanned: scan.scanned,
-    riskScanPages: scan.pages,
-    riskScanBusy: scan.isFetching,
-    riskUnattributed: scan.unattributed,
-    riskNote,
-    riskNoteShort,
-    riskUnavailable,
-    refetchRiskMap: scan.refetch,
     riskOf,
     isLoading,
     isFetching,

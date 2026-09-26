@@ -4,6 +4,7 @@ import { hasPermission } from "@/modules/auth/lib/hasPermission";
 import type { HierarchyLevel } from "@/modules/objects/types";
 import { mockObjects } from "../data/objects";
 import { filterObjectsByScope } from "../lib/scopeObjects";
+import { computeObjectRisks, withObjectRisk } from "../lib/mockRisk";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
 import { problem } from "../utils/problem";
@@ -17,11 +18,11 @@ function parseLevel(raw: string | null): HierarchyLevel | null {
 
 export const objectHandlers = [
   /**
-   * `GET /objects` — голый массив + `X-Total-Count`, пагинации нет (контракт v0).
+   * `GET /objects?withRisk=` — голый массив + `X-Total-Count`, пагинации нет (контракт v0).
    *
-   * Параметр — только `level`; полей `risk` и `channelCount` объект не несёт, и мок их
-   * не выдумывает: риск реестра фронт выводит сканом `/predictions?activeOnly=true`,
-   * число каналов — из `X-Total-Count` `/channels`.
+   * `withRisk=true` приписывает каждой записи свёртку `risk` (см. lib/mockRisk): так фронт
+   * читает уровень, бакеты `riskCounts` и `unreviewedPredictions` из ответа, а не выводит
+   * их сканом прогнозов. Без параметра поле не уходит — фронт показывать прочерк.
    */
   http.get(`${BASE}/objects`, async ({ request }) => {
     const user = getCurrentUser();
@@ -41,6 +42,8 @@ export const objectHandlers = [
     // отдаём его поведение, чтобы проверка «выдача без родителей» была воспроизводима.
     const level = parseLevel(url.searchParams.get("level"));
     if (level !== null) items = items.filter((item) => item.hierarchyLevel === level);
+
+    if (url.searchParams.get("withRisk") === "true") items = withObjectRisk(items, computeObjectRisks());
 
     await mockDelay();
 

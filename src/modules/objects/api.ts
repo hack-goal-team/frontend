@@ -6,9 +6,10 @@ import type { InfrastructureObject, ObjectRegistryPage, ObjectsQuery } from "./t
  * `GET /objects` отдаёт ГОЛЫЙ массив, поэтому возвращаем `{ items, total }` по образцу
  * `fetchPredictions` — иначе `X-Total-Count` теряется.
  *
- * Контракт v0: параметр только `level` (никакого `withRisk`), а сам объект — без `risk`
- * и `channelCount`. Риск для реестра выводится сканом `/predictions?activeOnly=true`
- * (useObjectRegistry), число каналов — из `X-Total-Count` `/channels`.
+ * Контракт v0 (docs/api-docs.json): параметры `level` и `withRisk`; с `withRisk=true`
+ * каждый объект несёт серверный `risk` — свёртку поддерева по порогам из `/reference-data`.
+ * Фронту её не пересчитывать и пороги не зашивать (AGENTS.md), поэтому скан
+ * `/predictions?activeOnly=true` ради риска реестра больше не нужен.
  *
  * Про `total`: у `/objects` пагинации нет, так что `items.length` и есть истина.
  * Расхождение с заголовком разрешается в пользу `items.length` с предупреждением
@@ -17,7 +18,12 @@ import type { InfrastructureObject, ObjectRegistryPage, ObjectsQuery } from "./t
  * там, где мы просто не знаем числа.
  */
 export async function fetchObjects(query: ObjectsQuery = {}): Promise<ObjectRegistryPage> {
-  const { data, headers } = await getWithHeaders<InfrastructureObject[]>("/objects", query);
+  // `withRisk=false` на бэк не шлём: по контракту это и так значение по умолчанию,
+  // а `?withRisk=false` в логах — шум.
+  const { data, headers } = await getWithHeaders<InfrastructureObject[]>("/objects", {
+    ...query,
+    withRisk: query.withRisk || undefined,
+  });
   const items = Array.isArray(data) ? data : [];
   const headerTotal = parseTotal(headers);
 

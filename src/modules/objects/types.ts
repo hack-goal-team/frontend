@@ -2,7 +2,7 @@ import type { RiskLevel } from "@/modules/predictions/types";
 
 /**
  * Типы реестра объектов — строго по контракту реального бэкенда (OpenAPI v0,
- * схемы `InfrastructureObject`). Ничего сверх контракта не добавляем:
+ * схемы `InfrastructureObject` / `ObjectRisk`). Ничего сверх контракта не добавляем:
  * ручку `/objects/{id}` или граф-топологию бэк не обещает.
  */
 
@@ -10,6 +10,25 @@ import type { RiskLevel } from "@/modules/predictions/types";
 export type HierarchyLevel = 1 | 2 | 3;
 
 export type ObjectKind = "district" | "controlHouse" | "guardObject";
+
+/** Счётчики по уровням риска для узла subtree-агрегации; NONE — без активных прогнозов. */
+export interface ObjectRiskCounts {
+  LOW: number;
+  MEDIUM: number;
+  HIGH: number;
+  NONE: number;
+}
+
+/**
+ * Серверный риск объекта: `riskLevel` считает бэкенд по порогам из `/reference-data`
+ * и уже сворачивает поддерево — фронту не пересчитывать (AGENTS.md).
+ * `riskLevel: null` при присутствующем объекте `risk` — утверждение «активных прогнозов нет».
+ */
+export interface ObjectRisk {
+  riskLevel: RiskLevel | null;
+  riskCounts: ObjectRiskCounts;
+  unreviewedPredictions: number;
+}
 
 export interface InfrastructureObject {
   /** bigint строкой: Number теряет точность после 2^53 (AGENTS.md). */
@@ -21,11 +40,18 @@ export interface InfrastructureObject {
   /** nullable → фолбэк «Объект #<id>», см. lib/label.ts */
   name: string | null;
   snapshotAt: string;
+  /**
+   * Приходит только при `withRisk=true`. Отсутствие поля — «знания о риске нет»
+   * (прочерк), а `riskLevel: null` внутри объекта — «прогнозов нет» (○): разные утверждения.
+   */
+  risk?: ObjectRisk | null;
 }
 
 export interface ObjectsQuery {
   /** Параметр в контракте есть; реестр его не шлёт — уровень это клиентская проекция дерева. */
   level?: HierarchyLevel;
+  /** Риску реестра теперь есть откуда взяться — серверному; отдельный скан прогнозов не нужен. */
+  withRisk?: boolean;
 }
 
 export interface ObjectRegistryPage {
@@ -70,22 +96,14 @@ export interface ObjectTree {
   stats: ObjectTreeStats;
 }
 
-// ---- Риск ----
+// ---- Риск для отрисовки ----
 
 /**
- * Полнота знания о риске. Нужна, чтобы «мы не доглядели» не выглядело как
- * «всё спокойно»: level: null при coverage: "partial" рисуется нейтрально, а не как ○ «без прогноза».
+ * Единая форма риска объекта и канала для таблиц, графа и полосы.
+ * `null` — знания нет (поле `risk` не пришло): прочерк.
+ * `level: null` — сервер утверждает, что активных прогнозов нет: ○ «без прогноза».
+ * Сведений о полноте скана больше нет: риска «выведенного фронтом» тоже нет — источник один.
  */
-export type RiskCoverage = "complete" | "partial" | "none";
-
 export interface NodeRisk {
   level: RiskLevel | null;
-  coverage: RiskCoverage;
-  activeCount: number;
-  unreviewedCount: number;
-  /**
-   * Есть прогнозы, которые скан не смог приписать этой цели. При таком ○ «без прогноза»
-   * было бы ложной уверенностью: прогноз существует, просто не сворачивается сюда.
-   */
-  hasUnattributed: boolean;
 }

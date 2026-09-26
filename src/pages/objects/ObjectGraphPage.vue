@@ -23,9 +23,8 @@ import {
   toFlowNodes,
   type ChannelColumnState,
 } from "@/modules/objects/lib/graph";
-import { useActiveRiskMap } from "@/modules/objects/composables/useActiveRiskMap";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
-import { resolveRisk } from "@/modules/objects/lib/risk";
+import { channelPredictionOf, channelRiskOf } from "@/modules/objects/lib/risk";
 import type { NodeRisk } from "@/modules/objects/types";
 import type { Channel } from "@/modules/channels/types";
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery";
@@ -99,25 +98,17 @@ const channelsEnabled = computed(() => focus.value?.object.hierarchyLevel === 3)
 const channels = useObjectChannelsQuery(objectId, { enabled: channelsEnabled });
 
 /**
- * Риск каналов — отдельный скан по `objectId`, не глобальный: без фильтра пришлось бы
- * тянуть до 2000 прогнозов всей области видимости ради колонки, которой они не принадлежат.
- * Фильтра `channelId` в контракте нет, поэтому скан объекта, а канал атрибутируется
- * по `context.channelId` внутри этого множества.
+ * Риск канала — серверный: страницы `/channels` запрошены с `withRisk=true` и `risk`
+ * приехал в каждой записи. Отдельного скана прогнозов нет; `risk: null` — утверждение
+ * «активных прогнозов у канала нет», отсутствующее поле — «не знаем» (прочерк).
  */
-const channelScan = useActiveRiskMap({ objectId, enabled: channelsEnabled });
-
-/** Риск канала — из объектного скана; null, пока скан не завершился (см. resolveRisk). */
 function riskOfChannel(channel: Channel): NodeRisk | null {
-  return resolveRisk({
-    derived: channelScan.byChannel.value.get(channel.id),
-    coverage: channelScan.coverage.value,
-    hasUnattributed: channelScan.unattributedToChannel.value > 0,
-  });
+  return channelRiskOf(channel);
 }
 
-/** Прогноз канала — из того же объектного скана: сильнейший по уровню (см. buildRiskMaps). */
+/** Прогноз, раскрасивший канал — `risk.predictionId` той же записи канала. */
 function predictionOfChannel(channel: Channel): string | null {
-  return channelScan.predictionByChannel.value.get(channel.id) ?? null;
+  return channelPredictionOf(channel);
 }
 
 /**
@@ -157,9 +148,6 @@ const flowEdges = computed(() => (graph.value ? toFlowEdges(graph.value) : []));
 
 /** Сколько сегментов полосы уже есть на графе — остальные затемняются. */
 const shownChannels = computed(() => Math.min(channelLimit.value, channels.items.value.length));
-
-/** Легенда обязана говорить, откуда взялся уровень: риск здесь всегда производный — из скана прогнозов. */
-const derivedRisk = computed(() => registry.riskCoverage.value !== "none");
 
 const isEmptyScope = computed(() => auth.isEmptyScope);
 const isReady = computed(() => !registry.isLoading.value && !registry.isError.value);
@@ -274,7 +262,8 @@ function goToRegistry() {
  * хуже отсутствующей подсказки.
  */
 function openChannelPrediction(channelId: string) {
-  const predictionId = channelScan.predictionByChannel.value.get(channelId);
+  const channel = channels.items.value.find((item) => item.id === channelId);
+  const predictionId = channel ? predictionOfChannel(channel) : null;
   if (predictionId) router.replace({ query: { ...route.query, selectedId: predictionId } });
 }
 
@@ -356,11 +345,7 @@ function onAuxClick(id: string) {
         @channel-click="openChannelPrediction"
       />
 
-      <ObjectGraphLegend
-        :derived="derivedRisk"
-        :coverage="registry.riskCoverage.value"
-        :unattributed="registry.riskUnattributed.value"
-      />
+      <ObjectGraphLegend />
     </template>
   </div>
 

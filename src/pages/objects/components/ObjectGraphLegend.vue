@@ -1,15 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import { RISK_LABEL } from "@/modules/predictions/consts";
-import {
-  NO_PREDICTIONS_LABEL,
-  RELATIONS_HINT,
-  RISK_DERIVED_NOTE,
-  RISK_SCAN_PARTIAL_ALERT,
-  UNKNOWN_VALUE,
-} from "@/modules/objects/consts";
-import { pluralize } from "@/shared/lib/pluralize";
-import type { RiskCoverage } from "@/modules/objects/types";
+import { NO_PREDICTIONS_LABEL, RELATIONS_HINT, UNKNOWN_VALUE } from "@/modules/objects/consts";
 
 /**
  * Легенда рисков и постоянная подпись про природу связей.
@@ -17,27 +8,16 @@ import type { RiskCoverage } from "@/modules/objects/types";
  * RELATIONS_HINT показан текстом, а не спрятан в иконку: «схема коллектора» и «иерархия
  * объекта» читаются одинаково, если не сказать разницу вслух. Это единственное место с этим
  * текстом — и расшифровка значков: узлов на экране десятки, tooltip на каждом читается как
- * шум, поэтому `*` («выведено») объясняется здесь, а метка осиротевшей записи — сама в себе.
+ * шум, поэтому значки объясняются здесь, а метка осиротевшей записи — сама в себе.
+ *
+ * Расшифровка ○ и «—» общая для объектов и каналов: риск серверный (`withRisk=true`),
+ * ○ — утверждение бэка «активных прогнозов нет», «—» — поле `risk` в запись не пришло.
  */
-const props = defineProps<{
-  /** Производный риск: тогда у уровня в legend обязана быть пометка «выведено». */
-  derived: boolean;
-  coverage: RiskCoverage;
-  /** Прогнозы без `context.objectId`: их нельзя приписать объекту (ADR-003), молчать об этом нельзя. */
-  unattributed: number;
-}>();
-
-const marks = computed(() => [
+const marks = [
   { level: "HIGH", color: "var(--el-color-danger)", label: `${RISK_LABEL.HIGH} риск` },
   { level: "MEDIUM", color: "var(--el-color-warning)", label: `${RISK_LABEL.MEDIUM} риск` },
   { level: "LOW", color: "var(--el-color-success)", label: `${RISK_LABEL.LOW} риск` },
-]);
-
-const unattributedText = computed(() => {
-  if (props.unattributed <= 0) return "";
-  const count = props.unattributed;
-  return ` · ${count} ${pluralize(count, "прогноз", "прогноза", "прогнозов")} не сводится к объекту`;
-});
+];
 </script>
 
 <template>
@@ -57,12 +37,9 @@ const unattributedText = computed(() => {
         <span class="graph-legend__dot graph-legend__dot_unknown" />
         <span class="graph-legend__label">{{ UNKNOWN_VALUE }} нет данных</span>
       </span>
-
-      <span v-if="derived" class="graph-legend__note">{{ RISK_DERIVED_NOTE }} *</span>
-      <span v-if="coverage === 'partial'" class="graph-legend__alert">{{ RISK_SCAN_PARTIAL_ALERT }}</span>
     </div>
 
-    <p class="graph-legend__hint">{{ RELATIONS_HINT }}{{ unattributedText }}</p>
+    <p class="graph-legend__hint">{{ RELATIONS_HINT }}</p>
   </div>
 </template>
 
@@ -107,14 +84,6 @@ const unattributedText = computed(() => {
 
 .graph-legend__label {
   color: var(--el-text-color-regular);
-}
-
-.graph-legend__note {
-  color: var(--el-text-color-secondary);
-}
-
-.graph-legend__alert {
-  color: var(--el-color-warning);
 }
 
 .graph-legend__hint {

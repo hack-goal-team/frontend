@@ -4,12 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
 import { Search } from "@element-plus/icons-vue";
 import { RISK_OPTIONS } from "@/modules/predictions/consts";
-import {
-  LEVEL_OPTIONS,
-  NO_PREDICTIONS_LABEL,
-  NO_RISK_FILTER_VALUE,
-  RISK_FILTER_DISABLED_TIP,
-} from "@/modules/objects/consts";
+import { LEVEL_OPTIONS, NO_PREDICTIONS_LABEL, NO_RISK_FILTER_VALUE } from "@/modules/objects/consts";
 import type { HierarchyLevel } from "@/modules/objects/types";
 
 /**
@@ -18,11 +13,8 @@ import type { HierarchyLevel } from "@/modules/objects/types";
  * Единственный локальный ref — буфер текстового ввода: он только откладывает запись в URL
  * (по одному replace на паузу набора), источником истины остаётся route.query.
  */
-const props = defineProps<{
+defineProps<{
   disable: boolean;
-  riskFilterEnabled: boolean;
-  /** «Без прогноза» — утверждение завершённого источника, при обрезанном скане его нет. */
-  noRiskEnabled: boolean;
 }>();
 
 const route = useRoute();
@@ -79,15 +71,13 @@ function reset() {
   router.replace({ query: {} });
 }
 
-// «Без прогноза» появляется только вместе с работающим фильтром: при недоступном риске
-// это значение фильтровало бы по тому, чего мы не знаем. Значение шире RiskLevel — NONE
-// кода риска в контракте нет, это договорённость фронта с самим собой.
-const riskOptions = computed<{ value: string; label: string }[]>(() => {
-  if (!props.riskFilterEnabled) return [];
-  const options: { value: string; label: string }[] = RISK_OPTIONS.map((option) => ({ ...option }));
-  if (props.noRiskEnabled) options.push({ value: NO_RISK_FILTER_VALUE, label: NO_PREDICTIONS_LABEL });
-  return options;
-});
+// Риск серверный (`withRisk=true`), поэтому фильтр работает всегда. Значение шире RiskLevel —
+// NONE кода риска в контракте нет, это договорённость фронта с самим собой: «без прогноза»
+// соответствует серверному `riskLevel: null`, а не «мы не знаем».
+const riskOptions: { value: string; label: string }[] = [
+  ...RISK_OPTIONS.map((option) => ({ ...option })),
+  { value: NO_RISK_FILTER_VALUE, label: NO_PREDICTIONS_LABEL },
+];
 </script>
 
 <template>
@@ -99,13 +89,9 @@ const riskOptions = computed<{ value: string; label: string }[]>(() => {
     </el-form-item>
 
     <el-form-item label="Риск">
-      <el-tooltip :content="RISK_FILTER_DISABLED_TIP" :disabled="riskFilterEnabled" placement="top">
-        <span class="objects-filters__locked">
-          <el-select v-model="risk" :disabled="!riskFilterEnabled" clearable placeholder="Все" style="min-width: 160px">
-            <el-option v-for="option in riskOptions" :key="option.value" :label="option.label" :value="option.value" />
-          </el-select>
-        </span>
-      </el-tooltip>
+      <el-select v-model="risk" clearable placeholder="Все" style="min-width: 160px">
+        <el-option v-for="option in riskOptions" :key="option.value" :label="option.label" :value="option.value" />
+      </el-select>
     </el-form-item>
 
     <el-form-item label="Поиск">
@@ -135,9 +121,5 @@ const riskOptions = computed<{ value: string; label: string }[]>(() => {
 .objects-filters :deep(.el-form-item) {
   margin-right: 0;
   margin-bottom: 0;
-}
-
-.objects-filters__locked {
-  display: inline-flex;
 }
 </style>

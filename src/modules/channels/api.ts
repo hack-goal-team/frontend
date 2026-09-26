@@ -5,7 +5,7 @@ import { CHANNEL_PAGE_SIZE } from "@/modules/objects/consts";
 import type { ChannelPage, ChannelsPage, ChannelsQuery } from "./types";
 
 /**
- * `GET /channels?objectId=&limit=&offset=` → страница + `X-Total-Count`.
+ * `GET /channels?objectId=&withRisk=&limit=&offset=` → страница + `X-Total-Count`.
  *
  * `total` — через `parseTotal`, а не `Number(... ?? 0)`: на этом ресурсе «заголовка нет»
  * и «там нуль» означают разное («сколько каналов — неизвестно» против «каналов нет»),

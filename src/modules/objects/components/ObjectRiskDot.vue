@@ -1,28 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RISK_LABEL } from "@/modules/predictions/consts";
-import {
-  NO_PREDICTIONS_LABEL,
-  RISK_DERIVED_NOTE,
-  RISK_SCAN_PARTIAL_ALERT,
-  RISK_UNATTRIBUTED_NOTE,
-  UNKNOWN_VALUE,
-} from "../consts";
-import { isRiskCertain } from "../lib/risk";
+import { NO_PREDICTIONS_LABEL, UNKNOWN_VALUE } from "../consts";
 import type { NodeRisk } from "../types";
 
 /**
- * Риск одной записи — уже разрешённый `resolveRisk`, здесь только отрисовка.
- * Риск всегда производный (контракт v0 поле `risk` не отдаёт), отсюда звёздочка у уровня.
+ * Риск одной записи — серверный (`/objects?withRisk`, `/channels?withRisk`), здесь только
+ * отрисовка. Звёздочки «выведено» больше нет: фронт ничего не выводит и не пересчитывает.
  *
  * Различия, которые нельзя терять:
- * - `level` → тег уровня со звёздочкой, расшифровка — в подписи/легенде;
- * - `level: null` при определённом скане → ○ «без прогноза»: это утверждение;
- * - `coverage: "partial"` без уровня → НЕЙТРАЛЬНО, никогда не ○: мы не досмотрели;
- * - прогноз есть, но не сворачивается сюда (`hasUnattributed`) → тоже НЕЙТРАЛЬНО: ○ было бы
- *   ложной уверенностью;
- * - `risk === null` → «—» без тултипа: повторять «нет данных» на каждой строке — шум,
- *   а причину (упавший скан) объясняет el-alert над таблицей.
+ * - `level` → тег уровня;
+ * - `risk` есть, `level: null` → ○ «без прогноза»: это утверждение сервиса;
+ * - `risk === null` (поля риска в записи нет) → «—»: мы не знаем, и это не должно
+ *   читаться как «спокойно».
  *
  * Тултип — редкий гость: только там, где есть что сказать сверх подписи на экране.
  * На каждой строке таблицы и на каждом узле графа он превращается в шум.
@@ -32,34 +22,21 @@ const props = defineProps<{
 }>();
 
 const level = computed(() => props.risk?.level ?? null);
-/** ○ «без прогноза» допустимо только когда скан завершён и прогнозов без цели не осталось. */
-const certain = computed(() => isRiskCertain(props.risk));
 const label = computed(() => {
   if (level.value) return `${RISK_LABEL[level.value]} риск`;
-  return certain.value ? NO_PREDICTIONS_LABEL : UNKNOWN_VALUE;
+  return props.risk ? NO_PREDICTIONS_LABEL : UNKNOWN_VALUE;
 });
 const variant = computed(() => {
   if (level.value) return level.value.toLowerCase();
-  return certain.value ? "none" : "muted";
-});
-
-const hint = computed<string | null>(() => {
-  const risk = props.risk;
-  if (!risk) return null;
-  if (risk.coverage === "partial") return RISK_SCAN_PARTIAL_ALERT;
-  if (!level.value && !certain.value) return RISK_UNATTRIBUTED_NOTE;
-  return RISK_DERIVED_NOTE;
+  return props.risk ? "none" : "muted";
 });
 </script>
 
 <template>
-  <el-tooltip :content="hint ?? ''" placement="top" :disabled="!hint">
-    <span class="object-risk">
-      <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
-      <span class="object-risk__text">{{ label }}</span>
-      <span v-if="level" class="object-risk__mark">*</span>
-    </span>
-  </el-tooltip>
+  <span class="object-risk">
+    <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
+    <span class="object-risk__text">{{ label }}</span>
+  </span>
 </template>
 
 <style scoped>
@@ -107,10 +84,5 @@ const hint = computed<string | null>(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.object-risk__mark {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
 }
 </style>

@@ -43,7 +43,13 @@ export function useObjectChannelsQuery(
   const query = useInfiniteQuery({
     queryKey: computed(() => channelsKeys.byObject(id.value)),
     queryFn: ({ pageParam }) =>
-      fetchChannels({ objectId: id.value, limit: CHANNEL_PAGE_SIZE, offset: Number(pageParam ?? 0) }),
+      fetchChannels({
+        objectId: id.value,
+        // Риск канала — серверный (ChannelRisk с predictionId): отдельный скан прогнозов не нужен.
+        withRisk: true,
+        limit: CHANNEL_PAGE_SIZE,
+        offset: Number(pageParam ?? 0),
+      }),
     initialPageParam: 0,
     getNextPageParam: (last) => (last.hasMore ? last.offset + last.limit : undefined),
     staleTime: 60_000,

@@ -3,10 +3,11 @@ import type { HierarchyLevel, InfrastructureObject, ObjectKind } from "@/modules
 /**
  * Реестр объектов для мока `GET /objects`.
  *
- * Держимся реального контракта v0 буквально, иначе проверка экрана ничего не проверяет:
- * схема `InfrastructureObject` = {id, parentId, hierarchyLevel, kind, name, snapshotAt}.
- * Поля `risk` и `channelCount` мок не выдумывает — риск реестра фронт выводит сканом
- * `/predictions?activeOnly=true`, число каналов — из `X-Total-Count` `/channels`.
+ * Держимся контракта буквально, иначе проверка экрана ничего не проверяет: схема
+ * `InfrastructureObject` = {id, parentId, hierarchyLevel, kind, name, snapshotAt} плюс
+ * `risk` — и тот приписывает хендлер только на `withRisk=true` (см. `lib/mockRisk`);
+ * в самой карте записей поля `risk` нет. Число каналов фронт по-прежнему берёт из
+ * `X-Total-Count` `/channels`.
  *
  * - выдача — ГОЛЫЙ массив, пагинации нет; счётчик в `X-Total-Count` отдаёт хендлер.
  * - `parentId` может вести на объект, которого в реестре нет — «не чиним, отдаём как есть».

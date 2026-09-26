@@ -161,10 +161,6 @@ const clickable = computed(() => !!props.data.predictionId);
   color: var(--node-text);
 }
 
-.channel-node_filled :deep(.object-risk__mark) {
-  color: var(--node-muted);
-}
-
 .channel-node_filled :deep(.object-risk__dot) {
   box-shadow: 0 0 0 1px var(--el-color-white);
 }

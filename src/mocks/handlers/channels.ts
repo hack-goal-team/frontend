@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { channelsOf, mockChannels } from "../data/channels";
 import { OBJECT_CHANNELS_DOWN_ID } from "../data/objects";
+import { computeChannelRisks, withChannelRisk } from "../lib/mockRisk";
 import { scopeObjectIds } from "../lib/scopeObjects";
 import { mockObjects } from "../data/objects";
 import { getCurrentUser } from "../state/auth";
@@ -52,11 +53,16 @@ export const channelHandlers = [
 
     const page = visible.slice(offset, offset + limit);
 
+    // `withRisk=true` — риск каждой записи страницы: {…} или явный null («прогнозов нет»).
+    // Без параметра поля `risk` в ответе нет — фронт читает прочерк, как на реальном бэке.
+    const withRisk = url.searchParams.get("withRisk") === "true";
+    const pageItems = withRisk ? withChannelRisk(page, computeChannelRisks()) : page;
+
     await mockDelay();
 
     return HttpResponse.json(
       {
-        items: page,
+        items: pageItems,
         limit,
         offset,
         hasMore: offset + limit < visible.length,

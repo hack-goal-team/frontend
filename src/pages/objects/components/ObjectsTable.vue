@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { InfoFilled } from "@element-plus/icons-vue";
 import { OBJECT_KIND_LABEL, ORPHAN_TAG } from "@/modules/objects/consts";
 import { objectLabel } from "@/modules/objects/lib/label";
 import ObjectLevelTag from "@/modules/objects/components/ObjectLevelTag.vue";
@@ -11,14 +10,11 @@ import { formatDateTime } from "@/shared/lib/date";
  * Дерево реестра. Про роутинг не знает — наружу только `rowClick(id)`, как в PredictionTable.vue,
  * чтобы таблица оставалась проекцией данных, а состояние держал URL страницы.
  *
- * `riskOf` — уже разрешённый производный риск: источник знания о риске
- * знает только реестр, таблица его не выводит и не переспрашивает.
+ * `riskOf` — серверный риск записи (`withRisk=true`): таблица его не выводит и не переспрашивает.
  */
 const props = defineProps<{
   items: ObjectTreeNode[];
   riskOf: (node: ObjectTreeNode) => NodeRisk | null;
-  /** Подпись колонки, короткая форма: null — скан не отработал, показывать нечего. */
-  riskNote: string | null;
   expandRowKeys: string[];
   loading?: boolean;
 }>();
@@ -72,14 +68,6 @@ function kindLabel(kind: ObjectKind): string {
     </el-table-column>
 
     <el-table-column label="Риск" min-width="170">
-      <template #header>
-        <span class="objects-table__header">
-          <span>Риск</span>
-          <el-tooltip v-if="riskNote" :content="riskNote" placement="top">
-            <el-icon class="objects-table__help"><InfoFilled /></el-icon>
-          </el-tooltip>
-        </span>
-      </template>
       <template #default="{ row }">
         <ObjectRiskDot :risk="riskOfRow(row)" />
       </template>
@@ -113,15 +101,5 @@ function kindLabel(kind: ObjectKind): string {
 .objects-table__id {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
-}
-
-.objects-table__header {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.objects-table__help {
-  color: var(--el-text-color-secondary);
 }
 </style>

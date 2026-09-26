@@ -6,6 +6,7 @@ import { predictionKeys } from "@/modules/predictions/keys";
 import type { PredictionPage } from "@/modules/predictions/types";
 import { dashboardKeys } from "../dashboard/keys";
 import { objectsKeys } from "../objects/keys";
+import { channelsKeys } from "../channels/keys";
 
 const RECONNECT_DELAY = 5000;
 
@@ -16,6 +17,19 @@ export function useSse() {
   let abortController: AbortController | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let isUnmounted = false;
+
+  /**
+   * Серверный риск приехал в сами списки: `/objects?withRisk` и `/channels?withRisk`, —
+   * поэтому на новый критический прогноз (и после переподключения) обновляем сводку
+   * панели, реестр и страницы каналов. Отдельного ключа под скан прогнозов больше нет.
+   * Цена инвалидации каналов — перезагрузка накопленных страниц открытого графа:
+   * риск канала живёт в его странице, а устаревший цвет хуже перезагрузки.
+   */
+  function invalidateRiskBearingLists() {
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    queryClient.invalidateQueries({ queryKey: objectsKeys.all });
+    queryClient.invalidateQueries({ queryKey: channelsKeys.all });
+  }
 
   async function connect() {
     if (isUnmounted) return;
@@ -38,9 +52,7 @@ export function useSse() {
             // После переподключения — refresh REST data
             if (wasDisconnected) {
               queryClient.invalidateQueries({ queryKey: predictionKeys.all });
-              queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
-              // Реестр — снапшот (ADR-015), его не трогаем; производный риск построен на активных прогнозах.
-              queryClient.invalidateQueries({ queryKey: objectsKeys.riskMap() });
+              invalidateRiskBearingLists();
             }
             return;
           }
@@ -58,8 +70,7 @@ export function useSse() {
 
             // Новый критический прогноз меняет и сводку панели — не ждём рефетч по времени
             if (fresh.length > 0) {
-              queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
-              queryClient.invalidateQueries({ queryKey: objectsKeys.riskMap() });
+              invalidateRiskBearingLists();
             }
           } catch (e) {
             console.warn("[SSE] failed to parse message", e);

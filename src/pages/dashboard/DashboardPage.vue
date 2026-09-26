@@ -29,8 +29,8 @@ const router = useRouter();
 const { openActive, openCritical, openUnreviewed } = useRiskNavigation();
 const { data, isLoading, isError, error } = useDashboardQuery();
 
-/** Карточке нужно только число записей — скан активных прогнозов не запускаем. */
-const registry = useObjectRegistry({ withRisks: false });
+/** Карточке нужно только число записей (`X-Total-Count`) — свёртку риска на бэке не оплачиваем. */
+const registry = useObjectRegistry({ withRisk: false });
 
 /**
  * `null` приходит из `parseTotal` (заголовка X-Total-Count нет), а не из `?? 0`:

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { channelStripHiddenText } from "@/modules/objects/consts";
-import { isRiskCertain } from "@/modules/objects/lib/risk";
 import type { NodeRisk } from "@/modules/objects/types";
 import type { Channel } from "@/modules/channels/types";
 
@@ -46,11 +45,14 @@ const counterText = computed(() => {
   return `Каналов загружено: ${props.channels.length}${of}`;
 });
 
-/** ○ «без прогноза» вправе утверждать только завершённый источник — остальное «не знаем». */
+/**
+ * ○ («прогнозов нет») рисует только серверное утверждение: `risk` в записи есть, а уровня в нём нет.
+ * Поля `risk` нет — «не знаем», штриховка.
+ */
 function variant(channel: Channel): string {
   const risk = props.riskOf(channel);
   if (risk?.level) return risk.level.toLowerCase();
-  return isRiskCertain(risk) ? "none" : "muted";
+  return risk ? "none" : "muted";
 }
 </script>
 

@@ -7,15 +7,8 @@ import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
 import { collectExpandableKeys, countTreeNodes, filterTree } from "@/modules/objects/lib/tree";
 import { objectLabel } from "@/modules/objects/lib/label";
 import { useObjectRegistry } from "@/modules/objects/composables/useObjectRegistry";
-import {
-  ALLOW_RISK_FILTER_FROM_DERIVED,
-  NO_RISK_FILTER_VALUE,
-  OBJECTS_TITLE,
-  RISK_SCAN_FAILED_HINT,
-  RISK_SCAN_PARTIAL_ALERT,
-} from "@/modules/objects/consts";
+import { NO_RISK_FILTER_VALUE, OBJECTS_TITLE } from "@/modules/objects/consts";
 import type { HierarchyLevel, ObjectTreeNode } from "@/modules/objects/types";
-import { pluralize } from "@/shared/lib/pluralize";
 import ObjectsFilters from "./components/ObjectsFilters.vue";
 import ObjectsTable from "./components/ObjectsTable.vue";
 import ObjectsTableSkeleton from "./components/skeletons/ObjectsTableSkeleton.vue";
@@ -24,26 +17,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
-const {
-  roots,
-  stats,
-  items,
-  total,
-  riskCoverage,
-  riskScanned,
-  riskScanPages,
-  riskScanBusy,
-  riskUnattributed,
-  riskNote,
-  riskNoteShort,
-  riskUnavailable,
-  refetchRiskMap,
-  riskOf,
-  isLoading,
-  isFetching,
-  isError,
-  error,
-} = useObjectRegistry();
+const { roots, stats, items, total, riskOf, isLoading, isFetching, isError, error } = useObjectRegistry();
 
 // --- состояние фильтров: только URL, пустое значение => undefined ---
 
@@ -56,33 +30,20 @@ const riskFilter = computed<string | null>(() => (route.query.risk as string) ||
 const search = computed(() => ((route.query.q as string) ?? "").trim().toLowerCase());
 
 /**
- * Фильтр по риску включается `ALLOW_RISK_FILTER_FROM_DERIVED` и рецептом из его JSDoc:
- * риск всегда производный, и фильтровать по нему можно только осознанно.
- */
-const riskFilterEnabled = computed(() => ALLOW_RISK_FILTER_FROM_DERIVED);
-
-/**
- * «Без прогноза» — утверждение об отсутствии активных прогнозов, а не «мы не досмотрели»:
- * предлагать его вправе только завершённый скан.
- */
-const noRiskFilterEnabled = computed(() => riskCoverage.value === "complete");
-
-/**
- * Значение узла для фильтра по риску. Отличается от того, что показывает колонка:
- * «без прогноза» и производный уровень — разные утверждения, и фильтровать по неполному
- * скану нельзя (рецепт включения — в JSDoc у ALLOW_RISK_FILTER_FROM_DERIVED).
+ * Значение узла для фильтра по риску: уровень — из серверного `risk`, «без прогноза» —
+ * утверждение бэка (в бэкенде `riskLevel: null` при активных прогнозах нет).
+ * `null` от `riskOf` — поля `risk` в записи нет вовсе, такое в фильтр не попадает.
  */
 function filterValueOf(node: ObjectTreeNode): string | null {
   const resolved = riskOf(node);
   if (!resolved) return null;
-  if (resolved.level === null) return resolved.coverage === "partial" ? null : NO_RISK_FILTER_VALUE;
-  return resolved.level;
+  return resolved.level ?? NO_RISK_FILTER_VALUE;
 }
 
 function matches(node: ObjectTreeNode): boolean {
   if (level.value !== null && node.object.hierarchyLevel !== level.value) return false;
 
-  if (riskFilterEnabled.value && riskFilter.value) {
+  if (riskFilter.value) {
     const value = filterValueOf(node);
     if (value === null || value !== riskFilter.value) return false;
   }
@@ -95,9 +56,7 @@ function matches(node: ObjectTreeNode): boolean {
   return true;
 }
 
-const hasFilter = computed(
-  () => level.value !== null || !!search.value || (!!riskFilter.value && riskFilterEnabled.value),
-);
+const hasFilter = computed(() => level.value !== null || !!search.value || !!riskFilter.value);
 
 const visibleRoots = computed(() => (hasFilter.value ? filterTree(roots.value, matches) : roots.value));
 
@@ -106,25 +65,6 @@ const expandedIds = computed(() => collectExpandableKeys(visibleRoots.value));
 const shown = computed(() => countTreeNodes(visibleRoots.value));
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
-
-/**
- * Подпись источника риска — всегда «выведено из прогнозов», риск в контракте v0 только
- * производный. Упавший скан подписи не даёт (`riskNote` = null) — о нём el-alert с кнопкой
- * «Повторить», дублировать его текст нельзя.
- */
-const riskSummaryText = computed<string | null>(() => riskNote.value);
-
-/**
- * Чем именно ограничен обрезанный скан: диспетчер должен видеть масштаб неполноты,
- * а не только факт («прочитано 120 из ~400, 3 прогноза вообще без объекта»).
- */
-const riskScanHint = computed(() => {
-  const pages = riskScanPages.value ? `, страниц ${riskScanPages.value}` : "";
-  const orphan = riskUnattributed.value
-    ? ` · ${riskUnattributed.value} ${pluralize(riskUnattributed.value, "прогноз", "прогноза", "прогнозов")} вне объектов`
-    : "";
-  return `Уровни выведены по ${riskScanned.value} активным прогнозам${pages}${orphan}. Родитель может показывать риск ниже реального.`;
-});
 
 const statsText = computed(() => {
   const parts = [`записей в выдаче: ${stats.value.received}`, `узлов: ${stats.value.nodes}`];
@@ -147,43 +87,15 @@ function openObject(id: string) {
   </Teleport>
 
   <div class="objects-page">
-    <ObjectsFilters
-      :disable="auth.isEmptyScope"
-      :risk-filter-enabled="riskFilterEnabled"
-      :no-risk-enabled="noRiskFilterEnabled"
-      class="objects-page__filters"
-    />
+    <ObjectsFilters :disable="auth.isEmptyScope" class="objects-page__filters" />
 
     <div class="objects-page__caption">
       <span v-if="hasFilter">Показано {{ shown }} из {{ stats.nodes }}</span>
       <span v-else>Всего узлов: {{ stats.nodes }}</span>
-      <span v-if="riskSummaryText" class="objects-page__risk-note">{{ riskSummaryText }}</span>
       <el-tooltip :content="statsText" placement="top">
         <el-icon class="objects-page__help"><InfoFilled /></el-icon>
       </el-tooltip>
     </div>
-
-    <el-alert
-      v-if="riskCoverage === 'partial'"
-      class="objects-page__alert"
-      type="warning"
-      :title="RISK_SCAN_PARTIAL_ALERT"
-      :description="riskScanHint"
-      :closable="false"
-      show-icon
-    />
-
-    <el-alert
-      v-else-if="riskUnavailable"
-      class="objects-page__alert"
-      type="warning"
-      :title="RISK_SCAN_FAILED_HINT"
-      :closable="false"
-      show-icon
-    >
-      <!-- Скан уже падал: без повтора диспетчеру остаётся перезагружать всю страницу. -->
-      <el-button size="small" :loading="riskScanBusy" @click="refetchRiskMap()">Повторить скан</el-button>
-    </el-alert>
 
     <el-card
       class="objects-page__table"
@@ -202,15 +114,12 @@ function openObject(id: string) {
 
       <ObjectsTableSkeleton v-else-if="isLoading" :rows="25" />
 
-      <el-empty v-else-if="isEmpty" description="Реестр пуст">
-        <p class="objects-page__empty-hint">{{ riskSummaryText }}</p>
-      </el-empty>
+      <el-empty v-else-if="isEmpty" description="Реестр пуст" />
 
       <ObjectsTable
         v-else
         :items="visibleRoots"
         :risk-of="riskOf"
-        :risk-note="riskNoteShort"
         :expand-row-keys="expandedIds"
         :loading="isFetching"
         @row-click="openObject"
@@ -232,10 +141,6 @@ function openObject(id: string) {
   flex-shrink: 0;
 }
 
-.objects-page__alert {
-  flex-shrink: 0;
-}
-
 .objects-page__caption {
   display: flex;
   align-items: center;
@@ -243,10 +148,6 @@ function openObject(id: string) {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-}
-
-.objects-page__risk-note {
-  color: var(--el-text-color-placeholder);
 }
 
 .objects-page__help {
@@ -264,12 +165,6 @@ function openObject(id: string) {
 
 .objects-page__table :deep(.el-card__body) {
   overflow: auto;
-}
-
-.objects-page__empty-hint {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 .page-title {

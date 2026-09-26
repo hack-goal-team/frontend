@@ -173,10 +173,6 @@ const filled = computed(() => !!props.data.risk?.level);
   color: var(--node-text);
 }
 
-.object-node_filled :deep(.object-risk__mark) {
-  color: var(--node-muted);
-}
-
 .object-node_filled :deep(.object-risk__dot) {
   box-shadow: 0 0 0 1px var(--el-color-white);
 }
