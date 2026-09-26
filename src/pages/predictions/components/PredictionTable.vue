@@ -3,6 +3,7 @@ import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
 import type { Prediction } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
+import SensorStateTag from "./SensorStateTag.vue";
 import { useLabels } from "@/modules/reference/composables/useLabels.ts";
 import StatusTag from "./StatusTag.vue";
 
@@ -69,6 +70,11 @@ const { incidentTypeLabel } = useLabels();
     <el-table-column label="Риск" min-width="30">
       <template #default="{ row }">
         <RiskTag :level="row.riskLevel" />
+      </template>
+    </el-table-column>
+    <el-table-column label="Состояние" min-width="90">
+      <template #default="{ row }">
+        <SensorStateTag :state="row.currentState" />
       </template>
     </el-table-column>
     <el-table-column prop="status" label="Статус" min-width="120">

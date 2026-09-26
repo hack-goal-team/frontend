@@ -6,6 +6,7 @@ import type {
   PredictionStatus,
   TargetContext,
   Decision,
+  SensorState,
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
 import { mockLevel3Objects } from "./objects";
@@ -150,6 +151,30 @@ function generateReasons(probability: number): PredictionReason[] {
   });
 }
 
+// --- Текущее состояние датчика (currentState / lastAlarmAt) ---
+
+// Высоковероятный прогноз чаще «уже горит»: событие предсказывали, оно наступило.
+// Небольшая доля состояний устаревшая — датчик давно не выходил на связь.
+function generateCurrentState(probability: number): SensorState {
+  const alarming = probability >= 0.7 ? rand() < 0.55 : rand() < 0.08;
+  const outdated = !alarming && rand() < 0.05;
+
+  const staleMs = outdated ? randInt(2, 24) * 60 * 60 * 1000 : 0;
+
+  return {
+    value: alarming ? pick(["Не замкнут", "Неисправен"] as const) : "Норма",
+    observedAt: isoAt(-(randInt(0, 20) * 60 * 1000 + staleMs)),
+    alarming,
+    outdated,
+  };
+}
+
+function generateLastAlarmAt(alarming: boolean): string | null {
+  // При alarming авария раньше свежего показания: observedAt — не старше 20 мин
+  if (alarming) return isoAt(-randInt(25, 120) * 60 * 1000);
+  return rand() < 0.4 ? isoAt(-randInt(1, 72) * 60 * 60 * 1000) : null;
+}
+
 // --- Генерация прогнозов ---
 
 export function generatePredictions(count = 500): Prediction[] {
@@ -187,6 +212,9 @@ export function generatePredictions(count = 500): Prediction[] {
     const targetKind = pick(TARGET_KINDS);
     const targetRef = `${targetKind[0]}-${String(randInt(1, 99)).padStart(2, "0")}`;
 
+    // --- currentState / lastAlarmAt ---
+    const currentState = generateCurrentState(probability);
+
     items.push({
       id,
       targetKind,
@@ -201,6 +229,8 @@ export function generatePredictions(count = 500): Prediction[] {
       status,
       lastDecision,
       reasons: generateReasons(probability),
+      currentState,
+      lastAlarmAt: generateLastAlarmAt(currentState.alarming),
     });
   }
 

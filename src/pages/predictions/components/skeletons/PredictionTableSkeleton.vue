@@ -27,6 +27,7 @@ const LEFT_COLUMNS = [
 const CENTER_COLUMNS = [{ key: "risk" }] as const;
 
 const RIGHT_COLUMNS = [
+  { key: "state", kind: "tag" },
   { key: "status", kind: "tag" },
   { key: "computedAt", kind: "text", width: "144px" },
 ] as const;

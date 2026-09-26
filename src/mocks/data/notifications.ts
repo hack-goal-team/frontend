@@ -29,6 +29,9 @@ export function spawnCriticalPrediction(): Prediction {
   const channels = channelsOf(object.id);
   const channel = channels.length > 0 ? channels[Math.floor(Math.random() * channels.length)] : null;
 
+  // Критический «живой» прогноз чаще всего уже горит — так панель показывает баннер аварии
+  const alarming = Math.random() < 0.7;
+
   const p: Prediction = {
     id: String(nextId++),
     targetKind: "channel",
@@ -49,6 +52,15 @@ export function spawnCriticalPrediction(): Prediction {
     modelVersion: "v1.5.0",
     status: "NEW",
     lastDecision: null,
+    currentState: {
+      value: alarming ? "Не замкнут" : "Норма",
+      observedAt: now.toISOString(),
+      alarming,
+      outdated: false,
+    },
+    lastAlarmAt: alarming
+      ? new Date(now.getTime() - Math.floor(Math.random() * 30 + 1) * 60 * 1000).toISOString()
+      : null,
   };
 
   livePredictions = [p, ...livePredictions];

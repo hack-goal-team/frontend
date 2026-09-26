@@ -22,6 +22,14 @@ export interface TargetContext {
   engineeringSystem: string | null;
 }
 
+export interface SensorState {
+  value: string;
+  observedAt: string;
+  /** Событие уже наступило — это не предупреждение, а свершившийся инцидент. */
+  alarming: boolean;
+  outdated: boolean;
+}
+
 export interface Prediction {
   id: string;
   targetKind: string;
@@ -37,6 +45,9 @@ export interface Prediction {
   lastDecision: Decision | null;
   /** Возвращает GET /predictions/{id}; в списке моков и старых ответов может отсутствовать. */
   reasons?: PredictionReason[];
+  /** Поля есть в docs/api-docs.json, но не в openapi-frontend.yaml v0.2 — считаем опциональными. */
+  currentState?: SensorState | null;
+  lastAlarmAt?: string | null;
 }
 
 export interface PredictionPage {

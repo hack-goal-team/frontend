@@ -7,6 +7,7 @@ import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
 import { REASON_GROUP_LABEL } from "@/modules/predictions/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
+import SensorStateTag from "./SensorStateTag.vue";
 import StatusTag from "./StatusTag.vue";
 import DecisionForm from "./DecisionForm.vue";
 import { useLabels } from "@/modules/reference/composables/useLabels.ts";
@@ -29,6 +30,9 @@ const channelId = computed(() => props.detail.prediction.context?.channelId ?? n
 
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
 
+const currentState = computed(() => props.detail.prediction.currentState ?? null);
+const lastAlarmAt = computed(() => props.detail.prediction.lastAlarmAt ?? null);
+
 const reasons = computed(() =>
   [...(props.detail.prediction.reasons ?? [])].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution)),
 );
@@ -46,6 +50,15 @@ function showOnGraph() {
 
 <template>
   <div class="prediction-panel">
+    <el-alert
+      v-if="currentState?.alarming"
+      type="error"
+      :closable="false"
+      show-icon
+      title="Авария уже наступила"
+      :description="lastAlarmAt ? `Последняя авария: ${formatDateTime(lastAlarmAt)}` : undefined"
+    />
+
     <!-- Прогноз -->
     <el-descriptions :column="1" border>
       <el-descriptions-item label="Тип инцидента">
@@ -88,6 +101,20 @@ function showOnGraph() {
 
       <el-descriptions-item label="Подсистема">
         {{ detail.prediction.context?.engineeringSystem ?? "—" }}
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Текущее состояние">
+        <div class="prediction-panel__state">
+          <SensorStateTag :state="currentState" />
+          <span v-if="currentState?.observedAt" class="text-muted">
+            на {{ formatDateTime(currentState.observedAt) }}
+          </span>
+        </div>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="Последняя авария">
+        <span v-if="lastAlarmAt">{{ formatDateTime(lastAlarmAt) }}</span>
+        <span v-else class="text-muted">—</span>
       </el-descriptions-item>
 
       <el-descriptions-item label="Горизонт">
@@ -313,6 +340,12 @@ function showOnGraph() {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.prediction-panel__state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .prediction-panel__decision-reason {
