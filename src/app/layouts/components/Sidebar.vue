@@ -5,8 +5,8 @@ import { useAuthStore } from "@/modules/auth/store";
 import { PERMISSIONS } from "@/modules/auth/consts";
 import { DataBoard, Warning, OfficeBuilding, Document, Setting, List, UploadFilled } from "@element-plus/icons-vue";
 import type { Component } from "vue";
-import logoLight from "@/app/layouts/components/assets/logo-light.png";
-import logoDark from "@/app/layouts/components/assets/logo-dark.png";
+import logoLight from "@/app/layouts/components/assets/logo-light.webp";
+import logoDark from "@/app/layouts/components/assets/logo-dark.webp";
 import { isDark } from "@/shared/composables/useTheme";
 
 const auth = useAuthStore();
