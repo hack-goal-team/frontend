@@ -70,3 +70,10 @@ export interface AlarmTarget {
   eventId: string;
   eventTs: string;
 }
+
+export interface DecisionRequest {
+  requestId: string;
+  target: PredictionTarget;
+  reasonCode: string;
+  comment: string | null;
+}

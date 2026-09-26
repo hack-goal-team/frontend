@@ -6,7 +6,7 @@ export const mockReferenceData: ReferenceData = {
     { code: "WEAR", description: "Износ оборудования" },
     { code: "LOAD", description: "Повышенная нагрузка" },
     { code: "SENSOR", description: "Ошибка датчика" },
-    { code: "OTHER", description: "Другое" },
+    { code: "OTHER", description: "Другое", commentRequired: true },
   ],
   incidentTypes: [
     { code: "EQUIPMENT_FAILURE", description: "Отказ оборудования" },

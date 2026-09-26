@@ -6,6 +6,7 @@ import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import StatusTag from "./StatusTag.vue";
+import DecisionForm from "./DecisionForm.vue";
 import { useLabels } from "@/modules/reference/composables/useLabels.ts";
 
 const props = defineProps<{
@@ -26,6 +27,8 @@ const channelId = computed(() => props.detail.prediction.context?.channelId ?? n
 
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
 const lastDecision = computed(() => props.detail.decisions[0] ?? null);
+
+const hasDecisions = computed(() => props.detail.decisions.length > 0);
 
 function showOnGraph() {
   if (!objectId.value) return;
@@ -105,32 +108,37 @@ function showOnGraph() {
     </el-descriptions>
 
     <!-- История решений -->
-    <div class="prediction-panel__section">
+    <div class="prediction-panel__section" :class="{ 'prediction-panel__section_history': hasDecisions }">
       <h3 class="prediction-panel__section-title">История решений</h3>
 
-      <el-empty v-if="detail.decisions.length === 0" description="Решений нет" :image-size="80" />
+      <el-empty v-if="!hasDecisions" description="Решений нет" :image-size="80" />
 
-      <el-timeline v-else>
-        <el-timeline-item
-          v-for="d in detail.decisions"
-          :key="d.id"
-          :timestamp="formatDateTime(d.decidedAt)"
-          placement="top"
-        >
-          <div class="prediction-panel__decision">
-            <div>
-              {{ reasonLabel(d.reasonCode) }}
+      <div v-else class="prediction-panel__timeline">
+        <el-timeline>
+          <el-timeline-item
+            v-for="d in detail.decisions"
+            :key="d.id"
+            :timestamp="formatDateTime(d.decidedAt)"
+            placement="top"
+          >
+            <div class="prediction-panel__decision">
+              <div>
+                {{ reasonLabel(d.reasonCode) }}
+              </div>
+              <div v-if="d.comment" class="prediction-panel__decision-comment">
+                {{ d.comment }}
+              </div>
+              <div class="prediction-panel__decision-author">
+                {{ d.decidedBy }}
+              </div>
             </div>
-            <div v-if="d.comment" class="prediction-panel__decision-comment">
-              {{ d.comment }}
-            </div>
-            <div class="prediction-panel__decision-author">
-              {{ d.decidedBy }}
-            </div>
-          </div>
-        </el-timeline-item>
-      </el-timeline>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
     </div>
+
+    <!-- Форма принятия решения -->
+    <DecisionForm :prediction-id="detail.prediction.id" class="prediction-panel__form" />
   </div>
 </template>
 
@@ -139,12 +147,38 @@ function showOnGraph() {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 100%;
+  min-height: 0;
+}
+
+.prediction-panel__section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.prediction-panel__section_history {
+  flex: 1;
 }
 
 .prediction-panel__section-title {
+  flex-shrink: 0;
   margin: 0 0 12px;
   font-size: 14px;
   font-weight: 600;
+}
+
+.prediction-panel__timeline {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.prediction-panel__form {
+  flex-shrink: 0;
+  /* без решений секция не растягивается — форма всё равно прижата к низу панели */
+  margin-top: auto;
 }
 
 .prediction-panel__decision {

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { generateDecisionsForPrediction } from "../data/generateDecisions";
+import { decisionsForPrediction } from "../data/decisions";
 import { getLivePredictions } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
 import { getCurrentUser } from "../state/auth";
@@ -142,13 +142,13 @@ export const predictionHandlers = [
       return notFound();
     }
 
-    const decisions = generateDecisionsForPrediction(found);
+    const decisions = decisionsForPrediction(found);
 
     await mockDelay(300, 700);
 
     return HttpResponse.json({
       prediction: found, // уже содержит lastDecision
-      decisions, // [lastDecision] или []
+      decisions, // сессионные решения + lastDecision
     });
   }),
 ];
