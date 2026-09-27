@@ -1,8 +1,7 @@
-import type { AuditFilters } from "./types";
+import type { AuditQuery } from "./types";
 
 export const auditKeys = {
   all: ["audit"] as const,
   lists: () => [...auditKeys.all, "list"] as const,
-  /** Ключ — только фильтры: offset живёт в pageParam бесконечного запроса. */
-  list: (filters: AuditFilters) => [...auditKeys.lists(), filters] as const,
+  list: (query: AuditQuery) => [...auditKeys.lists(), query] as const,
 };

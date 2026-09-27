@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { AUDIT_TITLE } from "@/modules/audit/consts";
+import { AUDIT_PAGE_SIZE, AUDIT_TITLE } from "@/modules/audit/consts";
 import { useAuditQuery } from "@/modules/audit/composables/useAuditQuery";
-import type { AuditFilters } from "@/modules/audit/types";
+import type { AuditQuery } from "@/modules/audit/types";
 import AuditFiltersPanel from "./components/AuditFilters.vue";
+import AuditPagination from "./components/AuditPagination.vue";
 import AuditTable from "./components/AuditTable.vue";
 import AuditTableSkeleton from "./components/skeletons/AuditTableSkeleton.vue";
 
 const route = useRoute();
 
-const filters = computed<AuditFilters>(() => {
+const query = computed<AuditQuery>(() => {
   const rawAction = route.query.action;
   const action = Array.isArray(rawAction)
     ? rawAction.filter((v): v is string => typeof v === "string")
@@ -19,6 +20,8 @@ const filters = computed<AuditFilters>(() => {
       : [];
 
   return {
+    limit: Number(route.query.limit ?? AUDIT_PAGE_SIZE),
+    offset: Number(route.query.offset ?? 0),
     from: (route.query.from as string) || undefined,
     to: (route.query.to as string) || undefined,
     actor: (route.query.actor as string) || undefined,
@@ -27,8 +30,7 @@ const filters = computed<AuditFilters>(() => {
   };
 });
 
-const { items, isLoading, isFetching, isFetchingNextPage, isError, error, hasNextPage, fetchNextPage } =
-  useAuditQuery(filters);
+const { items, total, isLoading, isFetching, isError, error } = useAuditQuery(query);
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
 </script>
@@ -61,9 +63,8 @@ const isEmpty = computed(() => !isLoading.value && !isError.value && items.value
       <AuditTable v-else :items="items" :loading="isFetching" />
     </el-card>
 
-    <div class="audit-page__footer">
-      <span class="audit-page__caption">Показано записей: {{ items.length }}</span>
-      <el-button v-if="hasNextPage" :loading="isFetchingNextPage" @click="fetchNextPage()"> Показать ещё </el-button>
+    <div class="audit-page__pagination">
+      <AuditPagination :disable="isEmpty || isLoading || isFetching || isError" :total="total" />
     </div>
   </div>
 </template>
@@ -94,17 +95,11 @@ const isEmpty = computed(() => !isLoading.value && !isError.value && items.value
   overflow: auto;
 }
 
-.audit-page__footer {
+.audit-page__pagination {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   min-height: 32px;
-}
-
-.audit-page__caption {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
 .page-title {

@@ -40,7 +40,7 @@ const action = computed<string[]>({
 
 function update(patch: LocationQueryRaw) {
   router.replace({
-    query: { ...route.query, ...patch },
+    query: { ...route.query, ...patch, offset: 0 }, // сброс пагинации при смене фильтра
   });
 }
 

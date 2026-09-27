@@ -12,12 +12,12 @@ const MAX_LIMIT = 100;
 const MAX_OFFSET = 100_000;
 
 /**
- * `GET /audit?limit=&offset=&from=&to=&actor=&category=&action=` — страница `PageAuditEntry`.
- * Счётчика `X-Total-Count` в контракте нет, `hasMore` — единственный признак продолжения.
+ * `GET /audit?limit=&offset=&from=&to=&actor=&category=&action=` — страница `PageAuditEntry`
+ * + `X-Total-Count` по отфильтрованной выдаче (фронт считает постраничную навигацию от неё;
+ * `hasMore` в теле остаётся, но на этом экране не используется).
  *
- * Фильтры по контракту: период `[from, to)`, actor/category — одиночные строки,
- * `action` — массив (повторяющийся параметр). Семантика строковых фильтров бэком не
- * оговорена, мок принимает actor как вхождение без учёта регистра, остальные — точно.
+ * Семантика строковых фильтров бэком не оговорена, мок принимает actor как вхождение
+ * без учёта регистра, category/action — точно; период — интервал `[from, to)`.
  */
 export const auditHandlers = [
   http.get(`${BASE}/audit`, async ({ request }) => {
@@ -55,11 +55,14 @@ export const auditHandlers = [
 
     await mockDelay();
 
-    return HttpResponse.json({
-      items: pageItems,
-      limit,
-      offset,
-      hasMore: offset + limit < filtered.length,
-    });
+    return HttpResponse.json(
+      {
+        items: pageItems,
+        limit,
+        offset,
+        hasMore: offset + limit < filtered.length,
+      },
+      { headers: { "X-Total-Count": String(filtered.length) } },
+    );
   }),
 ];

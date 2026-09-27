@@ -1,43 +1,32 @@
-import { useInfiniteQuery } from "@tanstack/vue-query";
+import { useQuery } from "@tanstack/vue-query";
 import { computed, toValue, type MaybeRefOrGetter } from "vue";
 import { fetchAudit } from "../api";
-import { AUDIT_PAGE_SIZE } from "../consts";
 import { auditKeys } from "../keys";
-import type { AuditEntry, AuditFilters } from "../types";
+import type { AuditEntry, AuditQuery } from "../types";
 
 /**
- * Журнал аудита — `useInfiniteQuery`: счётчика `X-Total-Count` у ручки нет, `hasMore` —
- * единственный признак продолжения, поэтому страницы дочитываются кнопкой «Показать ещё».
- *
- * Страницы читаются последовательно (getNextPageParam от `offset + limit` ответа) —
- * параллельное чтение offset-пагинации без обещанного порядка страницы перекроет.
- *
- * `placeholderData` нет намеренно: на бесконечном запросе он показал бы записи
- * старых фильтров под новыми (см. useObjectChannelsQuery).
+ * Журнал аудита — обычный запрос одной страницы, как `usePredictionsQuery`: `/audit` отдаёт
+ * `X-Total-Count`, поэтому навигация по страницам считается от общего числа записей,
+ * а `limit`/`offset` живут в URL и попадают в ключ запроса вместе с фильтрами.
  */
-export function useAuditQuery(filters: MaybeRefOrGetter<AuditFilters> = {}) {
-  const current = computed(() => toValue(filters));
+export function useAuditQuery(query: MaybeRefOrGetter<AuditQuery> = {}) {
+  const current = computed(() => toValue(query));
 
-  const query = useInfiniteQuery({
+  const result = useQuery({
     queryKey: computed(() => auditKeys.list(current.value)),
-    queryFn: ({ pageParam }) =>
-      fetchAudit({ ...current.value, limit: AUDIT_PAGE_SIZE, offset: Number(pageParam ?? 0) }),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.hasMore ? last.offset + last.limit : undefined),
+    queryFn: () => fetchAudit(current.value),
+    placeholderData: (prev) => prev,
     staleTime: 30_000,
     retry: 1,
   });
 
-  const items = computed<AuditEntry[]>(() => query.data.value?.pages.flatMap((page) => page.items) ?? []);
-
   return {
-    items,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    isFetchingNextPage: query.isFetchingNextPage,
-    isError: query.isError,
-    error: query.error,
-    hasNextPage: query.hasNextPage,
-    fetchNextPage: query.fetchNextPage,
+    data: result.data,
+    items: computed<AuditEntry[]>(() => result.data.value?.items ?? []),
+    total: computed(() => result.data.value?.total ?? 0),
+    isLoading: result.isLoading,
+    isFetching: result.isFetching,
+    isError: result.isError,
+    error: result.error,
   };
 }

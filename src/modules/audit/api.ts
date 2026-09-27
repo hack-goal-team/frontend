@@ -2,14 +2,16 @@ import { http } from "@/shared/api/http";
 import type { AuditPage, AuditQuery } from "./types";
 
 /**
- * `GET /audit` — страница `PageAuditEntry` с `hasMore`, `X-Total-Count` в контракте нет.
- * Не через хелпер `get`: `action` — массив строк (?action=a&action=b), а axios по умолчанию
- * сериализует массивы как `action[]=…`, чего Spring-бэк не принимает.
+ * `GET /audit` — страница `PageAuditEntry`, тотальность — из `X-Total-Count`, по образцу
+ * `fetchPredictions`. Не через хелперы `get`/`getWithHeaders`: `action` — массив строк
+ * (?action=a&action=b), а axios по умолчанию сериализует массивы как `action[]=…`, чего
+ * Spring-бэк не принимает; `paramsSerializer` можно передать только в конфигурации запроса.
  */
-export async function fetchAudit(query: AuditQuery = {}): Promise<AuditPage> {
-  const { data } = await http.get<AuditPage>("/audit", {
+export async function fetchAudit(query: AuditQuery = {}): Promise<AuditPage & { total: number }> {
+  const { data, headers } = await http.get<AuditPage>("/audit", {
     params: query,
     paramsSerializer: { indexes: null },
   });
-  return data;
+  const total = Number(headers["x-total-count"] ?? 0);
+  return { ...data, total };
 }
