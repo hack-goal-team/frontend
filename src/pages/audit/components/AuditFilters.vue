@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter, type LocationQueryRaw } from "vue-router";
-import { AUDIT_ACTIONS, AUDIT_CATEGORIES } from "@/modules/audit/consts";
+import { AUDIT_ACTION_PATTERN, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "@/modules/audit/consts";
 
 const route = useRoute();
 const router = useRouter();
 
+/** Логины с уже загруженных страниц журнала — варианты для фильтра «Пользователь». */
+const props = withDefaults(defineProps<{ actors?: string[] }>(), { actors: () => [] });
+
 /**
- * Период — `[from, to)` по контракту. `Z` в value-format даёт ISO с локальной зоной
- * (dayjs-токен), Date.parse на бэке такой принимает.
+ * Период — `[from, to)` по контракту. `Z` в value-format даёт ISO с локальным смещением
+ * (`…+03:00`) — на бэк оно уходит уже заэкранированным (`%2B`), иначе `+` станет пробелом и 400.
  */
 const period = computed({
   get: (): [string, string] | null => {
@@ -20,8 +23,10 @@ const period = computed({
 });
 
 const actor = computed({
+  // Контракт: логин — точное совпадение, поэтому селект с вариантами из журнала,
+  // а ручной ввод (allow-create) остаётся — виденных страниц может не хватить.
   get: () => (route.query.actor as string) ?? "",
-  set: (v) => update({ actor: v || undefined }),
+  set: (v) => update({ actor: v.trim() || undefined }),
 });
 
 const category = computed({
@@ -35,8 +40,20 @@ const action = computed<string[]>({
     if (Array.isArray(raw)) return raw.filter((v): v is string => typeof v === "string");
     return typeof raw === "string" ? [raw] : [];
   },
-  set: (v) => update({ action: v.length > 0 ? v : undefined }),
+  set: (v) => {
+    const codes = normalizeActions(v);
+    update({ action: codes.length > 0 ? codes : undefined });
+  },
 });
+
+/**
+ * Набор действий открытый, но код ограничен паттерном контракта: приводим ручной ввод
+ * к верхнему регистру и выбрасываем всё, что бэк не принял бы (400 на `login failed`).
+ */
+function normalizeActions(values: string[]): string[] {
+  const codes = values.map((v) => v.trim().toUpperCase()).filter((v) => AUDIT_ACTION_PATTERN.test(v));
+  return [...new Set(codes)];
+}
 
 function update(patch: LocationQueryRaw) {
   router.replace({
@@ -75,11 +92,21 @@ const shortcuts = [
     </el-form-item>
 
     <el-form-item label="Пользователь">
-      <el-input v-model="actor" clearable placeholder="Все" style="min-width: 160px" />
+      <el-select
+        v-model="actor"
+        clearable
+        filterable
+        allow-create
+        default-first-option
+        placeholder="Все"
+        style="min-width: 190px"
+      >
+        <el-option v-for="a in props.actors" :key="a" :label="a" :value="a" />
+      </el-select>
     </el-form-item>
 
     <el-form-item label="Категория">
-      <el-select v-model="category" clearable filterable allow-create placeholder="Все" style="min-width: 170px">
+      <el-select v-model="category" clearable placeholder="Все" style="min-width: 190px">
         <el-option v-for="c in AUDIT_CATEGORIES" :key="c" :label="c" :value="c" />
       </el-select>
     </el-form-item>

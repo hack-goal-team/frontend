@@ -60,8 +60,8 @@ function refreshHandler(target: RefreshTarget, build: () => object) {
     appendAuditEntry({
       occurredAt: new Date().toISOString(),
       actor: getCurrentUser()?.username ?? "unknown",
-      category: "INTEGRATION",
-      action: `REFRESH_${target.toUpperCase()}`,
+      category: "IMPORT",
+      action: `${target.toUpperCase()}_REFRESH`,
       target,
       payload: JSON.stringify(result),
     });
@@ -145,8 +145,8 @@ export const settingsHandlers = [
     appendAuditEntry({
       occurredAt: new Date().toISOString(),
       actor: settingsState.updatedBy,
-      category: "SETTINGS",
-      action: "UPDATE",
+      category: "CHANGE_CONFIG",
+      action: "CONFIG_UPDATE",
       target: "settings",
       payload: JSON.stringify(body),
     });

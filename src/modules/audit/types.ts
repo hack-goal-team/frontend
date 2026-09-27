@@ -21,8 +21,11 @@ export interface AuditFilters {
   /** Интервал `[from, to)`, ISO 8601 с зоной. */
   from?: string;
   to?: string;
+  /** Логин — точное совпадение, не подстрока. */
   actor?: string;
+  /** Закрытый enum (см. `AUDIT_CATEGORIES`). */
   category?: string;
+  /** Открытый набор кодов, на бэк уходит повторяющимся параметром (`style: form, explode: true`). */
   action?: string[];
 }
 

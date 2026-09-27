@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { AUDIT_PAGE_SIZE, AUDIT_TITLE } from "@/modules/audit/consts";
 import { useAuditQuery } from "@/modules/audit/composables/useAuditQuery";
@@ -33,6 +33,23 @@ const query = computed<AuditQuery>(() => {
 const { items, total, isLoading, isFetching, isError, error } = useAuditQuery(query);
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && items.value.length === 0);
+
+/**
+ * Справочника пользователей у ручки нет, а `actor` — точное совпадение, поэтому варианты
+ * подставляем из уже просмотренных записей: копим логины со всех загруженных страниц.
+ */
+const knownActors = ref<string[]>([]);
+
+watch(
+  items,
+  (rows) => {
+    if (rows.length === 0) return;
+    const actors = new Set(knownActors.value);
+    for (const row of rows) actors.add(row.actor);
+    knownActors.value = [...actors].sort((a, b) => a.localeCompare(b, "ru"));
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -41,7 +58,7 @@ const isEmpty = computed(() => !isLoading.value && !isError.value && items.value
   </Teleport>
 
   <div class="audit-page">
-    <AuditFiltersPanel class="audit-page__filters" />
+    <AuditFiltersPanel class="audit-page__filters" :actors="knownActors" />
 
     <el-card
       class="audit-page__table"

@@ -11,28 +11,59 @@ const STEP_MINUTES = 45;
 interface PayloadTemplate {
   category: (typeof AUDIT_CATEGORIES)[number];
   action: (typeof AUDIT_ACTIONS)[number];
-  target: string;
+  target: () => string;
   payload: () => object;
 }
 
+/**
+ * Категории — только закрытый enum контракта; действия берутся из открытого набора,
+ * refresh-ручки настроек пишут те же коды, что и здесь (см. handlers/settings.ts).
+ */
 function templates(): PayloadTemplate[] {
+  const jobId = () => `import/job/${1000 + Math.floor(Math.random() * 9000)}`;
+  const prediction = () => `prediction/${2000 + Math.floor(Math.random() * 9000)}`;
+
   return [
     {
-      category: "AUTH",
-      action: "LOGIN",
-      target: "session",
-      payload: () => ({ method: "ldap", result: "OK" }),
+      category: "AUTHORIZATION",
+      action: "LOGIN_SUCCEEDED",
+      target: () => "session",
+      payload: () => ({ method: "ldap" }),
     },
     {
-      category: "AUTH",
+      category: "AUTHORIZATION",
+      action: "LOGIN_FAILED",
+      target: () => "session",
+      payload: () => ({ reason: "BAD_CREDENTIALS" }),
+    },
+    {
+      category: "AUTHORIZATION",
+      action: "LOGIN_DENIED",
+      target: () => "session",
+      payload: () => ({ reason: "NO_ROLE" }),
+    },
+    {
+      category: "AUTHORIZATION",
       action: "LOGOUT",
-      target: "session",
+      target: () => "session",
       payload: () => ({ method: "manual" }),
     },
     {
-      category: "SETTINGS",
-      action: "UPDATE",
-      target: "settings",
+      category: "AUTHORIZATION",
+      action: "ACCESS_DENIED",
+      target: () => "GET /predictions",
+      payload: () => ({ required: "PREDICTION_READ" }),
+    },
+    {
+      category: "DECISION",
+      action: "DECISION_CREATE",
+      target: prediction,
+      payload: () => ({ reasonCode: "CONFIRMED_BY_DISPATCHER" }),
+    },
+    {
+      category: "CHANGE_CONFIG",
+      action: "CONFIG_UPDATE",
+      target: () => "settings",
       payload: () => ({
         decisionCoverHours: 1 + Math.floor(Math.random() * 6),
         sensorFreshHours: 24 + Math.floor(Math.random() * 72),
@@ -41,34 +72,40 @@ function templates(): PayloadTemplate[] {
       }),
     },
     {
-      category: "INTEGRATION",
-      action: "REFRESH_WEATHER",
-      target: "weather-api",
-      payload: () => ({ districts: 12, rowsWritten: 220 + Math.floor(Math.random() * 180) }),
-    },
-    {
-      category: "INTEGRATION",
-      action: "REFRESH_REGISTRY",
-      target: "registry",
-      payload: () => ({ channels: 80 + Math.floor(Math.random() * 40), objects: 10 + Math.floor(Math.random() * 8) }),
-    },
-    {
-      category: "INTEGRATION",
-      action: "REFRESH_ODS",
-      target: "ods",
-      payload: () => ({ fetched: 50 + Math.floor(Math.random() * 120), pages: 1 + Math.floor(Math.random() * 4) }),
+      category: "REPORT",
+      action: "REPORT_GENERATE",
+      target: () => "report/daily",
+      payload: () => ({ period: "2026-09", rows: 120 + Math.floor(Math.random() * 400) }),
     },
     {
       category: "IMPORT",
-      action: "CREATE",
-      target: `import/job/${1000 + Math.floor(Math.random() * 9000)}`,
-      payload: () => ({ fileName: "journal.csv", rows: 5000 + Math.floor(Math.random() * 40000) }),
+      action: "IMPORT_START",
+      target: jobId,
+      payload: () => ({ fileName: "journal.csv" }),
     },
     {
-      category: "DECISIONS",
-      action: "COVER",
-      target: `prediction/${2000 + Math.floor(Math.random() * 9000)}`,
-      payload: () => ({ reasonCode: "CONFIRMED_BY_DISPATCHER" }),
+      category: "IMPORT",
+      action: "IMPORT_FINISH",
+      target: jobId,
+      payload: () => ({ rows: 5000 + Math.floor(Math.random() * 40000), failed: Math.floor(Math.random() * 40) }),
+    },
+    {
+      category: "IMPORT",
+      action: "WEATHER_REFRESH",
+      target: () => "weather",
+      payload: () => ({ districts: 12, rowsWritten: 220 + Math.floor(Math.random() * 180) }),
+    },
+    {
+      category: "IMPORT",
+      action: "REGISTRY_REFRESH",
+      target: () => "registry",
+      payload: () => ({ channels: 80 + Math.floor(Math.random() * 40), objects: 10 + Math.floor(Math.random() * 8) }),
+    },
+    {
+      category: "IMPORT",
+      action: "ODS_REFRESH",
+      target: () => "ods",
+      payload: () => ({ fetched: 50 + Math.floor(Math.random() * 120), pages: 1 + Math.floor(Math.random() * 4) }),
     },
   ];
 }
@@ -89,7 +126,7 @@ function generateEntries(): AuditEntry[] {
       actor: pickers.pick(ACTORS),
       category: template.category,
       action: template.action,
-      target: template.target,
+      target: template.target(),
       payload: JSON.stringify(template.payload()),
     });
   }
