@@ -1,4 +1,4 @@
-export type RefreshTarget = "weather" | "registry" | "ods";
+export type RefreshTarget = "weather" | "river" | "registry" | "ods";
 
 export interface IntegrationInfo {
   target: RefreshTarget;
@@ -11,6 +11,11 @@ export const INTEGRATIONS: readonly IntegrationInfo[] = [
     target: "weather",
     title: "Метеослужба",
     description: "Текущая погода и прогноз на 1–2 дня по районам",
+  },
+  {
+    target: "river",
+    title: "Уровень Москвы-реки",
+    description: "Замер уровня воды на основном посту, раз в сутки около 08:00 МСК",
   },
   {
     target: "registry",

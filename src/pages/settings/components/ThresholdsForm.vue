@@ -53,6 +53,13 @@ const rules: FormRules = {
   riskHighPercent: [{ validator: validateHighThreshold, trigger: "change" }],
 };
 
+// Связь MEDIUM < HIGH проверяет валидатор на HIGH, поэтому после правки MEDIUM
+// HIGH перепроверяем: иначе ошибка всплыла бы только после «Сохранить».
+watch(
+  () => form.riskMediumPercent,
+  () => void formRef.value?.validateField("riskHighPercent").catch(() => false),
+);
+
 async function onSave() {
   saveError.value = null;
   const valid = await formRef.value?.validate().catch(() => false);
@@ -110,10 +117,10 @@ function problemDetail(error: unknown): string {
     >
       <div class="thresholds-form__grid">
         <el-form-item label="Срок действия решения, ч" prop="decisionCoverHours">
-          <el-input-number v-model="form.decisionCoverHours" :min="1" :disabled="saving" />
+          <el-input-number v-model="form.decisionCoverHours" :min="1" :max="24" step-strictly :disabled="saving" />
         </el-form-item>
         <el-form-item label="Окно свежести показания, ч" prop="sensorFreshHours">
-          <el-input-number v-model="form.sensorFreshHours" :min="1" :disabled="saving" />
+          <el-input-number v-model="form.sensorFreshHours" :min="1" :max="720" step-strictly :disabled="saving" />
         </el-form-item>
         <el-form-item label="Порог MEDIUM, %" prop="riskMediumPercent">
           <el-input-number v-model="form.riskMediumPercent" :min="0" :max="100" :disabled="saving" />

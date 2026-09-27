@@ -1,6 +1,6 @@
 import { formatDateTime } from "@/shared/lib/date";
 import { pluralize } from "@/shared/lib/pluralize";
-import type { OdsPullResult, RegistryPullResult, WeatherPullResult } from "../types";
+import type { OdsPullResult, RegistryPullResult, RiverPullResult, WeatherPullResult } from "../types";
 
 function count(n: number, one: string, few: string, many: string): string {
   return `${n} ${pluralize(n, one, few, many)}`;
@@ -23,10 +23,21 @@ export function formatWeatherResult(result: WeatherPullResult): string {
   );
 }
 
+export function formatRiverResult(result: RiverPullResult): string {
+  return withMeta(
+    [
+      count(result.gauges, "пост", "поста", "постов"),
+      count(result.rowsReceived, "строка", "строки", "строк"),
+      `записано: ${result.rowsInserted}`,
+    ].join(", "),
+    result.startedAt,
+    result.durationMs,
+  );
+}
+
 function changedLabel(changed: boolean): string {
   return changed ? "изменён" : "не изменён";
 }
-
 export function formatRegistryResult(result: RegistryPullResult): string {
   return withMeta(
     [

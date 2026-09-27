@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 import { isAxiosError } from "axios";
-import { refreshOds, refreshRegistry, refreshWeather } from "@/modules/settings/api";
+import { useQueryClient } from "@tanstack/vue-query";
+import { refreshOds, refreshRegistry, refreshRiver, refreshWeather } from "@/modules/settings/api";
+import { useRiverLevelQuery } from "@/modules/settings/composables/useRiverLevelQuery";
 import { INTEGRATIONS, REFRESH_ERROR, type RefreshTarget } from "@/modules/settings/consts";
-import { formatOdsResult, formatRegistryResult, formatWeatherResult } from "@/modules/settings/lib/formatResult";
+import {
+  formatOdsResult,
+  formatRegistryResult,
+  formatRiverResult,
+  formatWeatherResult,
+} from "@/modules/settings/lib/formatResult";
+import { formatRiverLevel } from "@/modules/settings/lib/formatLevel";
+import { riverLevelKeys } from "@/modules/settings/keys";
 import type { Problem } from "@/shared/api/types";
 import { formatDateTime } from "@/shared/lib/date";
 
@@ -16,11 +25,24 @@ interface RunState {
 
 const runs = reactive<Record<RefreshTarget, RunState>>({
   weather: { loading: false, last: null },
+  river: { loading: false, last: null },
   registry: { loading: false, last: null },
   ods: { loading: false, last: null },
 });
 
+const REFRESH: Record<RefreshTarget, () => Promise<string>> = {
+  weather: async () => formatWeatherResult(await refreshWeather()),
+  river: async () => formatRiverResult(await refreshRiver()),
+  registry: async () => formatRegistryResult(await refreshRegistry()),
+  ods: async () => formatOdsResult(await refreshOds()),
+};
+
+const queryClient = useQueryClient();
+const { data: riverLevel, isError: isRiverLevelError } = useRiverLevelQuery();
+
 const rows = computed(() => INTEGRATIONS.map((integration) => ({ ...integration, run: runs[integration.target] })));
+
+const riverLevelText = computed(() => (riverLevel.value ? formatRiverLevel(riverLevel.value) : ""));
 
 async function onRefresh(target: RefreshTarget) {
   const run = runs[target];
@@ -28,15 +50,10 @@ async function onRefresh(target: RefreshTarget) {
 
   run.loading = true;
   try {
-    let text: string;
-    if (target === "weather") {
-      text = formatWeatherResult(await refreshWeather());
-    } else if (target === "registry") {
-      text = formatRegistryResult(await refreshRegistry());
-    } else {
-      text = formatOdsResult(await refreshOds());
-    }
+    const text = await REFRESH[target]();
     run.last = { kind: "ok", text, at: new Date().toISOString() };
+    // Замер реки — единственный источник, чей результат видно на самой странице.
+    if (target === "river") void queryClient.invalidateQueries({ queryKey: riverLevelKeys.all });
   } catch (error) {
     const kind = classify(error);
     run.last = { kind, text: messageFor(error, kind), at: new Date().toISOString() };
@@ -81,6 +98,13 @@ const ALERT_TYPE: Record<Exclude<RunKind, "ok">, "warning" | "error"> = {
         <div class="integrations__source">
           <div class="integrations__title">{{ row.title }}</div>
           <div class="integrations__description">{{ row.description }}</div>
+          <div v-if="row.target === 'river'" class="integrations__level">
+            <template v-if="riverLevel">
+              <el-tag v-if="riverLevel.outdated" type="warning" size="small">Замер устарел</el-tag>
+              <span>{{ riverLevelText || "Замеров ещё не было" }}</span>
+            </template>
+            <span v-else-if="isRiverLevelError" class="integrations__level-empty">Уровень недоступен</span>
+          </div>
         </div>
 
         <el-button :loading="row.run.loading" @click="onRefresh(row.target)">Обновить</el-button>
@@ -132,6 +156,19 @@ const ALERT_TYPE: Record<Exclude<RunKind, "ok">, "warning" | "error"> = {
   margin-top: 2px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+.integrations__level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.integrations__level-empty {
+  color: var(--el-text-color-placeholder);
 }
 
 .integrations__result-ok {

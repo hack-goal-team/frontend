@@ -2,6 +2,8 @@ import { http, HttpResponse } from "msw";
 import type {
   OdsPullResult,
   RegistryPullResult,
+  RiverLevel,
+  RiverPullResult,
   SettingsUpdate,
   SettingsView,
   WeatherPullResult,
@@ -27,6 +29,26 @@ const settingsState: SettingsView = {
 // Пользователь admin-source-down — сценарий «внешний источник недоступен»:
 // все refresh-ручки отвечают 502.
 const SOURCE_DOWN_USER = "admin-source-down";
+
+// river.max-age из контракта: замер старше отдаём, но с outdated=true.
+const RIVER_MAX_AGE_MS = 36 * 60 * 60_000;
+
+// Начальный замер — «позавчерашний», чтобы предупреждение об устаревании было видно в dev.
+const riverLevelState = {
+  gaugeId: 208,
+  gaugeName: "г/у Перерва в.б. (147 км)",
+  measuredAt: new Date(Date.now() - 40 * 60 * 60_000).toISOString(),
+  levelAbsM: 120.1,
+  diffCm: -2,
+};
+
+function riverLevelResponse(): RiverLevel {
+  const measuredAt = riverLevelState.measuredAt;
+  return {
+    ...riverLevelState,
+    outdated: !measuredAt || Date.now() - Date.parse(measuredAt) > RIVER_MAX_AGE_MS,
+  };
+}
 
 // Refresh-ручка считается «занятой» на это время после запуска —
 // повторный вызов в окне отвечает 409.
@@ -81,6 +103,25 @@ function weatherResult(): WeatherPullResult {
   };
 }
 
+function riverResult(): RiverPullResult {
+  const now = new Date().toISOString();
+  const gauges = 10 + Math.floor(Math.random() * 4);
+
+  riverLevelState.measuredAt = now;
+  riverLevelState.levelAbsM = Math.round((119.5 + Math.random() * 1.5) * 100) / 100;
+  riverLevelState.diffCm = Math.round((Math.random() * 8 - 4) * 10) / 10;
+
+  return {
+    source: "river-mock",
+    startedAt: now,
+    durationMs: 200 + Math.floor(Math.random() * 600),
+    gauges,
+    rowsReceived: gauges,
+    // Пост пишет раз в сутки: внеочередная загрузка часто не приносит новых строк.
+    rowsInserted: Math.random() < 0.5 ? gauges : 0,
+  };
+}
+
 function registryResult(): RegistryPullResult {
   const now = new Date().toISOString();
   return {
@@ -118,11 +159,11 @@ export const settingsHandlers = [
 
     const body = (await request.json()) as SettingsUpdate;
 
-    if (!Number.isInteger(body?.decisionCoverHours) || body.decisionCoverHours < 1) {
-      return problem(400, "Bad Request", "decisionCoverHours должен быть целым числом ≥ 1");
+    if (!Number.isInteger(body?.decisionCoverHours) || body.decisionCoverHours < 1 || body.decisionCoverHours > 24) {
+      return problem(400, "Bad Request", "decisionCoverHours должен быть целым числом в диапазоне [1, 24]");
     }
-    if (!Number.isInteger(body?.sensorFreshHours) || body.sensorFreshHours < 1) {
-      return problem(400, "Bad Request", "sensorFreshHours должен быть целым числом ≥ 1");
+    if (!Number.isInteger(body?.sensorFreshHours) || body.sensorFreshHours < 1 || body.sensorFreshHours > 720) {
+      return problem(400, "Bad Request", "sensorFreshHours должен быть целым числом в диапазоне [1, 720]");
     }
     if (typeof body?.riskMedium !== "number" || typeof body?.riskHigh !== "number") {
       return problem(400, "Bad Request", "riskMedium и riskHigh обязательны");
@@ -155,6 +196,13 @@ export const settingsHandlers = [
   }),
 
   refreshHandler("weather", weatherResult),
+  refreshHandler("river", riverResult),
   refreshHandler("registry", registryResult),
   refreshHandler("ods", odsResult),
+
+  // Области видимости нет: нужен только факт авторизации.
+  http.get(`${BASE}/river-level`, async () => {
+    await mockDelay(150, 400);
+    return HttpResponse.json(riverLevelResponse());
+  }),
 ];

@@ -49,3 +49,23 @@ export interface OdsPullResult {
   cursorTo: string | null;
   outcome: string | null;
 }
+
+export interface RiverPullResult {
+  source: string;
+  startedAt: string;
+  durationMs: number;
+  gauges: number;
+  rowsReceived: number;
+  rowsInserted: number;
+}
+
+// Уровень общий на город: области видимости у /river-level нет.
+// Замеров ещё нет — бэк отдаёт 200 с gaugeId и всем остальным null, outdated=true.
+export interface RiverLevel {
+  gaugeId: number;
+  gaugeName: string | null;
+  measuredAt: string | null;
+  levelAbsM: number | null;
+  diffCm: number | null;
+  outdated: boolean;
+}
