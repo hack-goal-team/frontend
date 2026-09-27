@@ -22,7 +22,7 @@ const props = defineProps<{
  */
 const emit = defineEmits<{ showOnGraph: [objectId: string, channelId?: string] }>();
 
-const { reasonLabel, incidentTypeLabel } = useLabels();
+const { reasonLabel } = useLabels();
 
 /** `context.objectId` — единственное, без чего переход бессмысленен: графа для «никуда» нет. */
 const objectId = computed(() => props.detail.prediction.context?.objectId ?? null);
