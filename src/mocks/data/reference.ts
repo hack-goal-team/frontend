@@ -26,4 +26,9 @@ export const mockReferenceData: ReferenceData = {
     { code: "REVIEWED", description: "Разобран диспетчером" },
     { code: "COVERED", description: "Покрыт решением по более свежему прогнозу" },
   ],
+  // Тот же источник, что у /settings: горизонт оттуда же, и подсказка «событий не было
+  // N часов» на реестре обязана показывать N, которое отдаёт сервис, а не 24 из документации.
+  get predictionHorizonHours() {
+    return mockSettings.predictionHorizonHours;
+  },
 };

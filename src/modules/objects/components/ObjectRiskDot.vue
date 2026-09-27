@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RISK_LABEL } from "@/modules/predictions/consts";
-import { NO_PREDICTIONS_LABEL, UNKNOWN_VALUE } from "../consts";
+import { useReferenceStore } from "@/modules/reference/store";
+import { NO_PREDICTIONS_LABEL, UNKNOWN_VALUE, noPredictionsHint } from "../consts";
 import type { NodeRisk } from "../types";
 
 /**
@@ -15,11 +16,15 @@ import type { NodeRisk } from "../types";
  *   читаться как «спокойно».
  *
  * Тултип — редкий гость: только там, где есть что сказать сверх подписи на экране.
- * На каждой строке таблицы и на каждом узле графа он превращается в шум.
+ * Такой есть у ○: подпись говорит «прогнозов нет», а почему — горизонт модели из
+ * `/reference-data` (событий не было N часов). Больше одного тултипа на запись не становится,
+ * поэтому на строках таблицы и узлах графа он не шумит.
  */
 const props = defineProps<{
   risk: NodeRisk | null;
 }>();
+
+const reference = useReferenceStore();
 
 const level = computed(() => props.risk?.level ?? null);
 const label = computed(() => {
@@ -30,13 +35,16 @@ const variant = computed(() => {
   if (level.value) return level.value.toLowerCase();
   return props.risk ? "none" : "muted";
 });
+const hint = computed(() => (props.risk && !level.value ? noPredictionsHint(reference.horizonHours) : null));
 </script>
 
 <template>
-  <span class="object-risk">
-    <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
-    <span class="object-risk__text">{{ label }}</span>
-  </span>
+  <el-tooltip :content="hint ?? ''" placement="top" :disabled="!hint">
+    <span class="object-risk">
+      <span class="object-risk__dot" :class="`object-risk__dot_${variant}`" />
+      <span class="object-risk__text">{{ label }}</span>
+    </span>
+  </el-tooltip>
 </template>
 
 <style scoped>

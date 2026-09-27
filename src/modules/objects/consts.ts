@@ -1,3 +1,4 @@
+import { pluralize } from "@/shared/lib/pluralize";
 import type { HierarchyLevel, ObjectKind } from "./types";
 
 /**
@@ -55,6 +56,19 @@ export const UNKNOWN_VALUE = "—";
 
 /** ○ — утверждение «активных прогнозов нет»; его говорит сервер, фронт только показывает. */
 export const NO_PREDICTIONS_LABEL = "Без прогноза";
+/**
+ * Почему прогнозов нет — на экране не читается, а говорит про это горизонт модели:
+ * прогноз считается на каждое событие канала, значит его нет ровно когда событий не было
+ * N часов (HACK-157). N — из `/reference-data`; без справочника подсказки нет,
+ * придумывать срок нельзя.
+ */
+export const NO_PREDICTIONS_HINT = "Событий не было последние {n} {unit}";
+
+export function noPredictionsHint(hours: number | null): string | null {
+  if (hours === null) return null;
+  return NO_PREDICTIONS_HINT.replace("{n}", String(hours)).replace("{unit}", pluralize(hours, "час", "часа", "часов"));
+}
+
 export const ORPHAN_TAG = "Родитель не найден в реестре";
 /** Короткая форма для узла графа: на 248px длинная подпись съедает имя объекта. */
 export const ORPHAN_SHORT = "нет родителя";

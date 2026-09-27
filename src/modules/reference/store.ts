@@ -26,6 +26,10 @@ export const useReferenceStore = defineStore("reference", () => {
     high: data.value?.riskThresholds.high ?? null,
   }));
 
+  // Горизонт модели диктует сервис, на /settings он только для чтения: подставить
+  // вместо него «обычные 24» значит объяснять отсутствие прогноза чужим сроком.
+  const horizonHours = computed<number | null>(() => data.value?.predictionHorizonHours ?? null);
+
   async function fetchOnce(): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -47,5 +51,5 @@ export const useReferenceStore = defineStore("reference", () => {
     return fetchOnce();
   }
 
-  return { data, loading, error, thresholds, load, reload };
+  return { data, loading, error, thresholds, horizonHours, load, reload };
 });
