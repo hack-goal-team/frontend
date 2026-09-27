@@ -82,6 +82,21 @@ const MOCK_USERS: Record<string, MockUser> = {
       },
     },
   },
+  // Сценарий «внешний источник недоступен»: refresh-ручки настроек отвечают 502.
+  "admin-source-down": {
+    password: "admin-source-down",
+    user: {
+      username: "admin-source-down",
+      displayName: "Администратор (источник недоступен)",
+      roles: ["ADMIN"],
+      permissions: ["SETTINGS_WRITE", "AUDIT_READ"],
+      scope: {
+        kind: "ALL",
+        objectIds: [],
+        names: [],
+      },
+    },
+  },
   empty: {
     password: "empty",
     user: {
