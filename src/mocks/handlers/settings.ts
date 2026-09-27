@@ -8,6 +8,7 @@ import type {
 } from "@/modules/settings/types";
 import type { RefreshTarget } from "@/modules/settings/consts";
 import { getCurrentUser } from "../state/auth";
+import { appendAuditEntry } from "../data/audit";
 import { mockDelay } from "../utils/delay";
 import { problem } from "../utils/problem";
 
@@ -53,7 +54,19 @@ function refreshHandler(target: RefreshTarget, build: () => object) {
     }
     runningUntil[target] = Date.now() + RUNNING_WINDOW_MS;
 
-    return HttpResponse.json(build());
+    // На бэке каждый вызов пишется в аудит — мок делает то же, иначе журнал аудита
+    // не покажет действий, совершённых только что на странице настроек.
+    const result = build();
+    appendAuditEntry({
+      occurredAt: new Date().toISOString(),
+      actor: getCurrentUser()?.username ?? "unknown",
+      category: "IMPORT",
+      action: `${target.toUpperCase()}_REFRESH`,
+      target,
+      payload: JSON.stringify(result),
+    });
+
+    return HttpResponse.json(result);
   });
 }
 
@@ -128,6 +141,15 @@ export const settingsHandlers = [
     settingsState.riskHigh = body.riskHigh;
     settingsState.updatedAt = new Date().toISOString();
     settingsState.updatedBy = getCurrentUser()?.username ?? "unknown";
+
+    appendAuditEntry({
+      occurredAt: new Date().toISOString(),
+      actor: settingsState.updatedBy,
+      category: "CHANGE_CONFIG",
+      action: "CONFIG_UPDATE",
+      target: "settings",
+      payload: JSON.stringify(body),
+    });
 
     return HttpResponse.json(settingsState);
   }),
