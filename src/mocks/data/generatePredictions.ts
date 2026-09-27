@@ -2,13 +2,13 @@
 import type {
   Prediction,
   PredictionReason,
-  RiskLevel,
   PredictionStatus,
   TargetContext,
   Decision,
   SensorState,
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
+import { riskFromProbability } from "../lib/riskLevel";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
 
@@ -43,12 +43,6 @@ const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
 const randInt = (min: number, max: number): number => Math.floor(rand() * (max - min + 1)) + min;
 
 // --- Утилиты ---
-
-function riskFromProbability(p: number): RiskLevel {
-  if (p >= 0.7) return "HIGH";
-  if (p >= 0.4) return "MEDIUM";
-  return "LOW";
-}
 
 function isoAt(msOffsetFromNow: number): string {
   return new Date(Date.now() + msOffsetFromNow).toISOString();

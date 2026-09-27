@@ -1,5 +1,8 @@
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import { useReferenceStore } from "@/modules/reference/store";
+import { THRESHOLD_UNAVAILABLE } from "@/modules/reference/consts";
+import "element-plus/theme-chalk/el-message.css";
 
 /**
  * Переходы из аналитической панели в журнал прогнозов.
@@ -21,13 +24,19 @@ export function useRiskNavigation() {
   }
 
   /**
-   * Порог диктует справочник, фолбэком — то же временное значение из контракта
-   * (справочник грузится асинхронно). Переход есть только у HIGH: журнал умеет
-   * фильтровать «не ниже порога», верхней границы в контракте нет — MEDIUM
-   * неотделим от HIGH, а LOW от остальных.
+   * Порог диктует справочник, временных значений на фронте нет: без `/reference-data`
+   * переход не состоятелен, и мы говорим об этом прямо, а не фильтруем по выдуманному 0.7.
+   * Переход есть только у HIGH: журнал умеет фильтровать «не ниже порога», верхней границы
+   * в контракте нет — MEDIUM неотделим от HIGH, а LOW от остальных.
    */
   function openCritical() {
-    go({ activeOnly: "true", minProbability: String(reference.data?.riskThresholds.high ?? 0.7) });
+    const high = reference.thresholds.high;
+    if (high === null) {
+      ElMessage.warning(THRESHOLD_UNAVAILABLE);
+      return;
+    }
+
+    go({ activeOnly: "true", minProbability: String(high) });
   }
 
   function openUnreviewed() {

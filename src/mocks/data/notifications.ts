@@ -3,6 +3,7 @@ import { mockPredictions } from "./predictions";
 import { channelsOf } from "./channels";
 import { mockLevel3Objects } from "./objects";
 import { sortPredictions } from "../lib/sortPredictions";
+import { riskFromProbability } from "../lib/riskLevel";
 
 // Мутабельная копия — мок меняет её, чтобы имитировать новые прогнозы
 let livePredictions: Prediction[] = [...mockPredictions];
@@ -12,6 +13,16 @@ let nextId = 10000;
 /** Живой журнал: моки /dashboard и /predictions должны видеть порождённые SSE-прогнозы. */
 export function getLivePredictions(): Prediction[] {
   return livePredictions;
+}
+
+/**
+ * Админ поменял пороги риска — уровни живой журнала пересчитываются, как на бэке,
+ * где `riskLevel` не хранится, а считается на чтении по порогам из `/reference-data`.
+ */
+export function recomputeRiskLevels(): void {
+  for (const prediction of livePredictions) {
+    prediction.riskLevel = riskFromProbability(prediction.probability);
+  }
 }
 
 /**

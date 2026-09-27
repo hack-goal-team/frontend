@@ -5,26 +5,17 @@ import type {
   RiverLevel,
   RiverPullResult,
   SettingsUpdate,
-  SettingsView,
   WeatherPullResult,
 } from "@/modules/settings/types";
 import type { RefreshTarget } from "@/modules/settings/consts";
+import { recomputeRiskLevels } from "../data/notifications";
+import { mockSettings } from "../state/settings";
 import { getCurrentUser } from "../state/auth";
 import { appendAuditEntry } from "../data/audit";
 import { mockDelay } from "../utils/delay";
 import { problem } from "../utils/problem";
 
 const BASE = "/api/v1";
-
-const settingsState: SettingsView = {
-  decisionCoverHours: 1,
-  sensorFreshHours: 72,
-  riskMedium: 0.4,
-  riskHigh: 0.7,
-  predictionHorizonHours: 24,
-  updatedAt: null,
-  updatedBy: null,
-};
 
 // Пользователь admin-source-down — сценарий «внешний источник недоступен»:
 // все refresh-ручки отвечают 502.
@@ -151,7 +142,7 @@ function odsResult(): OdsPullResult {
 export const settingsHandlers = [
   http.get(`${BASE}/settings`, async () => {
     await mockDelay(200, 500);
-    return HttpResponse.json(settingsState);
+    return HttpResponse.json(mockSettings);
   }),
 
   http.put(`${BASE}/settings`, async ({ request }) => {
@@ -176,23 +167,27 @@ export const settingsHandlers = [
       return problem(400, "Bad Request", "Пороги должны быть в диапазоне [0, 1], MEDIUM меньше HIGH");
     }
 
-    settingsState.decisionCoverHours = body.decisionCoverHours;
-    settingsState.sensorFreshHours = body.sensorFreshHours;
-    settingsState.riskMedium = body.riskMedium;
-    settingsState.riskHigh = body.riskHigh;
-    settingsState.updatedAt = new Date().toISOString();
-    settingsState.updatedBy = getCurrentUser()?.username ?? "unknown";
+    mockSettings.decisionCoverHours = body.decisionCoverHours;
+    mockSettings.sensorFreshHours = body.sensorFreshHours;
+    mockSettings.riskMedium = body.riskMedium;
+    mockSettings.riskHigh = body.riskHigh;
+    // На бэке riskLevel не хранится и считается на чтении, поэтому правка порогов
+    // перекрашивает и прошлые прогнозы. Мок держит уровень в строке — пересчитываем
+    // живую копию журнала здесь, иначе поведение страницы разошлось бы с контрактом.
+    recomputeRiskLevels();
+    mockSettings.updatedAt = new Date().toISOString();
+    mockSettings.updatedBy = getCurrentUser()?.username ?? "unknown";
 
     appendAuditEntry({
       occurredAt: new Date().toISOString(),
-      actor: settingsState.updatedBy,
+      actor: mockSettings.updatedBy,
       category: "CHANGE_CONFIG",
       action: "CONFIG_UPDATE",
       target: "settings",
       payload: JSON.stringify(body),
     });
 
-    return HttpResponse.json(settingsState);
+    return HttpResponse.json(mockSettings);
   }),
 
   refreshHandler("weather", weatherResult),

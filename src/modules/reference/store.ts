@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { fetchReferenceData } from "./api";
 import type { ReferenceData } from "./types";
 
@@ -19,6 +19,13 @@ export const useReferenceStore = defineStore("reference", () => {
     return inflight;
   }
 
+  // Единственный источник порогов риска для фронта: фолбэков здесь нет намеренно,
+  // null читается как «порог неизвестен», а не как временное 0.4/0.7 из контракта.
+  const thresholds = computed<{ medium: number | null; high: number | null }>(() => ({
+    medium: data.value?.riskThresholds.medium ?? null,
+    high: data.value?.riskThresholds.high ?? null,
+  }));
+
   async function fetchOnce(): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -32,5 +39,13 @@ export const useReferenceStore = defineStore("reference", () => {
     }
   }
 
-  return { data, loading, error, load };
+  /**
+   * Админ сохранил новые пороги на /settings. Текущие значения не обнуляем: до ответа
+   * справочника фильтрам есть на что опереться, а окна «порога нет» на секунду не будет.
+   */
+  function reload(): Promise<void> {
+    return fetchOnce();
+  }
+
+  return { data, loading, error, thresholds, load, reload };
 });

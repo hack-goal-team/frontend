@@ -1,4 +1,5 @@
 import type { ReferenceData } from "@/modules/reference/types";
+import { mockSettings } from "../state/settings";
 
 export const mockReferenceData: ReferenceData = {
   reasons: [
@@ -15,7 +16,11 @@ export const mockReferenceData: ReferenceData = {
     { code: "GAS", description: "Утечка газа" },
     { code: "INTRUSION", description: "Проникновение на объект" },
   ],
-  riskThresholds: { medium: 0.4, high: 0.7 },
+  // Пороги — те же, что отдаёт /settings: админ меняет их там, и справочник обязан
+  // показать свежие, иначе фронт фильтрует журнал устаревшим порогом.
+  get riskThresholds() {
+    return { medium: mockSettings.riskMedium, high: mockSettings.riskHigh };
+  },
   predictionStatuses: [
     { code: "NEW", description: "Новый, не разобран" },
     { code: "REVIEWED", description: "Разобран диспетчером" },
