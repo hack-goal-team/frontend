@@ -7,11 +7,6 @@ const route = useRoute();
 const router = useRouter();
 const reference = useReferenceStore();
 
-const incidentType = computed({
-  get: () => (route.query.incidentType as string) ?? "",
-  set: (v) => update({ incidentType: v || undefined }),
-});
-
 const status = computed({
   get: () => (route.query.status as string) ?? "",
   set: (v) => update({ status: v || undefined }),
@@ -46,17 +41,6 @@ defineProps<{ disable: boolean }>();
 
 <template>
   <el-form :disabled="disable" :inline="true" class="prediction-filters">
-    <el-form-item label="Тип инцидента">
-      <el-select v-model="incidentType" clearable placeholder="Все" style="min-width: 200px">
-        <el-option
-          v-for="t in reference.data?.incidentTypes ?? []"
-          :key="t.code"
-          :label="t.description"
-          :value="t.code"
-        />
-      </el-select>
-    </el-form-item>
-
     <el-form-item label="Статус">
       <el-select v-model="status" clearable placeholder="Все" style="min-width: 160px">
         <el-option

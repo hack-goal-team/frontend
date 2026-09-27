@@ -4,7 +4,6 @@ import { formatProbability } from "@/shared/lib/probability";
 import type { Prediction } from "@/modules/predictions/types";
 import RiskTag from "./RiskTag.vue";
 import SensorStateTag from "./SensorStateTag.vue";
-import { useLabels } from "@/modules/reference/composables/useLabels.ts";
 import StatusTag from "./StatusTag.vue";
 
 defineProps<{
@@ -19,8 +18,6 @@ const emit = defineEmits<{
 function handleRowClick(row: Prediction) {
   emit("rowClick", row.id);
 }
-
-const { incidentTypeLabel } = useLabels();
 </script>
 
 <template>
@@ -36,11 +33,6 @@ const { incidentTypeLabel } = useLabels();
     show-overflow-tooltip
     @row-click="handleRowClick"
   >
-    <el-table-column label="Тип инцидента" min-width="300">
-      <template #default="{ row }">
-        {{ incidentTypeLabel(row.incidentType) }}
-      </template>
-    </el-table-column>
     <el-table-column label="Вероятность" min-width="120">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}

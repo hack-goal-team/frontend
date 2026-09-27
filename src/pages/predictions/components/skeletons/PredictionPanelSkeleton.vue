@@ -7,7 +7,7 @@ withDefaults(
     throttle?: number | { leading?: number; trailing?: number; initVal?: boolean };
   }>(),
   {
-    descriptionRows: 11,
+    descriptionRows: 10,
     timelineItems: 2,
     animated: true,
     throttle: 200,

@@ -61,10 +61,6 @@ function showOnGraph() {
 
     <!-- Прогноз -->
     <el-descriptions :column="1" border>
-      <el-descriptions-item label="Тип инцидента">
-        {{ incidentTypeLabel(detail.prediction.incidentType) }}
-      </el-descriptions-item>
-
       <el-descriptions-item label="Вероятность">
         {{ formatProbability(detail.prediction.probability) }}
       </el-descriptions-item>

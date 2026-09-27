@@ -14,7 +14,6 @@ withDefaults(
 
 // Левый блок — как был: фиксированные колонки без изменений.
 const LEFT_COLUMNS = [
-  { key: "incidentType", width: "420px", textWidth: "80%" },
   { key: "probability", width: "100px", textWidth: "60%" },
   { key: "horizonUntil", width: "60px", textWidth: "90%" },
   { key: "object", width: "200px", textWidth: "80%" },
