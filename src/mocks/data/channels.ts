@@ -29,7 +29,7 @@ import { makePickers } from "../lib/seededRandom";
  */
 
 /** Подписи каналов — источник для `context` прогнозов: канал и прогноз говорят одним языком. */
-const SENSOR_TYPES = [
+export const SENSOR_TYPES = [
   "Датчик температуры",
   "Датчик давления",
   "Датчик дыма",

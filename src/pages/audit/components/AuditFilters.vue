@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter, type LocationQueryRaw } from "vue-router";
 import { AUDIT_ACTION_PATTERN, AUDIT_ACTIONS, AUDIT_CATEGORIES } from "@/modules/audit/consts";
+import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
 
 const route = useRoute();
 const router = useRouter();
@@ -64,17 +65,6 @@ function update(patch: LocationQueryRaw) {
 function reset() {
   router.replace({ query: {} });
 }
-
-const shortcuts = [
-  {
-    text: "Сутки",
-    value: () => [new Date(Date.now() - 24 * 60 * 60 * 1000), new Date()] as [Date, Date],
-  },
-  {
-    text: "Неделя",
-    value: () => [new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), new Date()] as [Date, Date],
-  },
-];
 </script>
 
 <template>
@@ -84,7 +74,7 @@ const shortcuts = [
         v-model="period"
         type="datetimerange"
         value-format="YYYY-MM-DDTHH:mm:ssZ"
-        :shortcuts="shortcuts"
+        :shortcuts="PERIOD_SHORTCUTS"
         start-placeholder="С"
         end-placeholder="По"
         style="min-width: 340px"

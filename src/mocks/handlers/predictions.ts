@@ -37,6 +37,9 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   const incidentType = p.get("incidentType");
   if (incidentType) q.incidentType = incidentType;
 
+  const sensorType = p.get("sensorType");
+  if (sensorType) q.sensorType = sensorType;
+
   const objectId = p.get("objectId");
   if (objectId) q.objectId = objectId;
 
@@ -75,14 +78,18 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
 
   return items.filter((p) => {
     if (q.incidentType && p.incidentType !== q.incidentType) return false;
+    // Контракт: тип ищется точным совпадением со снапшотом реестра, поэтому прогнозы
+    // без канала (context.sensorType = null) через этот фильтр не проходят.
+    if (q.sensorType && p.context?.sensorType !== q.sensorType) return false;
     if (q.objectId && p.context?.objectId !== q.objectId) return false;
     if (q.targetKind && p.targetKind !== q.targetKind) return false;
     if (q.targetRef && !p.targetRef.includes(q.targetRef)) return false;
     if (q.status && p.status !== q.status) return false;
     if (q.minProbability !== undefined && p.probability < q.minProbability) return false;
 
+    // Период по computedAt, [from, to): нижняя граница включается, верхняя — нет.
     if (fromMs !== null && Date.parse(p.computedAt) < fromMs) return false;
-    if (toMs !== null && Date.parse(p.computedAt) > toMs) return false;
+    if (toMs !== null && Date.parse(p.computedAt) >= toMs) return false;
 
     if (q.activeOnly) {
       const computed = Date.parse(p.computedAt);

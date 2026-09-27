@@ -23,7 +23,10 @@ const { incidentTypeLabel } = useLabels();
 const query = computed<PredictionsQuery>(() => ({
   limit: Number(route.query.limit ?? 50),
   offset: Number(route.query.offset ?? 0),
+  from: (route.query.from as string) || undefined,
+  to: (route.query.to as string) || undefined,
   incidentType: (route.query.incidentType as string) || undefined,
+  sensorType: (route.query.sensorType as string) || undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
@@ -68,12 +71,13 @@ function showOnGraph(objectId: string, channelId?: string) {
   });
 }
 
-// Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип»
-const fromDashboard = computed(() => route.query.from === "dashboard");
+// Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип».
+// Маркер называется `nav`, а не `from`: `from`/`to` отданы контракту (период по computedAt).
+const fromDashboard = computed(() => route.query.nav === "dashboard");
 
 function dismissDedupNotice() {
   const rest = { ...route.query };
-  delete rest.from;
+  delete rest.nav;
   router.replace({ query: rest });
 }
 
@@ -101,7 +105,7 @@ const total = computed(() => data.value?.total ?? 0);
     />
 
     <el-alert
-      v-if="route.query.from === 'header' && route.query.status === 'NEW'"
+      v-if="route.query.nav === 'header' && route.query.status === 'NEW'"
       type="info"
       :closable="true"
       show-icon

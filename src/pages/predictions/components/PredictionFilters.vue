@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useReferenceStore } from "@/modules/reference/store";
+import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
 
 const route = useRoute();
 const router = useRouter();
@@ -10,6 +11,26 @@ const reference = useReferenceStore();
 const status = computed({
   get: () => (route.query.status as string) ?? "",
   set: (v) => update({ status: v || undefined }),
+});
+
+// Значение уходит на бэк как есть: фильтр — точное совпадение с context.sensorType,
+// поэтому вариантов из справочника достаточно и ручной ввод здесь только вредит.
+const sensorType = computed({
+  get: () => (route.query.sensorType as string) ?? "",
+  set: (v) => update({ sensorType: v || undefined }),
+});
+
+/**
+ * Период — `[from, to)` по computedAt. `Z` в value-format даёт ISO с локальным смещением
+ * (`…+03:00`) — на бэк оно уходит уже заэкранированным (`%2B`), иначе `+` станет пробелом и 400.
+ */
+const period = computed({
+  get: (): [string, string] | null => {
+    const from = route.query.from as string | undefined;
+    const to = route.query.to as string | undefined;
+    return from && to ? [from, to] : null;
+  },
+  set: (v) => update({ from: v?.[0], to: v?.[1] }),
 });
 
 const minProbability = computed({
@@ -51,6 +72,24 @@ defineProps<{ disable: boolean }>();
 
 <template>
   <el-form :disabled="disable" :inline="true" class="prediction-filters">
+    <el-form-item label="Период">
+      <el-date-picker
+        v-model="period"
+        type="datetimerange"
+        value-format="YYYY-MM-DDTHH:mm:ssZ"
+        :shortcuts="PERIOD_SHORTCUTS"
+        start-placeholder="С"
+        end-placeholder="По"
+        style="min-width: 340px"
+      />
+    </el-form-item>
+
+    <el-form-item label="Тип датчика">
+      <el-select v-model="sensorType" clearable filterable placeholder="Все" style="min-width: 200px">
+        <el-option v-for="t in reference.data?.sensorTypes ?? []" :key="t" :label="t" :value="t" />
+      </el-select>
+    </el-form-item>
+
     <el-form-item label="Статус">
       <el-select v-model="status" clearable placeholder="Все" style="min-width: 160px">
         <el-option
@@ -88,6 +127,7 @@ defineProps<{ disable: boolean }>();
   padding-block: 8px;
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 16px;
 }
 

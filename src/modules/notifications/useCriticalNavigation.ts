@@ -27,7 +27,7 @@ export function useCriticalNavigation() {
         minProbability: String(high),
         status: "NEW",
         offset: "0",
-        from: "header",
+        nav: "header",
       },
     });
   }

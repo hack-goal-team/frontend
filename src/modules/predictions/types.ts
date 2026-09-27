@@ -65,10 +65,13 @@ export interface PredictionDetail {
 export interface PredictionsQuery {
   limit?: number;
   offset?: number;
+  /** Период по `computedAt`, интервал `[from, to)` — верхняя граница не включается. */
   from?: string;
   to?: string;
   objectId?: string;
   incidentType?: string;
+  /** Точное совпадение с `context.sensorType`, значение из `sensorTypes` справочника. */
+  sensorType?: string;
   targetKind?: string;
   targetRef?: string;
   status?: PredictionStatus;

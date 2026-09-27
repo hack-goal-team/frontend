@@ -8,15 +8,17 @@ import "element-plus/theme-chalk/el-message.css";
  * Переходы из аналитической панели в журнал прогнозов.
  *
  * Панель считает сводку по уникальному сочетанию «цель + тип инцидента», журнал —
- * по строкам, поэтому каждый переход помечается `from=dashboard`: страница журнала
+ * по строкам, поэтому каждый переход помечается `nav=dashboard`: страница журнала
  * показывает пояснение, иначе расхождение счётчика и числа строк выглядит как баг.
+ * Параметр называется `nav`, а не `from`: `from` в контракте — начало периода, и
+ * помеченный им переход улетел бы на бэк как некорректная дата.
  */
 export function useRiskNavigation() {
   const router = useRouter();
   const reference = useReferenceStore();
 
   function go(query: Record<string, string>) {
-    router.push({ name: "predictions", query: { ...query, offset: "0", from: "dashboard" } });
+    router.push({ name: "predictions", query: { ...query, offset: "0", nav: "dashboard" } });
   }
 
   function openActive() {
