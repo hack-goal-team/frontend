@@ -6,11 +6,14 @@ import { PERMISSIONS } from "@/modules/auth/consts";
 import { useAuthStore } from "@/modules/auth/store";
 import { useCreateDecision } from "@/modules/predictions/composables/useCreateDecision";
 import { useReferenceStore } from "@/modules/reference/store";
+import type { PredictionKind } from "@/modules/predictions/types";
 import type { Problem } from "@/shared/api/types";
 import "element-plus/theme-chalk/el-message.css";
 
+// Для отказа подсказываем причину ТО, но не предвыбираем: решение за диспетчером (ТЗ :231).
 const props = defineProps<{
   predictionId: string;
+  kind?: PredictionKind;
 }>();
 
 const auth = useAuthStore();
@@ -18,6 +21,7 @@ const reference = useReferenceStore();
 const mutation = useCreateDecision();
 
 const reasons = computed(() => reference.data?.reasons ?? []);
+const maintenanceReason = computed(() => reasons.value.find((r) => r.code === "MAINTENANCE_REQUESTED") ?? null);
 
 const reasonCode = ref<string | null>(null);
 const comment = ref("");
@@ -79,6 +83,9 @@ function problemTitle(error: Error): string {
         >
           <el-option v-for="r in reasons" :key="r.code" :label="r.description" :value="r.code" />
         </el-select>
+        <p v-if="kind === 'EQUIPMENT' && maintenanceReason" class="decision-form__hint">
+          Для прогноза отказа обычно выбирают «{{ maintenanceReason.description }}»
+        </p>
       </el-form-item>
 
       <el-form-item label="Комментарий" :required="commentRequired">
@@ -109,6 +116,13 @@ function problemTitle(error: Error): string {
 
 .decision-form__select {
   width: 100%;
+}
+
+.decision-form__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
 }
 
 .decision-form__actions {

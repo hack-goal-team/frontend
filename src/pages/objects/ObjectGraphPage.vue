@@ -369,6 +369,7 @@ function onAuxClick(id: string) {
       v-else-if="predictionDetail"
       :detail="predictionDetail"
       @show-on-graph="showPredictionOnGraph"
+      @open-prediction="(id) => router.replace({ query: { ...route.query, selectedId: id } })"
     />
 
     <el-empty v-else description="Данные недоступны" />

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Warning, WarningFilled, Document, Bell, InfoFilled, OfficeBuilding } from "@element-plus/icons-vue";
+import { Warning, WarningFilled, Document, Bell, InfoFilled, OfficeBuilding, Tools } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import { UNKNOWN_VALUE } from "@/modules/objects/consts";
 
@@ -9,7 +9,7 @@ const props = defineProps<{
   /** null — «неизвестно» (например, X-Total-Count не пришёл), 0 — настоящее ноль. */
   value: number | null;
   hint?: string;
-  icon?: "Warning" | "WarningFilled" | "Document" | "Bell" | "InfoFilled" | "OfficeBuilding";
+  icon?: "Warning" | "WarningFilled" | "Document" | "Bell" | "InfoFilled" | "OfficeBuilding" | "Tools";
   color?: "primary" | "success" | "warning" | "danger" | "info";
   clickable?: boolean;
 }>();
@@ -25,6 +25,7 @@ const icons: Record<string, Component> = {
   Bell,
   InfoFilled,
   OfficeBuilding,
+  Tools,
 };
 
 const iconComponent = computed(() => (props.icon ? icons[props.icon] : null));

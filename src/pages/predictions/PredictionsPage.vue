@@ -257,7 +257,12 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       show-icon
     />
 
-    <PredictionPanelContent v-else-if="detail" :detail="detail" @show-on-graph="showOnGraph" />
+    <PredictionPanelContent
+      v-else-if="detail"
+      :detail="detail"
+      @show-on-graph="showOnGraph"
+      @open-prediction="openPanel"
+    />
 
     <el-empty v-else description="Данные недоступны" />
   </SidePanel>

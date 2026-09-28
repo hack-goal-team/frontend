@@ -46,5 +46,10 @@ export function useRiskNavigation() {
     go({ activeOnly: "true", status: "NEW" });
   }
 
-  return { openActive, openCritical, openUnreviewed };
+  // Отказы — своя вкладка: «к проверке» = HIGH у EQUIPMENT, порог риска инцидентов не нужен.
+  function openEquipment() {
+    go({ kind: "EQUIPMENT", activeOnly: "true" });
+  }
+
+  return { openActive, openCritical, openUnreviewed, openEquipment };
 }

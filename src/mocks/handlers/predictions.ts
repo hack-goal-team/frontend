@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { decisionsForPrediction } from "../data/decisions";
 import { getLivePredictions } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
+import { computeEquipmentRisks } from "../lib/mockRisk";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
 import type { Prediction, PredictionsQuery } from "@/modules/predictions/types";
@@ -112,6 +113,18 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
   });
 }
 
+/**
+ * B5: у прогноза — действующий отказ того же канала, как в журнале и карточке бэка. В SSE
+ * поле null, поэтому считается здесь, при выдаче, а не хранится в живом журнале.
+ */
+function withEquipmentRisk(items: Prediction[]): Prediction[] {
+  const risks = computeEquipmentRisks();
+  return items.map((p) => ({
+    ...p,
+    equipmentRisk: p.context.channelId ? (risks.get(p.context.channelId) ?? null) : null,
+  }));
+}
+
 // --- Хендлеры ---
 
 export const predictionHandlers = [
@@ -133,7 +146,7 @@ export const predictionHandlers = [
     const scoped = filterByScope(filtered, user);
     const sorted = sortPredictions(scoped);
 
-    const pageItems = sorted.slice(q.offset, q.offset + q.limit);
+    const pageItems = withEquipmentRisk(sorted.slice(q.offset, q.offset + q.limit));
     const hasMore = q.offset + q.limit < sorted.length;
 
     await mockDelay();
@@ -169,7 +182,7 @@ export const predictionHandlers = [
     await mockDelay(300, 700);
 
     return HttpResponse.json({
-      prediction: found, // уже содержит lastDecision
+      prediction: withEquipmentRisk([found])[0], // уже содержит lastDecision
       decisions, // сессионные решения + lastDecision
     });
   }),

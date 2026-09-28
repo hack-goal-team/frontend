@@ -130,6 +130,11 @@ function problemDetail(error: unknown): string {
         </el-form-item>
       </div>
 
+      <!-- У модели отказов свой порог «к проверке» в конфиге бэка — эти его не двигают. -->
+      <p class="thresholds-form__note">
+        Пороги MEDIUM/HIGH — для риска инцидентов. Не влияют на прогноз отказов оборудования.
+      </p>
+
       <el-alert
         v-if="saveError"
         type="error"
@@ -185,6 +190,12 @@ function problemDetail(error: unknown): string {
 
 .thresholds-form__grid :deep(.el-form-item__content) {
   min-width: 0;
+}
+
+.thresholds-form__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .thresholds-form__load-error,
