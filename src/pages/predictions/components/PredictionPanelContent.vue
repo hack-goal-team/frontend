@@ -73,6 +73,13 @@ function showOnGraph() {
         <StatusTag :status="detail.prediction.status" />
       </el-descriptions-item>
 
+      <el-descriptions-item label="Тип инцидента">
+        <span v-if="detail.prediction.context?.incidentClass">
+          {{ detail.prediction.context.incidentClass.description }}
+        </span>
+        <span v-else class="text-muted">—</span>
+      </el-descriptions-item>
+
       <el-descriptions-item label="Объект">
         <div class="prediction-panel__object">
           <span v-if="detail.prediction.context?.objectName">

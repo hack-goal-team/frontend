@@ -7,7 +7,7 @@ withDefaults(
     throttle?: number | { leading?: number; trailing?: number; initVal?: boolean };
   }>(),
   {
-    descriptionRows: 10,
+    descriptionRows: 11,
     timelineItems: 2,
     animated: true,
     throttle: 200,
@@ -25,7 +25,7 @@ function rowContentWidth(i: number): string {
   <el-skeleton :animated="animated" :throttle="throttle">
     <template #template>
       <div class="prediction-skeleton">
-        <!-- ── 1. el-descriptions — 12 строк ── -->
+        <!-- ── 1. el-descriptions ── -->
         <div class="prediction-skeleton__descriptions">
           <div v-for="i in descriptionRows" :key="`row-${i}`" class="prediction-skeleton__row">
             <div class="prediction-skeleton__label">
