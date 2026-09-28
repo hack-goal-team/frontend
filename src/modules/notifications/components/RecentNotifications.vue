@@ -225,6 +225,7 @@ function locationLabel(p: Prediction): string {
 }
 
 .notification__object {
+  font-size: 13px;
   color: var(--el-text-color-regular);
   margin-bottom: 2px;
 }
