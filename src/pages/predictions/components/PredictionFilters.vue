@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useReferenceStore } from "@/modules/reference/store";
 import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
 import type { JournalKind } from "@/modules/predictions/types";
+import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
 
 // Порогов риска у модели отказов нет, а её вероятность несопоставима с инцидентной —
 // ползунок с отметками medium/high там вводил бы в заблуждение.
@@ -18,12 +19,14 @@ const status = computed({
   set: (v) => update({ status: v || undefined }),
 });
 
-// На бэк уходит code: он и есть строка типа из context.sensorType, фильтр — точное
-// совпадение с ним, поэтому вариантов из справочника достаточно и ручной ввод здесь только вредит.
-const sensorType = computed({
-  get: () => (route.query.sensorType as string) ?? "",
-  set: (v) => update({ sensorType: v || undefined }),
+// Тип инцидента — incidentType прогноза, варианты — incidentTypes справочника своего вида.
+// У отказов тип один (EQUIPMENT_FAILURE), поэтому фильтр есть только во вкладке инцидентов.
+const incidentType = computed({
+  get: () => (route.query.incidentType as string) ?? "",
+  set: (v) => update({ incidentType: v || undefined }),
 });
+
+const incidentTypeOptions = computed(() => (reference.data?.incidentTypes ?? []).filter((t) => t.kind === props.kind));
 
 // «Тревога» и «В норме» — два разных фильтра, «Все» — отсутствие параметра. Прогнозы без
 // currentState (нет событий, цель не канал) не попадают ни в «Тревога», ни в «В норме».
@@ -98,14 +101,14 @@ function reset() {
     </div>
 
     <div class="prediction-filters__group">
-      <el-form-item label="Тип датчика">
-        <el-select v-model="sensorType" clearable filterable placeholder="Все" style="min-width: 200px">
-          <el-option
-            v-for="t in reference.data?.sensorTypes ?? []"
-            :key="t.code"
-            :label="t.description"
-            :value="t.code"
-          />
+      <el-form-item v-if="kind === 'INCIDENT'" label="Тип инцидента">
+        <el-select v-model="incidentType" clearable placeholder="Все" style="min-width: 180px">
+          <el-option v-for="t in incidentTypeOptions" :key="t.code" :label="t.description" :value="t.code">
+            <span class="prediction-filters__option">
+              <IncidentClassIcon :code="t.code" />
+              {{ t.description }}
+            </span>
+          </el-option>
         </el-select>
       </el-form-item>
 
@@ -169,6 +172,12 @@ function reset() {
   align-items: center;
   flex-wrap: nowrap;
   gap: 16px;
+}
+
+.prediction-filters__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .prediction-filters__group_action {
