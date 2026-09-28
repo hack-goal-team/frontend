@@ -9,6 +9,7 @@ import type {
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
 import { riskOf } from "../lib/riskLevel";
+import { mockSettings } from "../state/settings";
 import { incidentClassOf } from "../lib/incidentClass";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
@@ -188,10 +189,12 @@ export function generatePredictions(count = 500): Prediction[] {
     probability = Math.round(probability * 100) / 100;
 
     // --- computedAt / horizonUntil ---
-    const computedOffsetMs = -randInt(0, 24 * 60) * 60 * 1000;
+    // Горизонт у бэка фиксированный (predictionHorizonHours): новый пересчёт не истекает раньше
+    // старого, поэтому «последний» и «последний действующий» совпадают. Расчёты за 36 ч — часть истекла.
+    const computedOffsetMs = -randInt(0, 36 * 60) * 60 * 1000;
     const computedAt = isoAt(computedOffsetMs);
 
-    const horizonOffsetMs = computedOffsetMs + randInt(4 * 60, 24 * 60) * 60 * 1000;
+    const horizonOffsetMs = computedOffsetMs + mockSettings.predictionHorizonHours * 60 * 60 * 1000;
     const horizonUntil = isoAt(horizonOffsetMs);
 
     // --- status ---

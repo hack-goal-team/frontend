@@ -3,7 +3,7 @@ import type { InfrastructureObject, ObjectRisk, ObjectRiskCounts } from "@/modul
 import type { Prediction, RiskLevel } from "@/modules/predictions/types";
 import { channelsOf, mockChannels } from "../data/channels";
 import { mockObjects } from "../data/objects";
-import { getLiveIncidents } from "../data/notifications";
+import { getLiveIncidents, getLivePredictions } from "../data/notifications";
 
 /**
  * Серверный риск для моков `/objects?withRisk=true` и `/channels?withRisk=true`.
@@ -30,11 +30,11 @@ function isActive(prediction: Prediction, now: number): boolean {
  * Сильнейший, а не последний: узел красится худшим из активных прогнозов канала.
  * Id каналов с `objectId: null` в карту не попадают — их некому приписать.
  */
-export function computeChannelRisks(): Map<string, ChannelRisk> {
+export function computeChannelRisks(source: Prediction[] = getLiveIncidents()): Map<string, ChannelRisk> {
   const now = Date.now();
   const strongest = new Map<string, Prediction>();
 
-  for (const prediction of getLiveIncidents()) {
+  for (const prediction of source) {
     const channelId = prediction.context.channelId;
     if (!channelId || !isActive(prediction, now)) continue;
 
@@ -58,9 +58,19 @@ export function computeChannelRisks(): Map<string, ChannelRisk> {
   return risks;
 }
 
+/** Риск отказа канала — тот же расчёт по прогнозам вида EQUIPMENT (уровень у них двоичный). */
+export function computeEquipmentRisks(): Map<string, ChannelRisk> {
+  return computeChannelRisks(getLivePredictions().filter((p) => p.kind === "EQUIPMENT"));
+}
+
 /** Страница `/channels?withRisk=true`: `risk: null` — штатный ответ «прогнозов нет». */
 export function withChannelRisk(channels: Channel[], risks: Map<string, ChannelRisk>): Channel[] {
-  return channels.map((channel) => ({ ...channel, risk: risks.get(channel.id) ?? null }));
+  const equipment = computeEquipmentRisks();
+  return channels.map((channel) => ({
+    ...channel,
+    risk: risks.get(channel.id) ?? null,
+    equipmentRisk: equipment.get(channel.id) ?? null,
+  }));
 }
 
 function emptyCounts(): ObjectRiskCounts {

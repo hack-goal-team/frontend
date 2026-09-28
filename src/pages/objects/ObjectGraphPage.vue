@@ -267,6 +267,11 @@ function openChannelPrediction(channelId: string) {
   if (predictionId) router.replace({ query: { ...route.query, selectedId: predictionId } });
 }
 
+/** Из карточки инцидента — в прогноз отказа того же датчика; push, чтобы «Назад» вернул инцидент. */
+function openRelatedPrediction(predictionId: string) {
+  router.push({ query: { ...route.query, selectedId: predictionId } });
+}
+
 function closePredictionPanel() {
   const rest = { ...route.query };
   delete rest.selectedId;
@@ -369,6 +374,7 @@ function onAuxClick(id: string) {
       v-else-if="predictionDetail"
       :detail="predictionDetail"
       @show-on-graph="showPredictionOnGraph"
+      @open-prediction="openRelatedPrediction"
     />
 
     <el-empty v-else description="Данные недоступны" />

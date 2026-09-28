@@ -4,7 +4,7 @@ import { ArrowRight, Bottom, Top } from "@element-plus/icons-vue";
 import { formatDateTime, formatHorizon } from "@/shared/lib/date";
 import { formatContribution, formatProbability } from "@/shared/lib/probability";
 import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
-import { REASON_GROUP_LABEL } from "@/modules/predictions/consts";
+import { REASON_GROUP_LABEL, SENSOR_AT_RISK } from "@/modules/predictions/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
 import IncidentClassTag from "@/modules/predictions/components/IncidentClassTag.vue";
 import EquipmentCheckTag from "./EquipmentCheckTag.vue";
@@ -19,10 +19,13 @@ const props = defineProps<{
 }>();
 
 /**
- * Переход на граф объекта — наружу, роутингом компонент не занимается
- * (так же устроен клик по строке в таблице прогнозов).
+ * Переходы — наружу, роутингом компонент не занимается (так же устроен клик по строке
+ * в таблице прогнозов): на граф объекта и в соседний прогноз отказа того же датчика.
  */
-const emit = defineEmits<{ showOnGraph: [objectId: string, channelId?: string] }>();
+const emit = defineEmits<{
+  showOnGraph: [objectId: string, channelId?: string];
+  openPrediction: [predictionId: string];
+}>();
 
 const { reasonLabel } = useLabels();
 
@@ -33,6 +36,11 @@ const channelId = computed(() => props.detail.prediction.context?.channelId ?? n
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
 
 const isEquipment = computed(() => props.detail.prediction.kind === "EQUIPMENT");
+// Отказ того же датчика «к проверке» (B5) — у инцидента это повод сначала проверить датчик.
+const equipmentRisk = computed(() => {
+  const risk = props.detail.prediction.equipmentRisk;
+  return !isEquipment.value && risk?.riskLevel === "HIGH" ? risk : null;
+});
 const horizon = computed(() => formatHorizon(props.detail.prediction.computedAt, props.detail.prediction.horizonUntil));
 
 const currentState = computed(() => props.detail.prediction.currentState ?? null);
@@ -64,6 +72,14 @@ function showOnGraph() {
       :title="isEquipment ? 'Датчик сейчас в тревожном состоянии' : 'Событие уже наступило'"
       :description="lastAlarmAt ? `Последняя тревога: ${formatDateTime(lastAlarmAt)}` : undefined"
     />
+
+    <el-alert v-if="equipmentRisk" type="info" :closable="false" show-icon :title="SENSOR_AT_RISK">
+      Модель отказов: вероятность отказа {{ formatProbability(equipmentRisk.probability) }}. Проверьте датчик, прежде
+      чем направлять бригаду.
+      <el-button link type="primary" @click="emit('openPrediction', equipmentRisk.predictionId)">
+        Открыть прогноз отказа
+      </el-button>
+    </el-alert>
 
     <!-- Прогноз -->
     <el-descriptions :column="1" border>
@@ -226,7 +242,7 @@ function showOnGraph() {
     </div>
 
     <!-- Форма принятия решения -->
-    <DecisionForm :prediction-id="detail.prediction.id" class="prediction-panel__form" />
+    <DecisionForm :prediction-id="detail.prediction.id" :kind="detail.prediction.kind" class="prediction-panel__form" />
   </div>
 </template>
 

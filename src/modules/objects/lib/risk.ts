@@ -29,7 +29,16 @@ export function channelRiskOf(channel: Channel): NodeRisk | null {
   return { level: channel.risk?.riskLevel ?? null };
 }
 
-/** Прогноз для перехода по клику на карточке канала; null — клика не будет. */
+/**
+ * Прогноз для перехода по клику на карточке канала; null — клика не будет. Инцидент важнее:
+ * канал только с отказом «к проверке» тоже кликабелен и открывает прогноз отказа.
+ */
 export function channelPredictionOf(channel: Channel): string | null {
-  return channel.risk?.predictionId ?? null;
+  if (channel.risk) return channel.risk.predictionId;
+  return channel.equipmentRisk?.riskLevel === "HIGH" ? channel.equipmentRisk.predictionId : null;
+}
+
+/** Значок 🔧 на узле: действующий прогноз отказа с уровнем HIGH («к проверке»). */
+export function channelNeedsCheck(channel: Channel): boolean {
+  return channel.equipmentRisk?.riskLevel === "HIGH";
 }

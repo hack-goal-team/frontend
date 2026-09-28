@@ -2,7 +2,9 @@
 import { formatDateTime, formatHorizon } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
 import type { JournalKind, Prediction } from "@/modules/predictions/types";
+import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
 import IncidentClassTag from "@/modules/predictions/components/IncidentClassTag.vue";
+import { SENSOR_AT_RISK } from "@/modules/predictions/consts";
 import EquipmentCheckTag from "./EquipmentCheckTag.vue";
 import RiskTag from "./RiskTag.vue";
 import SensorStateTag from "./SensorStateTag.vue";
@@ -86,6 +88,16 @@ function handleRowClick(row: Prediction) {
         </span>
         <!-- У канала без имени в реестре датчик всё же есть — показываем хотя бы его тип. -->
         <span v-else class="text-muted">{{ row.context.sensorType ?? "—" }}</span>
+        <!-- Отказ того же датчика «к проверке» — инцидент может оказаться ложным. -->
+        <el-tooltip
+          v-if="kind === 'INCIDENT' && row.equipmentRisk?.riskLevel === 'HIGH'"
+          :content="SENSOR_AT_RISK"
+          placement="top"
+        >
+          <span class="sensor-at-risk" :aria-label="SENSOR_AT_RISK">
+            <IncidentClassIcon code="EQUIPMENT_FAILURE" />
+          </span>
+        </el-tooltip>
       </template>
     </el-table-column>
     <el-table-column v-if="kind === 'EQUIPMENT'" key="channel-class" label="Класс канала" min-width="140">
@@ -112,6 +124,11 @@ function handleRowClick(row: Prediction) {
 </template>
 
 <style scoped>
+.sensor-at-risk {
+  margin-left: 6px;
+  color: var(--el-text-color-secondary);
+}
+
 .text-muted {
   color: var(--el-text-color-placeholder);
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Handle, Position, type NodeProps } from "@vue-flow/core";
-import { CHANNEL_OPEN_PREDICTION_HINT, CHANNEL_UNKNOWN_BADGE } from "@/modules/objects/consts";
+import { CHANNEL_OPEN_PREDICTION_HINT, CHANNEL_UNKNOWN_BADGE, EQUIPMENT_CHECK_LABEL } from "@/modules/objects/consts";
 import ObjectRiskDot from "@/modules/objects/components/ObjectRiskDot.vue";
+import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
 import type { ChannelNodeData } from "@/modules/objects/lib/graph";
 
 /**
@@ -43,6 +44,11 @@ const clickable = computed(() => !!props.data.predictionId);
     >
       <Handle type="target" :position="Position.Left" />
 
+      <!-- 🔧 «к проверке» — поверх заливки инцидента, свой фон и рамка читаются на любом цвете. -->
+      <span v-if="data.needsCheck" class="channel-node__check" :title="EQUIPMENT_CHECK_LABEL">
+        <IncidentClassIcon code="EQUIPMENT_FAILURE" />
+      </span>
+
       <div class="channel-node__head">
         <span class="channel-node__name">{{ label }}</span>
         <el-tag v-if="!data.channel.known" type="info" size="small" effect="plain">
@@ -60,6 +66,7 @@ const clickable = computed(() => !!props.data.predictionId);
 
 <style scoped>
 .channel-node {
+  position: relative;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -76,6 +83,21 @@ const clickable = computed(() => !!props.data.predictionId);
   /* Текст узла: на светлой карточке — обычные цвета темы, на залитой цветом риска — белый. */
   --node-text: var(--el-text-color-primary);
   --node-muted: var(--el-text-color-secondary);
+}
+
+.channel-node__check {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--el-border-color-darker);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
 }
 
 .channel-node_unknown {

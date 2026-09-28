@@ -1,4 +1,5 @@
 import type { Code } from "@/shared/api/types";
+import type { ChannelRisk } from "@/modules/channels/types";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PredictionStatus = "NEW" | "REVIEWED" | "COVERED";
@@ -66,6 +67,11 @@ export interface Prediction {
   /** Поля есть в docs/api-docs.json, но не в openapi-frontend.yaml v0.2 — считаем опциональными. */
   currentState?: SensorState | null;
   lastAlarmAt?: string | null;
+  /**
+   * Действующий прогноз отказа того же канала (B5): HIGH — датчик «к проверке», и инцидент
+   * может быть ложным. В SSE-снимке null; до выката B5 поле может отсутствовать.
+   */
+  equipmentRisk?: ChannelRisk | null;
 }
 
 export interface PredictionPage {
@@ -102,6 +108,11 @@ export interface PredictionsQuery {
   status?: PredictionStatus;
   minProbability?: number;
   activeOnly?: boolean;
+  /**
+   * Только последний пересчёт на «цель + тип» (HACK-169), по умолчанию на бэке true;
+   * status, minProbability и activeOnly проверяются у него. false — вся история.
+   */
+  latestOnly?: boolean;
 }
 
 export interface Decision {

@@ -2,6 +2,8 @@ import { http, HttpResponse } from "msw";
 import { decisionsForPrediction } from "../data/decisions";
 import { getLivePredictions } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
+import { latestByTarget } from "../lib/latestByTarget";
+import { computeEquipmentRisks } from "../lib/mockRisk";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
 import type { Prediction, PredictionsQuery } from "@/modules/predictions/types";
@@ -72,6 +74,8 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   }
 
   if (p.get("activeOnly") === "true") q.activeOnly = true;
+  // По контракту по умолчанию true: без параметра журнал отдаёт последний пересчёт.
+  q.latestOnly = p.get("latestOnly") !== "false";
 
   return q;
 }
@@ -112,6 +116,18 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
   });
 }
 
+/**
+ * B5: у прогноза — действующий отказ того же канала, как в журнале и карточке бэка. В SSE
+ * поле null, поэтому считается здесь, при выдаче, а не хранится в живом журнале.
+ */
+function withEquipmentRisk(items: Prediction[]): Prediction[] {
+  const risks = computeEquipmentRisks();
+  return items.map((p) => ({
+    ...p,
+    equipmentRisk: p.kind === "INCIDENT" && p.context.channelId ? (risks.get(p.context.channelId) ?? null) : null,
+  }));
+}
+
 // --- Хендлеры ---
 
 export const predictionHandlers = [
@@ -129,11 +145,12 @@ export const predictionHandlers = [
     }
     const q = parseQuery(url);
 
-    const filtered = applyFilters(getLivePredictions(), q);
+    const live = getLivePredictions();
+    const filtered = applyFilters(q.latestOnly ? latestByTarget(live) : live, q);
     const scoped = filterByScope(filtered, user);
     const sorted = sortPredictions(scoped);
 
-    const pageItems = sorted.slice(q.offset, q.offset + q.limit);
+    const pageItems = withEquipmentRisk(sorted.slice(q.offset, q.offset + q.limit));
     const hasMore = q.offset + q.limit < sorted.length;
 
     await mockDelay();
@@ -169,7 +186,7 @@ export const predictionHandlers = [
     await mockDelay(300, 700);
 
     return HttpResponse.json({
-      prediction: found, // уже содержит lastDecision
+      prediction: withEquipmentRisk([found])[0], // уже содержит lastDecision
       decisions, // сессионные решения + lastDecision
     });
   }),

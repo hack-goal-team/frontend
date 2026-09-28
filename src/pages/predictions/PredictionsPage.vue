@@ -45,9 +45,9 @@ const query = computed<PredictionsQuery>(() => ({
   sensorType: (route.query.sensorType as string) || undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
-  minProbability:
-    kind.value === "INCIDENT" && route.query.minProbability ? Number(route.query.minProbability) : undefined,
+  minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
+  latestOnly: route.query.latestOnly === "true" ? true : route.query.latestOnly === "false" ? false : undefined,
 }));
 
 const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
@@ -93,6 +93,12 @@ function openPanel(id: string) {
   });
 }
 
+// Из карточки инцидента — в прогноз отказа того же датчика: push, чтобы «Назад» вернул инцидент.
+// Вкладку на отказы переключит watch по виду детали.
+function openRelatedPrediction(id: string) {
+  router.push({ query: { ...route.query, selectedId: id } });
+}
+
 // Закрыть панель
 function closePanel() {
   const rest = { ...route.query };
@@ -112,7 +118,7 @@ function showOnGraph(objectId: string, channelId?: string) {
   });
 }
 
-// Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип».
+// Пришли со сводки: журнал по умолчанию (latestOnly) считает так же — последний пересчёт «цель + тип».
 // Маркер называется `nav`, а не `from`: `from`/`to` отданы контракту (период по computedAt).
 const fromDashboard = computed(() => route.query.nav === "dashboard");
 
@@ -123,17 +129,21 @@ function dismissNavHint() {
 }
 
 // Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
-const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
-// minProbability у отказов не применяется, значит и фильтром там не считается.
+const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav", "latestOnly"]);
 const hasFilters = computed(() =>
-  Object.entries(route.query).some(
-    ([key, value]) =>
-      !NON_FILTER_KEYS.has(key) &&
-      !(key === "minProbability" && kind.value === "EQUIPMENT") &&
-      value !== undefined &&
-      value !== "",
-  ),
+  Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
 );
+
+/**
+ * У отказов ползунка нет, но переход с карточки «Оборудование к проверке» ставит
+ * minProbability = equipmentCheckThreshold: у EQUIPMENT это ровно riskLevel HIGH.
+ */
+const equipmentCheckOnly = computed(() => kind.value === "EQUIPMENT" && !!route.query.minProbability);
+
+function showAllEquipment() {
+  const { minProbability: _p, ...rest } = route.query;
+  router.replace({ query: { ...rest, offset: 0 } });
+}
 
 const emptyText = computed(() => {
   if (hasFilters.value) return { title: "Нет прогнозов по выбранным фильтрам", hint: "" };
@@ -184,8 +194,8 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       type="info"
       :closable="true"
       show-icon
-      title="Показаны все строки журнала"
-      description="На аналитической панели счётчики дедуплицированы по сочетанию «цель + тип инцидента», поэтому строк здесь может быть больше."
+      title="Переход с аналитической панели"
+      description="Журнал показывает последний пересчёт каждой цели и типа инцидента — как и счётчик на панели."
       @close="dismissNavHint"
     />
 
@@ -198,6 +208,16 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
     >
       Показаны инциденты высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
     </el-alert>
+
+    <el-alert
+      v-if="equipmentCheckOnly"
+      type="info"
+      :closable="true"
+      show-icon
+      title="Показаны только отказы «К проверке»"
+      class="predictions-page__hint"
+      @close="showAllEquipment"
+    />
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
       Показаны прогнозы с датчиком в тревоге без решения. Зафиксируйте решение, чтобы убрать их из счётчика-колокольчика
@@ -257,7 +277,12 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       show-icon
     />
 
-    <PredictionPanelContent v-else-if="detail" :detail="detail" @show-on-graph="showOnGraph" />
+    <PredictionPanelContent
+      v-else-if="detail"
+      :detail="detail"
+      @show-on-graph="showOnGraph"
+      @open-prediction="openRelatedPrediction"
+    />
 
     <el-empty v-else description="Данные недоступны" />
   </SidePanel>

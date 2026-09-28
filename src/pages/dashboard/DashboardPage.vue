@@ -27,7 +27,7 @@ type DashboardState = "empty-scope" | "loading" | "error" | "no-predictions" | "
 
 const auth = useAuthStore();
 const router = useRouter();
-const { openActive, openCritical, openUnreviewed } = useRiskNavigation();
+const { openActive, openCritical, openUnreviewed, openEquipment } = useRiskNavigation();
 const { data, isLoading, isError, error } = useDashboardQuery();
 
 /** «Без решения» — счётчик диспетчерской работы; технику (без DECISION_CREATE) он не показываем. */
@@ -87,6 +87,8 @@ const incidentCounts = computed(() => data.value?.riskCountsByKind.INCIDENT ?? {
 const incidentActive = computed(
   () => incidentCounts.value.LOW + incidentCounts.value.MEDIUM + incidentCounts.value.HIGH,
 );
+// Отказы — отдельной нейтральной карточкой: несрочно и на своей шкале, в «риски» не входят.
+const equipmentToCheck = computed(() => data.value?.riskCountsByKind.EQUIPMENT.HIGH ?? 0);
 const incidentUnreviewed = computed(() => data.value?.unreviewedByKind.INCIDENT ?? 0);
 
 /**
@@ -185,6 +187,16 @@ function openObjects() {
           @click="openUnreviewed"
         />
 
+        <DashboardCard
+          title="Оборудование к проверке"
+          :value="equipmentToCheck"
+          hint="Датчики, которым модель прогнозирует отказ. Несрочно"
+          icon="Tools"
+          color="info"
+          clickable
+          @click="openEquipment"
+        />
+
         <!-- :clickable="false" на ошибке: не ведём диспетчера в пустой экран -->
         <DashboardCard
           :title="OBJECTS_CARD_TITLE"
@@ -202,7 +214,7 @@ function openObjects() {
         актуальный прогноз по сочетанию «цель + тип инцидента».
         <el-tooltip
           placement="top"
-          content="Одну цель модель считает несколько раз. В журнале строк может быть больше, чем показывает счётчик, — это не расхождение."
+          content="Одну цель модель считает несколько раз. Счётчики и журнал берут последний пересчёт, поэтому по клику строк столько же, сколько на карточке."
         >
           <el-icon class="dashboard-page__help"><InfoFilled /></el-icon>
         </el-tooltip>

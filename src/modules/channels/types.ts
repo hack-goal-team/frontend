@@ -35,6 +35,11 @@ export interface Channel {
    * отсутствие поля — «знания о риске нет» (прочерк): не путать.
    */
   risk?: ChannelRisk | null;
+  /**
+   * Тоже только при `withRisk=true`: последний действующий прогноз отказа (EQUIPMENT) канала.
+   * Уровень двоичный — HIGH значит «к проверке»; заливку узла не меняет, только значок 🔧.
+   */
+  equipmentRisk?: ChannelRisk | null;
 }
 
 export interface ChannelsQuery {

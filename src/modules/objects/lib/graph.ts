@@ -3,6 +3,7 @@ import type { Channel } from "@/modules/channels/types";
 import { RISK_LABEL } from "@/modules/predictions/consts";
 import { MAX_CHILD_OBJECT_NODES, UNKNOWN_VALUE } from "../consts";
 import { objectLabel } from "./label";
+import { channelNeedsCheck } from "./risk";
 import type { NodeRisk, ObjectTreeNode } from "../types";
 
 /**
@@ -66,6 +67,8 @@ export interface ChannelNodeData {
   highlighted: boolean;
   /** Прогноз для перехода по клику; null — карточка не кликабельна, открыть нечего. */
   predictionId: string | null;
+  /** Датчик «к проверке» по модели отказов — угловой значок, заливку не трогает. */
+  needsCheck: boolean;
 }
 
 export interface AuxNodeData {
@@ -144,6 +147,7 @@ function objectAria(node: ObjectTreeNode, risk: NodeRisk | null): string {
 function channelAria(channel: Channel, risk: NodeRisk | null, predictionId: string | null): string {
   const name = channel.name?.trim() || `Канал #${channel.id}`;
   const parts = [name, channel.sensorType, riskWords(risk)];
+  if (channelNeedsCheck(channel)) parts.push("датчик к проверке");
   if (!channel.known) parts.push("нет в реестре");
   if (predictionId) parts.push("откроются детали прогноза");
   return parts.join(", ");
@@ -292,7 +296,14 @@ export function buildObjectGraph(input: BuildGraphInput): ObjectGraph {
         type: "channel",
         column: childColumn,
         row,
-        data: { kind: "channel", channel, risk, highlighted: channel.id === highlightChannel, predictionId },
+        data: {
+          kind: "channel",
+          channel,
+          risk,
+          highlighted: channel.id === highlightChannel,
+          predictionId,
+          needsCheck: channelNeedsCheck(channel),
+        },
         ariaLabel: channelAria(channel, risk, predictionId),
       });
       link(focusId, id);

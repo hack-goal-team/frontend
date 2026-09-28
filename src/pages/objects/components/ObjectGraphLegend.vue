@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RISK_LABEL } from "@/modules/predictions/consts";
-import { NO_PREDICTIONS_LABEL, RELATIONS_HINT, UNKNOWN_VALUE } from "@/modules/objects/consts";
+import { EQUIPMENT_CHECK_LABEL, NO_PREDICTIONS_LABEL, RELATIONS_HINT, UNKNOWN_VALUE } from "@/modules/objects/consts";
+import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
 
 /**
  * Легенда рисков и постоянная подпись про природу связей.
@@ -37,6 +38,11 @@ const marks = [
         <span class="graph-legend__dot graph-legend__dot_unknown" />
         <span class="graph-legend__label">{{ UNKNOWN_VALUE }} нет данных</span>
       </span>
+
+      <span class="graph-legend__item">
+        <span class="graph-legend__check"><IncidentClassIcon code="EQUIPMENT_FAILURE" /></span>
+        <span class="graph-legend__label">{{ EQUIPMENT_CHECK_LABEL }}</span>
+      </span>
     </div>
 
     <p class="graph-legend__hint">{{ RELATIONS_HINT }}</p>
@@ -70,6 +76,16 @@ const marks = [
   width: 10px;
   height: 10px;
   border-radius: 50%;
+}
+
+.graph-legend__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--el-border-color-darker);
 }
 
 .graph-legend__dot_none {
