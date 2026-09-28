@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import type { SensorState } from "@/modules/predictions/types";
 
-// Приоритет: «уже горит» сильнее «данных нет» — тревога от свежего датчика важнее устаревшего показания.
+// Бейдж повторяет фильтр «Состояние» и контракт параметра `alarming`: решает только
+// currentState.alarming, outdated не учитывается. Без currentState — прочерк.
 defineProps<{
   state?: SensorState | null;
 }>();
 </script>
 
 <template>
-  <el-tag v-if="state?.alarming" type="danger">Уже горит</el-tag>
-  <el-tag v-else-if="state?.outdated" type="warning">Данные устарели</el-tag>
-  <el-tag v-else-if="state" type="info">{{ state.value || "Прогноз" }}</el-tag>
+  <el-tag v-if="state" :type="state.alarming ? 'danger' : 'success'">
+    {{ state.alarming ? "Уже горит" : "В норме" }}
+  </el-tag>
   <span v-else class="text-muted">—</span>
 </template>
 

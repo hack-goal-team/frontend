@@ -20,8 +20,8 @@ const sensorType = computed({
   set: (v) => update({ sensorType: v || undefined }),
 });
 
-// Тревога и норма — два разных фильтра, «все» — отсутствие параметра. Прогнозы без
-// currentState (нет событий, цель не канал) не попадают ни в «В тревоге», ни в «В норме».
+// «Уже горит» и «В норме» — два разных фильтра, «Все» — отсутствие параметра. Прогнозы без
+// currentState (нет событий, цель не канал) не попадают ни в «Уже горит», ни в «В норме».
 const alarming = computed({
   get: () => (route.query.alarming as string) ?? "",
   set: (v) => update({ alarming: v || undefined }),
@@ -99,7 +99,7 @@ defineProps<{ disable: boolean }>();
 
     <el-form-item label="Состояние">
       <el-select v-model="alarming" clearable placeholder="Все" style="min-width: 140px">
-        <el-option label="В тревоге" value="true" />
+        <el-option label="Уже горит" value="true" />
         <el-option label="В норме" value="false" />
       </el-select>
     </el-form-item>
