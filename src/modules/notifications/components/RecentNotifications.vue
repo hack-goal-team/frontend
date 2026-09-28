@@ -103,7 +103,10 @@ function locationLabel(p: Prediction): string {
       >
         <!-- Строка — в формате тоста: класс · вероятность, затем горизонт и объект. -->
         <div class="notification__header">
-          <span class="notification__type">
+          <span
+            class="notification__type"
+            :class="`incident-class_${item.prediction.incidentType.toLowerCase()}`"
+          >
             <IncidentClassIcon :code="item.prediction.incidentType" />
             {{ formatIncidentHeadline(incidentTypeLabel(item.prediction.incidentType), item.prediction.probability) }}
           </span>
@@ -207,14 +210,16 @@ function locationLabel(p: Prediction): string {
   margin-bottom: 6px;
 }
 
-/* Класс и вероятность диспетчер читает первыми — они крупнее горизонта и объекта. */
+/* Класс и вероятность диспетчер читает первыми — они крупнее горизонта и объекта,
+   и окрашены по классу инцидента: лентой правит не риск (он в SSE всегда HIGH),
+   а то, ЧТО именно предсказано. --incident-class-color задаёт маппинг в main.css. */
 .notification__type {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--incident-class-color, var(--el-text-color-primary));
 }
 
 .notification__time {
