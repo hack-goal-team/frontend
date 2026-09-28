@@ -24,7 +24,7 @@ const { incidentTypeLabel } = useLabels();
 
 /**
  * Вкладка — вид прогноза: журнал никогда не просит оба вида сразу, иначе вероятности двух
- * моделей встали бы в одну сортировку. Общие фильтры (период, тип датчика, статус) переживают
+ * моделей встали бы в одну сортировку. Общие фильтры (период, состояние, статус) переживают
  * смену вкладки, а порог вероятности, тип, карточка и пометка перехода относятся к старой.
  */
 const kind = computed<JournalKind>({
@@ -41,7 +41,8 @@ const query = computed<PredictionsQuery>(() => ({
   offset: Number(route.query.offset ?? 0),
   from: (route.query.from as string) || undefined,
   to: (route.query.to as string) || undefined,
-  incidentType: (route.query.incidentType as string) || undefined,
+  // Тип инцидента — фильтр вкладки инцидентов: у отказов он из ссылки дал бы пустой журнал без контрола.
+  incidentType: kind.value === "INCIDENT" ? (route.query.incidentType as string) || undefined : undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability:
@@ -61,6 +62,17 @@ const {
   isError: isDetailError,
   error: detailError,
 } = usePredictionQuery(selectedId);
+
+// Фильтра по типу датчика больше нет: старый sensorType из закладки убираем, а не держим невидимым.
+watch(
+  () => route.query.sensorType,
+  (raw) => {
+    if (raw === undefined) return;
+    const { sensorType: _st, ...rest } = route.query;
+    router.replace({ query: rest });
+  },
+  { immediate: true },
+);
 
 // Неизвестный kind в ссылке читается как INCIDENT — и в URL заменяется на него же.
 watch(
