@@ -9,26 +9,27 @@ import { formatIncidentHeadline, formatIncidentPlace } from "../lib/format";
 import { useLabels } from "@/modules/reference/composables/useLabels";
 import type { Prediction } from "@/modules/predictions/types";
 import { formatDateTime } from "@/shared/lib/date";
+import { pluralize } from "@/shared/lib/pluralize";
 
 const store = useNotificationsStore();
 const router = useRouter();
 const { incidentTypeLabel } = useLabels();
 
 const items = computed(() => store.recentNotifications);
-const criticalCount = computed(() => store.criticalCount);
 
 /**
- * Лента — окно сессии, снимок SSE — актуальное состояние. Числа различаются,
- * и без пояснения диспетчер примет «20 записей» за «20 проблем».
+ * Лента — окно сессии, снимок SSE — актуальное состояние: без пояснения диспетчер
+ * примет «20 записей» за «20 проблем». Своего счёта активных в блоке больше нет:
+ * их ведёт индикатор шапки, и по другой выборке (прогнозы без решения, а не весь
+ * снимок) — два числа рядом читались бы как два показателя одного смысла.
  */
 const hintText = computed(() => {
   const base = "Уведомления текущей сессии. После перезагрузки список пуст.";
-  if (criticalCount.value === 0) return base;
+  const shown = items.value.length;
+  if (shown === 0) return base;
 
-  const active = `Активных высокого риска сейчас: ${criticalCount.value}`;
-  if (items.value.length === 0) return `${base} ${active}.`;
-
-  return `${base} ${active} — лента показывает только последние ${items.value.length}.`;
+  const noun = pluralize(shown, "последняя запись", "последние записи", "последних записей");
+  return `${base} Показаны только ${shown} ${noun}.`;
 });
 
 function openPrediction(prediction: Prediction) {
@@ -73,10 +74,6 @@ function locationLabel(p: Prediction): string {
         <span class="recent-notifications__title">
           Последние уведомления
 
-          <span v-if="criticalCount > 0" class="recent-notifications__active">
-            · активных высокого риска: {{ criticalCount }}
-          </span>
-
           <el-tooltip placement="top" :content="hintText">
             <el-icon class="recent-notifications__help"><InfoFilled /></el-icon>
           </el-tooltip>
@@ -103,10 +100,7 @@ function locationLabel(p: Prediction): string {
       >
         <!-- Строка — в формате тоста: класс · вероятность, затем горизонт и объект. -->
         <div class="notification__header">
-          <span
-            class="notification__type"
-            :class="`incident-class_${item.prediction.incidentType.toLowerCase()}`"
-          >
+          <span class="notification__type" :class="`incident-class_${item.prediction.incidentType.toLowerCase()}`">
             <IncidentClassIcon :code="item.prediction.incidentType" />
             {{ formatIncidentHeadline(incidentTypeLabel(item.prediction.incidentType), item.prediction.probability) }}
           </span>
@@ -159,12 +153,6 @@ function locationLabel(p: Prediction): string {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.recent-notifications__active {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
 }
 
 .recent-notifications__help {
