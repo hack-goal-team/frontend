@@ -12,9 +12,10 @@ const { showAlarming } = useAlarmNavigation();
 /**
  * limit=1: из ответа нужен только `X-Total-Count`, строки здесь не показываются.
  * Ключ — обычный список прогнозов, поэтому успешное решение (`predictionKeys.all`)
- * снимает прогноз из счётчика так же, как из таблицы журнала.
+ * снимает прогноз из счётчика так же, как из таблицы журнала. Только инциденты: иначе
+ * датчик в тревоге считался бы дважды — строкой каждой модели.
  */
-const { data } = usePredictionsQuery({ alarming: true, status: "NEW", limit: 1, offset: 0 });
+const { data } = usePredictionsQuery({ kind: "INCIDENT", alarming: true, status: "NEW", limit: 1, offset: 0 });
 
 const count = computed(() => data.value?.total ?? 0);
 const hasCount = computed(() => count.value > 0);

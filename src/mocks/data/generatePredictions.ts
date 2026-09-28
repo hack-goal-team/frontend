@@ -8,15 +8,12 @@ import type {
   SensorState,
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
-import { riskFromProbability } from "../lib/riskLevel";
+import { riskOf } from "../lib/riskLevel";
 import { incidentClassOf } from "../lib/incidentClass";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
 
 // --- Справочники ---
-
-// Коды типов — совпадают с /reference-data (mockReferenceData.incidentTypes)
-const INCIDENT_TYPES = ["EQUIPMENT_FAILURE", "FIRE", "FLOOD", "GAS", "INTRUSION"] as const;
 
 const TARGET_KINDS = ["COLLECTOR", "PUMP", "WELL", "SHAFT"] as const;
 
@@ -212,14 +209,24 @@ export function generatePredictions(count = 500): Prediction[] {
     // --- currentState / lastAlarmAt ---
     const currentState = generateCurrentState(probability);
 
+    // Две модели пишут в один журнал: 4-классовая — только по каналу с классом и ровно этим
+    // классом, модель отказов (EQUIPMENT_FAILURE) — по любому датчику.
+    const context = generateContext();
+    const incidentClass = context.incidentClass;
+    const isEquipment = !incidentClass || rand() < 0.3;
+    const incidentType = incidentClass && !isEquipment ? incidentClass.code : "EQUIPMENT_FAILURE";
+    // У модели отказов своя шкала: вероятности смещены вниз, «к проверке» — меньшинство.
+    const modelProbability = isEquipment ? Math.round(probability ** 2 * 100) / 100 : probability;
+
     items.push({
       id,
       targetKind,
       targetRef,
-      context: generateContext(),
-      incidentType: pick(INCIDENT_TYPES),
-      probability,
-      riskLevel: riskFromProbability(probability),
+      context,
+      incidentType,
+      kind: isEquipment ? "EQUIPMENT" : "INCIDENT",
+      probability: modelProbability,
+      riskLevel: riskOf(isEquipment ? "EQUIPMENT" : "INCIDENT", modelProbability),
       computedAt,
       horizonUntil,
       modelVersion: pick(MODEL_VERSIONS),

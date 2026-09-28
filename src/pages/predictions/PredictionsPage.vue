@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
 import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
-import type { PredictionsQuery } from "@/modules/predictions/types";
+import type { JournalKind, PredictionsQuery } from "@/modules/predictions/types";
+import { DEFAULT_KIND } from "@/modules/predictions/consts";
 import SidePanel from "@/shared/ui/SidePanel.vue";
-import { computed } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PredictionFilters from "./components/PredictionFilters.vue";
+import PredictionKindSwitch from "./components/PredictionKindSwitch.vue";
 import PredictionPagination from "./components/PredictionPagination.vue";
 import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
@@ -20,7 +22,21 @@ const router = useRouter();
 const auth = useAuthStore();
 const { incidentTypeLabel } = useLabels();
 
+/**
+ * Вкладка — вид прогноза: журнал никогда не просит оба вида сразу, иначе вероятности двух
+ * моделей встали бы в одну сортировку. Общие фильтры (период, тип датчика, статус) переживают
+ * смену вкладки, а порог вероятности, тип, карточка и пометка перехода относятся к старой.
+ */
+const kind = computed<JournalKind>({
+  get: () => (route.query.kind === "EQUIPMENT" ? "EQUIPMENT" : DEFAULT_KIND),
+  set: (v) => {
+    const { minProbability: _p, incidentType: _t, selectedId: _s, nav: _n, ...rest } = route.query;
+    router.replace({ query: { ...rest, kind: v, offset: 0 } });
+  },
+});
+
 const query = computed<PredictionsQuery>(() => ({
+  kind: kind.value,
   limit: Number(route.query.limit ?? 50),
   offset: Number(route.query.offset ?? 0),
   from: (route.query.from as string) || undefined,
@@ -29,11 +45,12 @@ const query = computed<PredictionsQuery>(() => ({
   sensorType: (route.query.sensorType as string) || undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
-  minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
+  minProbability:
+    kind.value === "INCIDENT" && route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
 }));
 
-const { data, isFetching, isLoading, isError, error } = usePredictionsQuery(query);
+const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
 
 const selectedId = computed(() => (route.query.selectedId as string) ?? null);
 const isPanelOpen = computed(() => !!selectedId.value);
@@ -45,6 +62,29 @@ const {
   isError: isDetailError,
   error: detailError,
 } = usePredictionQuery(selectedId);
+
+// Неизвестный kind в ссылке читается как INCIDENT — и в URL заменяется на него же.
+watch(
+  () => route.query.kind,
+  (raw) => {
+    if (raw !== undefined && raw !== "INCIDENT" && raw !== "EQUIPMENT") {
+      router.replace({ query: { ...route.query, kind: DEFAULT_KIND } });
+    }
+  },
+  { immediate: true },
+);
+
+// Карточку открыли ссылкой из другой вкладки (граф, старая ссылка) — вкладка догоняет прогноз.
+watch(
+  () => detail.value?.prediction.kind,
+  (detailKind) => {
+    if ((detailKind === "INCIDENT" || detailKind === "EQUIPMENT") && detailKind !== kind.value) {
+      const { minProbability: _p, incidentType: _t, nav: _n, ...rest } = route.query;
+      router.replace({ query: { ...rest, kind: detailKind, offset: 0 } });
+    }
+  },
+  { immediate: true },
+);
 
 // Открыть панель
 function openPanel(id: string) {
@@ -82,9 +122,51 @@ function dismissNavHint() {
   router.replace({ query: rest });
 }
 
+// Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
+const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
+// minProbability у отказов не применяется, значит и фильтром там не считается.
+const hasFilters = computed(() =>
+  Object.entries(route.query).some(
+    ([key, value]) =>
+      !NON_FILTER_KEYS.has(key) &&
+      !(key === "minProbability" && kind.value === "EQUIPMENT") &&
+      value !== undefined &&
+      value !== "",
+  ),
+);
+
+const emptyText = computed(() => {
+  if (hasFilters.value) return { title: "Нет прогнозов по выбранным фильтрам", hint: "" };
+  return kind.value === "INCIDENT"
+    ? {
+        title: "Прогнозов инцидентов нет",
+        hint: "Модель считает пожар, подтопление, загазованность и проникновение по каналам соответствующих датчиков",
+      }
+    : { title: "Прогнозов оборудования нет", hint: "Датчиков в зоне риска отказа не найдено" };
+});
+
+function resetFilters() {
+  router.replace({ query: { kind: kind.value } });
+}
+
+// После смены вкладки placeholderData держит ответ прошлого вида: под колонками нового он
+// смешал бы шкалы двух моделей. Вид ответа запоминаем, пока данные не placeholder.
+const loadedKind = ref<JournalKind | null>(null);
+watchEffect(() => {
+  if (data.value && !isPlaceholderData.value) loadedKind.value = kind.value;
+});
+const isKindSwitching = computed(() => loadedKind.value !== null && loadedKind.value !== kind.value);
+
+// Страница за концом выборки (разобрали строки на последней) — переходим на последнюю.
+watch(data, (page) => {
+  if (!page || isPlaceholderData.value || page.items.length > 0 || page.total === 0 || page.offset === 0) return;
+  const last = Math.floor((page.total - 1) / page.limit) * page.limit;
+  router.replace({ query: { ...route.query, offset: last } });
+});
+
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
-const total = computed(() => data.value?.total ?? 0);
+const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 0)));
 </script>
 
 <template>
@@ -93,7 +175,9 @@ const total = computed(() => data.value?.total ?? 0);
   </Teleport>
 
   <div class="predictions-page">
-    <PredictionFilters :disable="auth.isEmptyScope" class="predictions-page__filters" />
+    <PredictionKindSwitch v-model="kind" :disable="auth.isEmptyScope" />
+
+    <PredictionFilters :kind="kind" :disable="auth.isEmptyScope" class="predictions-page__filters" />
 
     <el-alert
       v-if="fromDashboard"
@@ -112,7 +196,7 @@ const total = computed(() => data.value?.total ?? 0);
       show-icon
       class="predictions-page__hint"
     >
-      Показаны прогнозы высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
+      Показаны инциденты высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
     </el-alert>
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
@@ -135,15 +219,18 @@ const total = computed(() => data.value?.total ?? 0);
         show-icon
       />
 
-      <PredictionTableSkeleton v-else-if="isLoading" :rows="25" />
+      <PredictionTableSkeleton v-else-if="isLoading || isKindSwitching" :rows="25" />
 
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
-        description="Прогнозов нет"
+        :description="emptyText.title"
         class="predictions-page__empty"
-      />
+      >
+        <p v-if="emptyText.hint" class="predictions-page__empty-hint">{{ emptyText.hint }}</p>
+        <el-button v-if="hasFilters" @click="resetFilters">Сбросить фильтры</el-button>
+      </el-empty>
 
-      <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
+      <PredictionTable v-else :kind="kind" :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
     </el-card>
 
     <div class="predictions-page__pagination">
@@ -204,6 +291,13 @@ const total = computed(() => data.value?.total ?? 0);
 
 .predictions-page__empty {
   flex: 1;
+}
+
+.predictions-page__empty-hint {
+  margin: 0;
+  max-width: 420px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 .predictions-page__pagination {

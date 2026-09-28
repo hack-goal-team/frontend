@@ -1,4 +1,17 @@
-import type { RiskLevel } from "./types";
+import type { JournalKind, RiskLevel } from "./types";
+
+// ---- Вид прогноза ----
+
+export const DEFAULT_KIND: JournalKind = "INCIDENT";
+
+export const KIND_LABEL: Record<JournalKind, string> = {
+  INCIDENT: "Инциденты",
+  EQUIPMENT: "Оборудование",
+};
+
+export const KIND_HINT = {
+  EQUIPMENT: "Оборудование — прогноз отказа датчика. Срочных уведомлений нет — плановая проверка",
+};
 
 // ---- Риск ----
 
@@ -24,8 +37,9 @@ export const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
 
 // Подписи — справочником `/reference-data` (predictionStatuses), здесь только цвет;
 // неизвестный код (бэк добавляет их без релиза фронта) рендерится нейтральным «info».
-export const STATUS_TAG_TYPE: Record<string, "info" | "success"> = {
-  NEW: "success",
+// NEW — primary, а не зелёный: зелёный читается как «всё хорошо», а строка ждёт решения.
+export const STATUS_TAG_TYPE: Record<string, "info" | "primary"> = {
+  NEW: "primary",
   REVIEWED: "info",
 };
 

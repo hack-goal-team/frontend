@@ -81,6 +81,14 @@ const generatedText = computed(() => {
   return iso ? formatDateTime(iso) : "—";
 });
 
+// Карточки и распределение — только инциденты: вероятности отказов на другой шкале,
+// а все переходы отсюда ведут во вкладку инцидентов журнала.
+const incidentCounts = computed(() => data.value?.riskCountsByKind.INCIDENT ?? { LOW: 0, MEDIUM: 0, HIGH: 0 });
+const incidentActive = computed(
+  () => incidentCounts.value.LOW + incidentCounts.value.MEDIUM + incidentCounts.value.HIGH,
+);
+const incidentUnreviewed = computed(() => data.value?.unreviewedByKind.INCIDENT ?? 0);
+
 /**
  * Отсутствие прогнозов не доказывает отсутствие проблем, поэтому «всё в норме»
  * тут не пишется: нет расчётов — «прогнозы не рассчитаны», расчёты были, но
@@ -148,8 +156,8 @@ function openObjects() {
       <div class="dashboard-grid">
         <DashboardCard
           title="Активные риски"
-          :value="data.activePredictions"
-          hint="Все активные прогнозы, без повторов по «цель + тип инцидента»"
+          :value="incidentActive"
+          hint="Активные прогнозы инцидентов, без повторов по «цель + тип инцидента»"
           icon="Warning"
           color="warning"
           clickable
@@ -158,8 +166,8 @@ function openObjects() {
 
         <DashboardCard
           title="Высокий риск"
-          :value="data.riskCounts.HIGH"
-          hint="Прогнозы с уровнем риска HIGH"
+          :value="incidentCounts.HIGH"
+          hint="Прогнозы инцидентов с уровнем риска HIGH"
           icon="WarningFilled"
           color="danger"
           clickable
@@ -169,7 +177,7 @@ function openObjects() {
         <DashboardCard
           v-if="canDecide"
           title="Без решения"
-          :value="data.unreviewedPredictions"
+          :value="incidentUnreviewed"
           hint="Статус NEW — решение не зафиксировано"
           icon="Bell"
           color="info"
@@ -190,8 +198,8 @@ function openObjects() {
       </div>
 
       <div class="dashboard-page__caption">
-        Активных строк журнала: {{ data.predictionRows }}. В счётчиках учитывается только последний актуальный прогноз
-        по сочетанию «цель + тип инцидента».
+        Активных строк журнала (все виды прогнозов): {{ data.predictionRows }}. В счётчиках учитывается только последний
+        актуальный прогноз по сочетанию «цель + тип инцидента».
         <el-tooltip
           placement="top"
           content="Одну цель модель считает несколько раз. В журнале строк может быть больше, чем показывает счётчик, — это не расхождение."
@@ -202,10 +210,10 @@ function openObjects() {
 
       <el-card shadow="never" class="dashboard-page__risks">
         <template #header>
-          <span>Распределение по уровню риска</span>
+          <span>Инциденты по уровню риска</span>
         </template>
 
-        <RiskBreakdown :counts="data.riskCounts" />
+        <RiskBreakdown :counts="incidentCounts" />
       </el-card>
 
       <RecentNotifications />

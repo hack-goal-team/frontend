@@ -3,6 +3,11 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useReferenceStore } from "@/modules/reference/store";
 import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
+import type { JournalKind } from "@/modules/predictions/types";
+
+// Порогов риска у модели отказов нет, а её вероятность несопоставима с инцидентной —
+// ползунок с отметками medium/high там вводил бы в заблуждение.
+const props = defineProps<{ disable: boolean; kind: JournalKind }>();
 
 const route = useRoute();
 const router = useRouter();
@@ -20,8 +25,8 @@ const sensorType = computed({
   set: (v) => update({ sensorType: v || undefined }),
 });
 
-// «Уже горит» и «В норме» — два разных фильтра, «Все» — отсутствие параметра. Прогнозы без
-// currentState (нет событий, цель не канал) не попадают ни в «Уже горит», ни в «В норме».
+// «Тревога» и «В норме» — два разных фильтра, «Все» — отсутствие параметра. Прогнозы без
+// currentState (нет событий, цель не канал) не попадают ни в «Тревога», ни в «В норме».
 const alarming = computed({
   get: () => (route.query.alarming as string) ?? "",
   set: (v) => update({ alarming: v || undefined }),
@@ -70,11 +75,10 @@ function update(patch: Record<string, unknown>) {
   });
 }
 
+// Вкладка — не фильтр: «Сбросить» оставляет пользователя в том же виде прогнозов.
 function reset() {
-  router.replace({ query: {} });
+  router.replace({ query: { kind: props.kind } });
 }
-
-defineProps<{ disable: boolean }>();
 </script>
 
 <template>
@@ -107,7 +111,7 @@ defineProps<{ disable: boolean }>();
 
       <el-form-item label="Состояние">
         <el-select v-model="alarming" clearable placeholder="Все" style="min-width: 140px">
-          <el-option label="Уже горит" value="true" />
+          <el-option label="Тревога" value="true" />
           <el-option label="В норме" value="false" />
         </el-select>
       </el-form-item>
@@ -125,7 +129,7 @@ defineProps<{ disable: boolean }>();
     </div>
 
     <div class="prediction-filters__group">
-      <el-form-item label="Мин. вероятность">
+      <el-form-item v-if="kind === 'INCIDENT'" label="Мин. вероятность">
         <el-slider
           v-model="minProbability"
           :min="0"
