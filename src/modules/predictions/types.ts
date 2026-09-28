@@ -72,6 +72,11 @@ export interface PredictionsQuery {
   incidentType?: string;
   /** Точное совпадение с `context.sensorType`, значение — code из `sensorTypes` справочника. */
   sensorType?: string;
+  /**
+   * Фильтр по `currentState.alarming`: true — датчик сейчас в тревоге, false — в норме.
+   * Прогнозы без `currentState` не попадают ни в один вариант, `outdated` не учитывается.
+   */
+  alarming?: boolean;
   targetKind?: string;
   targetRef?: string;
   status?: PredictionStatus;

@@ -20,6 +20,13 @@ const sensorType = computed({
   set: (v) => update({ sensorType: v || undefined }),
 });
 
+// Тревога и норма — два разных фильтра, «все» — отсутствие параметра. Прогнозы без
+// currentState (нет событий, цель не канал) не попадают ни в «В тревоге», ни в «В норме».
+const alarming = computed({
+  get: () => (route.query.alarming as string) ?? "",
+  set: (v) => update({ alarming: v || undefined }),
+});
+
 /**
  * Период — `[from, to)` по computedAt. `Z` в value-format даёт ISO с локальным смещением
  * (`…+03:00`) — на бэк оно уходит уже заэкранированным (`%2B`), иначе `+` станет пробелом и 400.
@@ -87,6 +94,13 @@ defineProps<{ disable: boolean }>();
     <el-form-item label="Тип датчика">
       <el-select v-model="sensorType" clearable filterable placeholder="Все" style="min-width: 200px">
         <el-option v-for="t in reference.data?.sensorTypes ?? []" :key="t.code" :label="t.description" :value="t.code" />
+      </el-select>
+    </el-form-item>
+
+    <el-form-item label="Состояние">
+      <el-select v-model="alarming" clearable placeholder="Все" style="min-width: 140px">
+        <el-option label="В тревоге" value="true" />
+        <el-option label="В норме" value="false" />
       </el-select>
     </el-form-item>
 

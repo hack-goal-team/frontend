@@ -40,6 +40,10 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   const sensorType = p.get("sensorType");
   if (sensorType) q.sensorType = sensorType;
 
+  const alarming = p.get("alarming");
+  if (alarming === "true") q.alarming = true;
+  if (alarming === "false") q.alarming = false;
+
   const objectId = p.get("objectId");
   if (objectId) q.objectId = objectId;
 
@@ -81,6 +85,9 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
     // Контракт: тип ищется точным совпадением со снапшотом реестра, поэтому прогнозы
     // без канала (context.sensorType = null) через этот фильтр не проходят.
     if (q.sensorType && p.context?.sensorType !== q.sensorType) return false;
+    // Контракт: фильтр по currentState.alarming, прогнозы без currentState
+    // (нет событий, цель не канал) не проходят ни в true, ни в false; outdated не учитывается.
+    if (q.alarming !== undefined && p.currentState?.alarming !== q.alarming) return false;
     if (q.objectId && p.context?.objectId !== q.objectId) return false;
     if (q.targetKind && p.targetKind !== q.targetKind) return false;
     if (q.targetRef && !p.targetRef.includes(q.targetRef)) return false;
