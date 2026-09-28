@@ -147,6 +147,12 @@ function resetFilters() {
   router.replace({ query: { kind: kind.value } });
 }
 
+// После смены вкладки placeholderData держит строки прошлого вида: под колонками нового
+// они смешали бы шкалы двух моделей, поэтому до ответа показываем скелетон.
+const isKindSwitching = computed(
+  () => isPlaceholderData.value && (data.value?.items ?? []).some((p) => p.kind !== kind.value),
+);
+
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
 const total = computed(() => data.value?.total ?? 0);
@@ -202,7 +208,7 @@ const total = computed(() => data.value?.total ?? 0);
         show-icon
       />
 
-      <PredictionTableSkeleton v-else-if="isLoading" :rows="25" />
+      <PredictionTableSkeleton v-else-if="isLoading || isKindSwitching" :rows="25" />
 
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
