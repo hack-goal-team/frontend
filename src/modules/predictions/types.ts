@@ -108,6 +108,11 @@ export interface PredictionsQuery {
   status?: PredictionStatus;
   minProbability?: number;
   activeOnly?: boolean;
+  /**
+   * Только последний пересчёт на «цель + тип» (HACK-169), по умолчанию на бэке true;
+   * status, minProbability и activeOnly проверяются у него. false — вся история.
+   */
+  latestOnly?: boolean;
 }
 
 export interface Decision {

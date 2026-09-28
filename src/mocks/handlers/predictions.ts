@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { decisionsForPrediction } from "../data/decisions";
 import { getLivePredictions } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
+import { latestByTarget } from "../lib/latestByTarget";
 import { computeEquipmentRisks } from "../lib/mockRisk";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
@@ -73,6 +74,8 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   }
 
   if (p.get("activeOnly") === "true") q.activeOnly = true;
+  // По контракту по умолчанию true: без параметра журнал отдаёт последний пересчёт.
+  q.latestOnly = p.get("latestOnly") !== "false";
 
   return q;
 }
@@ -142,7 +145,8 @@ export const predictionHandlers = [
     }
     const q = parseQuery(url);
 
-    const filtered = applyFilters(getLivePredictions(), q);
+    const live = getLivePredictions();
+    const filtered = applyFilters(q.latestOnly ? latestByTarget(live) : live, q);
     const scoped = filterByScope(filtered, user);
     const sorted = sortPredictions(scoped);
 

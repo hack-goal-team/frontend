@@ -5,32 +5,12 @@ import { PERMISSIONS } from "@/modules/auth/consts";
 import { hasPermission } from "@/modules/auth/lib/hasPermission";
 import { filterByScope } from "@/modules/predictions/lib/filterByScope";
 import { getLivePredictions } from "../data/notifications";
-import { sortPredictions } from "../lib/sortPredictions";
+import { latestByTarget } from "../lib/latestByTarget";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
 import { problem } from "../utils/problem";
 
 const BASE = "/api/v1";
-
-/**
- * Единица счёта — сочетание «цель + тип инцидента»: одну цель модель считает
- * несколько раз, наивный подсчёт строк показал бы три проблемы там, где она одна.
- */
-function targetKey(p: Prediction): string {
-  return `${p.targetKind}|${p.targetRef}|${p.incidentType}`;
-}
-
-function latestByTarget(items: Prediction[]): Prediction[] {
-  const latest = new Map<string, Prediction>();
-
-  // sortPredictions — computedAt DESC, id DESC: первый в группе и есть последний расчёт
-  for (const p of sortPredictions(items)) {
-    const key = targetKey(p);
-    if (!latest.has(key)) latest.set(key, p);
-  }
-
-  return [...latest.values()];
-}
 
 function buildDashboard(items: Prediction[]): Dashboard {
   const now = Date.now();

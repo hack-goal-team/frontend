@@ -56,7 +56,8 @@ export function useRiskNavigation() {
       ElMessage.warning(EQUIPMENT_THRESHOLD_UNAVAILABLE);
       return;
     }
-    go({ kind: "EQUIPMENT", activeOnly: "true", minProbability: String(threshold) });
+    // latestOnly — как считает сводка (последний пересчёт «цель + тип»): строк ровно EQUIPMENT.HIGH.
+    go({ kind: "EQUIPMENT", activeOnly: "true", latestOnly: "true", minProbability: String(threshold) });
   }
 
   return { openActive, openCritical, openUnreviewed, openEquipment };

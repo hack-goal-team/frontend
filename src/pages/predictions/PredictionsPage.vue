@@ -47,6 +47,7 @@ const query = computed<PredictionsQuery>(() => ({
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
+  latestOnly: route.query.latestOnly === "true" ? true : route.query.latestOnly === "false" ? false : undefined,
 }));
 
 const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
@@ -128,7 +129,7 @@ function dismissNavHint() {
 }
 
 // Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
-const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
+const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav", "latestOnly"]);
 const hasFilters = computed(() =>
   Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
 );
