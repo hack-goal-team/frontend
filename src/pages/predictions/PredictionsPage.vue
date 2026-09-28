@@ -42,7 +42,6 @@ const query = computed<PredictionsQuery>(() => ({
   from: (route.query.from as string) || undefined,
   to: (route.query.to as string) || undefined,
   incidentType: (route.query.incidentType as string) || undefined,
-  sensorType: (route.query.sensorType as string) || undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability:
