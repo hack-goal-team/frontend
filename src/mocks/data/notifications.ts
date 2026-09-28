@@ -39,15 +39,19 @@ export function recomputeRiskLevels(): void {
  * Вызывается по таймеру из SSE-хендлера.
  *
  * Объект и канал — реальные: прогноз обязан перекрашивать существующий узел графа,
- * а не пустоту. Объект без каналов (97) возможен — тогда прогноз светится только у объекта.
+ * а не пустоту.
  */
 export function spawnCriticalPrediction(): Prediction {
   const now = new Date();
   const horizon = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
-  const object = mockLevel3Objects[Math.floor(Math.random() * mockLevel3Objects.length)];
-  const channels = channelsOf(object.id);
-  const channel = channels.length > 0 ? channels[Math.floor(Math.random() * channels.length)] : null;
+  // Модель инцидентов считает только каналы с классом — берём объект, где такой канал есть.
+  const candidates = mockLevel3Objects.flatMap((o) =>
+    channelsOf(o.id)
+      .filter((c) => incidentClassOf(c.sensorType))
+      .map((c) => ({ object: o, channel: c })),
+  );
+  const { object, channel } = candidates[Math.floor(Math.random() * candidates.length)];
 
   // Критический «живой» прогноз чаще всего уже горит — так панель показывает баннер аварии
   const alarming = Math.random() < 0.7;
@@ -65,8 +69,7 @@ export function spawnCriticalPrediction(): Prediction {
       engineeringSystem: channel?.engineeringSystem ?? null,
       incidentClass: incidentClassOf(channel?.sensorType),
     },
-    // 4-классовая модель пишет класс канала; у канала без класса — подтопление, как раньше.
-    incidentType: incidentClassOf(channel?.sensorType)?.code ?? "FLOOD",
+    incidentType: incidentClassOf(channel.sensorType)?.code ?? "FLOOD",
     kind: "INCIDENT",
     probability: 0.85 + Math.random() * 0.15,
     riskLevel: "HIGH",

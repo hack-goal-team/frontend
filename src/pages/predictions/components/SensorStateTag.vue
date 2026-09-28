@@ -2,15 +2,17 @@
 import type { SensorState } from "@/modules/predictions/types";
 
 // Бейдж повторяет фильтр «Состояние» и контракт параметра `alarming`: решает только
-// currentState.alarming, outdated не учитывается. Без currentState — прочерк.
+// currentState.alarming, outdated не учитывается. «Уже горит» — только у пожара: для
+// подтопления или проникновения так не говорят, там нейтральное «Тревога».
 defineProps<{
   state?: SensorState | null;
+  incidentType?: string;
 }>();
 </script>
 
 <template>
   <el-tag v-if="state" :type="state.alarming ? 'danger' : 'success'">
-    {{ state.alarming ? "Уже горит" : "В норме" }}
+    {{ state.alarming ? (incidentType === "FIRE" ? "Уже горит" : "Тревога") : "В норме" }}
   </el-tag>
   <span v-else class="text-muted">—</span>
 </template>

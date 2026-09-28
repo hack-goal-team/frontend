@@ -84,7 +84,8 @@ function handleRowClick(row: Prediction) {
         <span v-if="row.context.sensorName">
           {{ row.context.sensorName }}
         </span>
-        <span v-else class="text-muted">—</span>
+        <!-- У канала без имени в реестре датчик всё же есть — показываем хотя бы его тип. -->
+        <span v-else class="text-muted">{{ row.context.sensorType ?? "—" }}</span>
       </template>
     </el-table-column>
     <el-table-column v-if="kind === 'EQUIPMENT'" key="channel-class" label="Класс канала" min-width="140">
@@ -94,7 +95,7 @@ function handleRowClick(row: Prediction) {
     </el-table-column>
     <el-table-column key="state" label="Состояние" min-width="130">
       <template #default="{ row }">
-        <SensorStateTag :state="row.currentState" />
+        <SensorStateTag :state="row.currentState" :incident-type="row.incidentType" />
       </template>
     </el-table-column>
     <el-table-column key="status" prop="status" label="Статус" min-width="260">

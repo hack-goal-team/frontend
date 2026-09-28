@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ArrowRight, Bottom, Top } from "@element-plus/icons-vue";
-import { formatDateTime } from "@/shared/lib/date";
+import { formatDateTime, formatHorizon } from "@/shared/lib/date";
 import { formatContribution, formatProbability } from "@/shared/lib/probability";
 import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
 import { REASON_GROUP_LABEL } from "@/modules/predictions/consts";
@@ -32,6 +32,9 @@ const channelId = computed(() => props.detail.prediction.context?.channelId ?? n
 
 /** «Последнее решение» — первое из истории: поля `lastDecision` у `Prediction` в контракте v0 нет. */
 
+const isEquipment = computed(() => props.detail.prediction.kind === "EQUIPMENT");
+const horizon = computed(() => formatHorizon(props.detail.prediction.computedAt, props.detail.prediction.horizonUntil));
+
 const currentState = computed(() => props.detail.prediction.currentState ?? null);
 const lastAlarmAt = computed(() => props.detail.prediction.lastAlarmAt ?? null);
 
@@ -52,13 +55,14 @@ function showOnGraph() {
 
 <template>
   <div class="prediction-panel">
+    <!-- У прогноза отказа аварии нет — только тревожное состояние датчика, и оно несрочное. -->
     <el-alert
       v-if="currentState?.alarming"
-      type="error"
+      :type="isEquipment ? 'info' : 'error'"
       :closable="false"
       show-icon
-      title="Авария уже наступила"
-      :description="lastAlarmAt ? `Последняя авария: ${formatDateTime(lastAlarmAt)}` : undefined"
+      :title="isEquipment ? 'Датчик сейчас в тревожном состоянии' : 'Событие уже наступило'"
+      :description="lastAlarmAt ? `Последняя тревога: ${formatDateTime(lastAlarmAt)}` : undefined"
     />
 
     <!-- Прогноз -->
@@ -119,20 +123,20 @@ function showOnGraph() {
 
       <el-descriptions-item label="Текущее состояние">
         <div class="prediction-panel__state">
-          <SensorStateTag :state="currentState" />
+          <SensorStateTag :state="currentState" :incident-type="detail.prediction.incidentType" />
           <span v-if="currentState?.observedAt" class="text-muted">
             на {{ formatDateTime(currentState.observedAt) }}
           </span>
         </div>
       </el-descriptions-item>
 
-      <el-descriptions-item label="Последняя авария">
+      <el-descriptions-item label="Последняя тревога">
         <span v-if="lastAlarmAt">{{ formatDateTime(lastAlarmAt) }}</span>
         <span v-else class="text-muted">—</span>
       </el-descriptions-item>
 
       <el-descriptions-item label="Горизонт">
-        {{ formatDateTime(detail.prediction.horizonUntil) }}
+        {{ horizon.until }} <span class="text-muted">· {{ horizon.span }}</span>
       </el-descriptions-item>
 
       <el-descriptions-item label="Вычислен">

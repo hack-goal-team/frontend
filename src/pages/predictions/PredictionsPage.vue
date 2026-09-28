@@ -52,24 +52,6 @@ const query = computed<PredictionsQuery>(() => ({
 
 const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
 
-// Счётчик второй вкладки — тот же запрос другого вида с limit=1, число берётся из X-Total-Count.
-const otherKind = computed<JournalKind>(() => (kind.value === "INCIDENT" ? "EQUIPMENT" : "INCIDENT"));
-const otherQuery = computed<PredictionsQuery>(() => ({
-  ...query.value,
-  kind: otherKind.value,
-  minProbability: undefined,
-  incidentType: undefined,
-  limit: 1,
-  offset: 0,
-}));
-const { data: otherData, isPlaceholderData: isOtherPlaceholder } = usePredictionsQuery(otherQuery);
-
-// Пока ответ прошлый (placeholderData), число принадлежит другим фильтрам — не показываем.
-const kindCounts = computed<Partial<Record<JournalKind, number>>>(() => ({
-  [kind.value]: isPlaceholderData.value ? undefined : data.value?.total,
-  [otherKind.value]: isOtherPlaceholder.value ? undefined : otherData.value?.total,
-}));
-
 const selectedId = computed(() => (route.query.selectedId as string) ?? null);
 const isPanelOpen = computed(() => !!selectedId.value);
 
@@ -175,6 +157,13 @@ watchEffect(() => {
 });
 const isKindSwitching = computed(() => loadedKind.value !== null && loadedKind.value !== kind.value);
 
+// Страница за концом выборки (разобрали строки на последней) — переходим на последнюю.
+watch(data, (page) => {
+  if (!page || isPlaceholderData.value || page.items.length > 0 || page.total === 0 || page.offset === 0) return;
+  const last = Math.floor((page.total - 1) / page.limit) * page.limit;
+  router.replace({ query: { ...route.query, offset: last } });
+});
+
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
 const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 0)));
@@ -186,7 +175,7 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
   </Teleport>
 
   <div class="predictions-page">
-    <PredictionKindSwitch v-model="kind" :counts="kindCounts" :disable="auth.isEmptyScope" />
+    <PredictionKindSwitch v-model="kind" :disable="auth.isEmptyScope" />
 
     <PredictionFilters :kind="kind" :disable="auth.isEmptyScope" class="predictions-page__filters" />
 
@@ -207,7 +196,7 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       show-icon
       class="predictions-page__hint"
     >
-      Показаны прогнозы высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
+      Показаны инциденты высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
     </el-alert>
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">

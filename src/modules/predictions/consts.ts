@@ -9,8 +9,8 @@ export const KIND_LABEL: Record<JournalKind, string> = {
   EQUIPMENT: "Оборудование",
 };
 
-export const KIND_HINT: Partial<Record<JournalKind, string>> = {
-  EQUIPMENT: "Прогноз отказа датчика. Срочных уведомлений нет — плановая проверка",
+export const KIND_HINT = {
+  EQUIPMENT: "Оборудование — прогноз отказа датчика. Срочных уведомлений нет — плановая проверка",
 };
 
 // ---- Риск ----
@@ -37,8 +37,9 @@ export const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
 
 // Подписи — справочником `/reference-data` (predictionStatuses), здесь только цвет;
 // неизвестный код (бэк добавляет их без релиза фронта) рендерится нейтральным «info».
-export const STATUS_TAG_TYPE: Record<string, "info" | "success"> = {
-  NEW: "success",
+// NEW — primary, а не зелёный: зелёный читается как «всё хорошо», а строка ждёт решения.
+export const STATUS_TAG_TYPE: Record<string, "info" | "primary"> = {
+  NEW: "primary",
   REVIEWED: "info",
 };
 

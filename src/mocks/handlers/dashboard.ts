@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type { Dashboard, DashboardRiskCounts } from "@/modules/dashboard/types";
-import type { Prediction } from "@/modules/predictions/types";
+import type { Prediction, PredictionKind } from "@/modules/predictions/types";
 import { PERMISSIONS } from "@/modules/auth/consts";
 import { hasPermission } from "@/modules/auth/lib/hasPermission";
 import { filterByScope } from "@/modules/predictions/lib/filterByScope";
@@ -41,11 +41,21 @@ function buildDashboard(items: Prediction[]): Dashboard {
   const active = latestByTarget(activeRows);
 
   const riskCounts: DashboardRiskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0 };
+  const riskCountsByKind: Dashboard["riskCountsByKind"] = {
+    INCIDENT: { LOW: 0, MEDIUM: 0, HIGH: 0 },
+    EQUIPMENT: { LOW: 0, MEDIUM: 0, HIGH: 0 },
+    LEGACY: { LOW: 0, MEDIUM: 0, HIGH: 0 },
+  };
+  const unreviewedByKind: Record<PredictionKind, number> = { INCIDENT: 0, EQUIPMENT: 0, LEGACY: 0 };
   let unreviewed = 0;
 
   for (const p of active) {
     riskCounts[p.riskLevel] += 1;
-    if (p.status === "NEW") unreviewed += 1;
+    riskCountsByKind[p.kind][p.riskLevel] += 1;
+    if (p.status === "NEW") {
+      unreviewed += 1;
+      unreviewedByKind[p.kind] += 1;
+    }
   }
 
   // latestPredictionAt считается по всей области видимости, включая истёкшие
@@ -58,6 +68,8 @@ function buildDashboard(items: Prediction[]): Dashboard {
     predictionRows: activeRows.length,
     unreviewedPredictions: unreviewed,
     riskCounts,
+    riskCountsByKind,
+    unreviewedByKind,
   };
 }
 
