@@ -24,21 +24,26 @@ const hint = computed(() => {
 
 <template>
   <el-tooltip v-if="needsEquipmentCheck(props.level)" :content="hint" placement="top">
-    <el-tag type="info" effect="plain">
-      <span class="equipment-check">
-        <IncidentClassIcon code="EQUIPMENT_FAILURE" />
-        К проверке
-      </span>
-    </el-tag>
+    <span class="equipment-check">
+      <IncidentClassIcon code="EQUIPMENT_FAILURE" class="equipment-check__icon" />
+      К проверке
+    </span>
   </el-tooltip>
   <span v-else class="text-muted">—</span>
 </template>
 
 <style scoped>
+/* Как у класса: без рамки, иконка и подпись — одинаковые по высоте строки таблицы. */
 .equipment-check {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.equipment-check__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--el-text-color-secondary);
 }
 
 .text-muted {
