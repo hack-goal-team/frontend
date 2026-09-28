@@ -93,6 +93,12 @@ function openPanel(id: string) {
   });
 }
 
+// Из карточки инцидента — в прогноз отказа того же датчика: push, чтобы «Назад» вернул инцидент.
+// Вкладку на отказы переключит watch по виду детали.
+function openRelatedPrediction(id: string) {
+  router.push({ query: { ...route.query, selectedId: id } });
+}
+
 // Закрыть панель
 function closePanel() {
   const rest = { ...route.query };
@@ -261,7 +267,7 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       v-else-if="detail"
       :detail="detail"
       @show-on-graph="showOnGraph"
-      @open-prediction="openPanel"
+      @open-prediction="openRelatedPrediction"
     />
 
     <el-empty v-else description="Данные недоступны" />

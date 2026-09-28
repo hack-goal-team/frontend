@@ -121,7 +121,7 @@ function withEquipmentRisk(items: Prediction[]): Prediction[] {
   const risks = computeEquipmentRisks();
   return items.map((p) => ({
     ...p,
-    equipmentRisk: p.context.channelId ? (risks.get(p.context.channelId) ?? null) : null,
+    equipmentRisk: p.kind === "INCIDENT" && p.context.channelId ? (risks.get(p.context.channelId) ?? null) : null,
   }));
 }
 

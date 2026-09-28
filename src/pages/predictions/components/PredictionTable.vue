@@ -94,9 +94,9 @@ function handleRowClick(row: Prediction) {
           :content="SENSOR_AT_RISK"
           placement="top"
         >
-          <span class="sensor-at-risk" :aria-label="SENSOR_AT_RISK"
-            ><IncidentClassIcon code="EQUIPMENT_FAILURE"
-          /></span>
+          <span class="sensor-at-risk" :aria-label="SENSOR_AT_RISK">
+            <IncidentClassIcon code="EQUIPMENT_FAILURE" />
+          </span>
         </el-tooltip>
       </template>
     </el-table-column>
