@@ -1,4 +1,4 @@
-import { h } from "vue";
+import { h, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElNotification, type NotificationHandle } from "element-plus";
 import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
@@ -22,6 +22,8 @@ export function useIncidentToasts() {
   const { showCritical } = useCriticalNavigation();
 
   const open: NotificationHandle[] = [];
+  // Сводный — один: новая волна заменяет прошлую сводку, а не копится рядом с ней.
+  let summary: NotificationHandle | null = null;
 
   function track(handle: NotificationHandle) {
     open.push(handle);
@@ -42,7 +44,7 @@ export function useIncidentToasts() {
       duration: 0,
       position: "bottom-left",
       customClass: "incident-toast",
-      message: h("div", { class: "incident-toast__body" }, [
+      message: h("div", [
         h("div", { class: "incident-toast__headline" }, [
           h(IncidentClassIcon, { code: prediction.incidentType }),
           formatIncidentHeadline(label, prediction.probability),
@@ -62,7 +64,8 @@ export function useIncidentToasts() {
   }
 
   function showSummary(predictions: Prediction[]) {
-    const handle = ElNotification({
+    summary?.close();
+    const handle: NotificationHandle = ElNotification({
       type: "warning",
       duration: 0,
       position: "bottom-left",
@@ -73,8 +76,18 @@ export function useIncidentToasts() {
         showCritical();
         handle.close();
       },
+      onClose: () => {
+        if (summary === handle) summary = null;
+      },
     });
+    summary = handle;
   }
+
+  // Тосты висят без таймера: при выходе из приложения (logout) их данные — чужие, закрываем.
+  onUnmounted(() => {
+    summary?.close();
+    [...open].forEach((handle) => handle.close());
+  });
 
   function show(predictions: Prediction[]) {
     if (predictions.length === 0) return;

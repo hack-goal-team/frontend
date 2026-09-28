@@ -4,6 +4,7 @@ import { ElMessage } from "element-plus";
 // Программные El*-API не автоимпортируются вместе со стилями (см. AGENTS.md)
 import "element-plus/theme-chalk/el-message.css";
 import { useAuthStore } from "../store";
+import { useNotificationsStore } from "@/modules/notifications/store";
 
 /**
  * Завершение сессии: сервер → кэш запросов → /login. Сервер может не ответить
@@ -14,6 +15,7 @@ export function useLogout() {
   const auth = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const notifications = useNotificationsStore();
 
   async function logout(): Promise<void> {
     try {
@@ -22,6 +24,8 @@ export function useLogout() {
       ElMessage.warning("Сессия закрыта локально. Сервер не ответил.");
     } finally {
       queryClient.clear();
+      // Снимок и лента — чужой области видимости; после входа первый кадр снова придёт пачкой.
+      notifications.reset();
       router.replace({ name: "login" });
     }
   }

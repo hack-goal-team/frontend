@@ -33,7 +33,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
   /**
    * `fresh` — прогнозы, которых не было в прошлом снимке: по ним инвалидируется кэш,
    * на первом снимке он пуст. `toasts` — что показать тостом: на первом снимке весь
-   * снимок (диспетчер только вошёл и активных HIGH ещё не видел), дальше — `fresh`.
+   * снимок (диспетчер только вошёл и активных HIGH ещё не видел), дальше — `fresh`;
+   * разобранные (не NEW) тостом не нужны — как и в счётчике шапки.
    */
   function onSnapshot(next: Prediction[]): { fresh: Prediction[]; toasts: Prediction[] } {
     const receivedAt = new Date();
@@ -42,7 +43,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
       snapshot.value = next;
       lastSnapshotAt.value = receivedAt;
       isFirstSnapshot = false;
-      return { fresh: [], toasts: next };
+      return { fresh: [], toasts: next.filter((p) => p.status === "NEW") };
     }
 
     // Считаем новые id
@@ -71,7 +72,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
       hasNewPredictions.value = true;
     }
 
-    return { fresh, toasts: fresh };
+    return { fresh, toasts: fresh.filter((p) => p.status === "NEW") };
   }
 
   function clearNewPredictions() {
