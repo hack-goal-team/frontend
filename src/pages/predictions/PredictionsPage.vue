@@ -27,8 +27,7 @@ const query = computed<PredictionsQuery>(() => ({
   to: (route.query.to as string) || undefined,
   incidentType: (route.query.incidentType as string) || undefined,
   sensorType: (route.query.sensorType as string) || undefined,
-  alarming:
-    route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
+  alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
@@ -77,7 +76,7 @@ function showOnGraph(objectId: string, channelId?: string) {
 // Маркер называется `nav`, а не `from`: `from`/`to` отданы контракту (период по computedAt).
 const fromDashboard = computed(() => route.query.nav === "dashboard");
 
-function dismissDedupNotice() {
+function dismissNavHint() {
   const rest = { ...route.query };
   delete rest.nav;
   router.replace({ query: rest });
@@ -103,7 +102,7 @@ const total = computed(() => data.value?.total ?? 0);
       show-icon
       title="Показаны все строки журнала"
       description="На аналитической панели счётчики дедуплицированы по сочетанию «цель + тип инцидента», поэтому строк здесь может быть больше."
-      @close="dismissDedupNotice"
+      @close="dismissNavHint"
     />
 
     <el-alert
@@ -114,6 +113,11 @@ const total = computed(() => data.value?.total ?? 0);
       class="predictions-page__hint"
     >
       Показаны прогнозы высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
+    </el-alert>
+
+    <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
+      Показаны прогнозы с датчиком в тревоге без решения. Зафиксируйте решение, чтобы убрать их из счётчика-колокольчика
+      в шапке.
     </el-alert>
 
     <el-card

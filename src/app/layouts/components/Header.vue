@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import StreamStatus from "@/modules/notifications/components/StreamStatus.vue";
 import CriticalIndicator from "@/modules/notifications/components/CriticalIndicator.vue";
+import AlarmingIndicator from "@/modules/predictions/components/AlarmingIndicator.vue";
 import { isDark, toggleDark } from "@/shared/composables/useTheme";
 import { Moon, Sunny } from "@element-plus/icons-vue";
 import ScopeBadge from "@/modules/auth/components/ScopeBadge.vue";
@@ -17,6 +18,7 @@ import UserMenu from "@/modules/auth/components/UserMenu.vue";
       <ScopeBadge />
       <StreamStatus />
       <CriticalIndicator />
+      <AlarmingIndicator />
       <div id="header-center" class="header__slot" />
     </div>
 

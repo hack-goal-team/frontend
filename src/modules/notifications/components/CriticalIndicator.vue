@@ -49,7 +49,7 @@ function onClick() {
       @keydown.enter="onClick"
       @keydown.space.prevent="onClick"
     >
-      <el-badge :value="count" :hidden="!hasCount" type="danger" :max="99">
+      <el-badge :value="count" :hidden="!hasCount" type="warning" :max="99">
         <el-icon :size="20"><Warning /></el-icon>
       </el-badge>
     </div>
