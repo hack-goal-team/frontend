@@ -70,7 +70,7 @@ export interface PredictionsQuery {
   to?: string;
   objectId?: string;
   incidentType?: string;
-  /** Точное совпадение с `context.sensorType`, значение из `sensorTypes` справочника. */
+  /** Точное совпадение с `context.sensorType`, значение — code из `sensorTypes` справочника. */
   sensorType?: string;
   targetKind?: string;
   targetRef?: string;

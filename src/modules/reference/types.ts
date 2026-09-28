@@ -4,10 +4,10 @@ export interface ReferenceData {
   reasons: Code[];
   incidentTypes: Code[];
   /**
-   * Типы датчиков из актуального снапшота реестра, по алфавиту. Кода у типа в источнике
-   * нет, поэтому это строки — те же значения, что приходят в `context.sensorType`.
+   * Типы датчиков из актуального снапшота реестра, порядок по code. Кода у типа в источнике
+   * нет: code — строка типа, как в `context.sensorType`, description — тип с инженерной системой.
    */
-  sensorTypes: string[];
+  sensorTypes: Code[];
   riskThresholds: { medium: number; high: number };
   predictionStatuses: Code[];
   /**

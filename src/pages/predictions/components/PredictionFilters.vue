@@ -13,8 +13,8 @@ const status = computed({
   set: (v) => update({ status: v || undefined }),
 });
 
-// Значение уходит на бэк как есть: фильтр — точное совпадение с context.sensorType,
-// поэтому вариантов из справочника достаточно и ручной ввод здесь только вредит.
+// На бэк уходит code: он и есть строка типа из context.sensorType, фильтр — точное
+// совпадение с ним, поэтому вариантов из справочника достаточно и ручной ввод здесь только вредит.
 const sensorType = computed({
   get: () => (route.query.sensorType as string) ?? "",
   set: (v) => update({ sensorType: v || undefined }),
@@ -86,7 +86,7 @@ defineProps<{ disable: boolean }>();
 
     <el-form-item label="Тип датчика">
       <el-select v-model="sensorType" clearable filterable placeholder="Все" style="min-width: 200px">
-        <el-option v-for="t in reference.data?.sensorTypes ?? []" :key="t" :label="t" :value="t" />
+        <el-option v-for="t in reference.data?.sensorTypes ?? []" :key="t.code" :label="t.description" :value="t.code" />
       </el-select>
     </el-form-item>
 

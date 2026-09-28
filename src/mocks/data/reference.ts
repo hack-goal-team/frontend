@@ -17,9 +17,11 @@ export const mockReferenceData: ReferenceData = {
     { code: "GAS", description: "Утечка газа" },
     { code: "INTRUSION", description: "Проникновение на объект" },
   ],
-  // Те же подписи, что у каналов реестра (`SENSOR_TYPES`): фильтр журнала отдаёт тип
-  // точным совпадением с `context.sensorType`, а он приходит именно оттуда.
-  sensorTypes: [...SENSOR_TYPES].sort((a, b) => a.localeCompare(b, "ru")),
+  // code — та же строка типа, что в `context.sensorType` каналов реестра (`SENSOR_TYPES`):
+  // фильтр журнала отдаёт тип точным совпадением; description дополняет тип инженерной системой.
+  sensorTypes: [...SENSOR_TYPES]
+    .sort((a, b) => a.code.localeCompare(b.code, "ru"))
+    .map((t) => ({ code: t.code, description: `${t.code} — ${t.system}` })),
   // Пороги — те же, что отдаёт /settings: админ меняет их там, и справочник обязан
   // показать свежие, иначе фронт фильтрует журнал устаревшим порогом.
   get riskThresholds() {

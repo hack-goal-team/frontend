@@ -28,22 +28,18 @@ import { makePickers } from "../lib/seededRandom";
  * выдумка о трассе.
  */
 
-/** Подписи каналов — источник для `context` прогнозов: канал и прогноз говорят одним языком. */
+/**
+ * Подписи каналов — источник для `context` прогнозов: канал и прогноз говорят одним языком.
+ * code — строка типа (она же `context.sensorType` и code в `/reference-data.sensorTypes`),
+ * system — инженерная система реестра, к которой относится тип.
+ */
 export const SENSOR_TYPES = [
-  "Датчик температуры",
-  "Датчик давления",
-  "Датчик дыма",
-  "Датчик движения",
-  "Датчик уровня",
-  "Датчик влажности",
-];
-
-const ENGINEERING_SYSTEMS = [
-  "Температурная подсистема",
-  "Подсистема пожаротушения",
-  "Подсистема водоотведения",
-  "Подсистема вентиляции",
-  "Подсистема электроснабжения",
+  { code: "Датчик температуры", system: "Температурная подсистема" },
+  { code: "Датчик давления", system: "Подсистема электроснабжения" },
+  { code: "Датчик дыма", system: "Подсистема пожаротушения" },
+  { code: "Датчик движения", system: "Подсистема электроснабжения" },
+  { code: "Датчик уровня", system: "Подсистема водоотведения" },
+  { code: "Датчик влажности", system: "Подсистема вентиляции" },
 ];
 
 /**
@@ -78,7 +74,7 @@ function buildChannels(objects: InfrastructureObject[]): Channel[] {
     const total = SPECIAL_CHANNEL_COUNTS[item.id] ?? int(3, 38) + (chance(0.25) ? 30 : 0);
 
     for (let position = 0; position < total; position += 1) {
-      const sensorType = SENSOR_TYPES[(position + int(0, 1)) % SENSOR_TYPES.length];
+      const { code: sensorType, system } = SENSOR_TYPES[(position + int(0, 1)) % SENSOR_TYPES.length];
       const id = String(synthetic++);
       // Пикет есть не у всех: поле в контракте optional — «нет данных» должно встречаться.
       const piket = chance(0.85) ? int(1, 9999) : undefined;
@@ -87,7 +83,7 @@ function buildChannels(objects: InfrastructureObject[]): Channel[] {
         id,
         objectId: item.id,
         sensorType,
-        engineeringSystem: ENGINEERING_SYSTEMS[position % ENGINEERING_SYSTEMS.length],
+        engineeringSystem: system,
         // null name — штатный случай: узел обязан показать id, а не пустую подпись.
         name: chance(0.15) ? null : `${sensorType} №${position + 1}`,
         known: chance(0.96),
