@@ -207,11 +207,12 @@ function locationLabel(p: Prediction): string {
   margin-bottom: 6px;
 }
 
+/* Класс и вероятность диспетчер читает первыми — они крупнее горизонта и объекта. */
 .notification__type {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
@@ -224,8 +225,7 @@ function locationLabel(p: Prediction): string {
 }
 
 .notification__object {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--el-text-color-regular);
   margin-bottom: 2px;
 }
 

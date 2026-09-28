@@ -1,5 +1,6 @@
 import type { Prediction } from "@/modules/predictions/types";
 import { formatHorizon } from "@/shared/lib/date";
+import { formatProbability } from "@/shared/lib/probability";
 import { pluralize } from "@/shared/lib/pluralize";
 
 /**
@@ -12,9 +13,9 @@ export function formatNewPredictions(count: number): string {
   return `Появилось ${count} новых ${noun} высокого риска`;
 }
 
-/** «Подтопление · 94 %» — класс и вероятность в заголовке тоста. */
+/** «Подтопление · 94%» — класс и вероятность в заголовке тоста; процент — как в журнале. */
 export function formatIncidentHeadline(label: string, probability: number): string {
-  return `${label} · ${Math.round(probability * 100)} %`;
+  return `${label} · ${formatProbability(probability)}`;
 }
 
 /** «до 29.09 01:40 · Объект Дзета-6»; без объекта — «объект не определён». */
