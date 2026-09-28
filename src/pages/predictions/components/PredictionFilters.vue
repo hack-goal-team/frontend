@@ -6,8 +6,8 @@ import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
 import type { JournalKind } from "@/modules/predictions/types";
 import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
 
-// Порогов риска у модели отказов нет, а её вероятность несопоставима с инцидентной —
-// ползунок с отметками medium/high там вводил бы в заблуждение.
+// Ползунок и метки medium/high одинаковы на обеих вкладках; при смене вкладки значение
+// сбрасывает страница — вероятности двух моделей несопоставимы.
 const props = defineProps<{ disable: boolean; kind: JournalKind }>();
 
 const route = useRoute();
@@ -132,7 +132,7 @@ function reset() {
     </div>
 
     <div class="prediction-filters__group">
-      <el-form-item v-if="kind === 'INCIDENT'" label="Мин. вероятность">
+      <el-form-item label="Мин. вероятность">
         <el-slider
           v-model="minProbability"
           :min="0"
