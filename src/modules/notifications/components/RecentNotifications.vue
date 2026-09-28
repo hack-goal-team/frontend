@@ -4,11 +4,11 @@ import { useRouter } from "vue-router";
 import { Bell, InfoFilled } from "@element-plus/icons-vue";
 import { useNotificationsStore } from "../store";
 import { NO_OBJECT_HINT, SHOW_ON_GRAPH_SHORT } from "@/modules/objects/consts";
-import { RISK_LABEL, RISK_TAG_TYPE } from "@/modules/predictions/consts";
+import IncidentClassIcon from "@/modules/predictions/components/IncidentClassIcon.vue";
+import { formatIncidentHeadline, formatIncidentPlace } from "../lib/format";
 import { useLabels } from "@/modules/reference/composables/useLabels";
 import type { Prediction } from "@/modules/predictions/types";
 import { formatDateTime } from "@/shared/lib/date";
-import { formatProbability } from "@/shared/lib/probability";
 
 const store = useNotificationsStore();
 const router = useRouter();
@@ -52,10 +52,6 @@ function openGraph(prediction: Prediction) {
     params: { id: objectId },
     query: channelId ? { highlightChannel: channelId } : {},
   });
-}
-
-function objectLabel(p: Prediction): string {
-  return p.context.objectName ?? p.targetRef;
 }
 
 /**
@@ -105,28 +101,20 @@ function locationLabel(p: Prediction): string {
         @click="openPrediction(item.prediction)"
         @keydown.enter="openPrediction(item.prediction)"
       >
+        <!-- Строка — в формате тоста: класс · вероятность, затем горизонт и объект. -->
         <div class="notification__header">
-          <el-tag :type="RISK_TAG_TYPE[item.prediction.riskLevel]" size="small">
-            {{ RISK_LABEL[item.prediction.riskLevel] }}
-          </el-tag>
-          <span class="notification__type">{{ incidentTypeLabel(item.prediction.incidentType) }}</span>
+          <span class="notification__type">
+            <IncidentClassIcon :code="item.prediction.incidentType" />
+            {{ formatIncidentHeadline(incidentTypeLabel(item.prediction.incidentType), item.prediction.probability) }}
+          </span>
           <span class="notification__time">{{ formatDateTime(item.receivedAt) }}</span>
         </div>
 
-        <div class="notification__object">{{ objectLabel(item.prediction) }}</div>
+        <div class="notification__object">{{ formatIncidentPlace(item.prediction) }}</div>
 
         <div class="notification__location">{{ locationLabel(item.prediction) }}</div>
 
         <div class="notification__metrics">
-          <span>
-            Вероятность
-            <strong>{{ formatProbability(item.prediction.probability) }}</strong>
-          </span>
-          <span>
-            Горизонт до
-            <strong>{{ formatDateTime(item.prediction.horizonUntil) }}</strong>
-          </span>
-
           <span class="notification__actions">
             <!-- .stop на click и keydown.enter: клик по карточке наружу должен сохраниться -->
             <el-tooltip :content="NO_OBJECT_HINT" :disabled="hasObject(item.prediction)" placement="top">
@@ -220,8 +208,12 @@ function locationLabel(p: Prediction): string {
 }
 
 .notification__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
-  color: var(--el-text-color-regular);
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .notification__time {

@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted } from "vue";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useNotificationsStore } from "./store";
+import { useIncidentToasts } from "./useIncidentToasts";
 import { useQueryClient } from "@tanstack/vue-query";
 import { predictionKeys } from "@/modules/predictions/keys";
 import type { PredictionPage } from "@/modules/predictions/types";
@@ -13,6 +14,7 @@ const RECONNECT_DELAY = 5000;
 export function useSse() {
   const store = useNotificationsStore();
   const queryClient = useQueryClient();
+  const { show: showToasts } = useIncidentToasts();
 
   let abortController: AbortController | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -66,7 +68,8 @@ export function useSse() {
 
           try {
             const page = JSON.parse(event.data) as PredictionPage;
-            const fresh = store.onSnapshot(page.items);
+            const { fresh, toasts } = store.onSnapshot(page.items);
+            showToasts(toasts);
 
             // Новый критический прогноз меняет и сводку панели — не ждём рефетч по времени
             if (fresh.length > 0) {
