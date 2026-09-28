@@ -118,7 +118,7 @@ function showOnGraph(objectId: string, channelId?: string) {
   });
 }
 
-// Пришли со сводки аналитической панели — там счётчики дедуплицированы по «цель + тип».
+// Пришли со сводки: журнал по умолчанию (latestOnly) считает так же — последний пересчёт «цель + тип».
 // Маркер называется `nav`, а не `from`: `from`/`to` отданы контракту (период по computedAt).
 const fromDashboard = computed(() => route.query.nav === "dashboard");
 
@@ -194,8 +194,8 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
       type="info"
       :closable="true"
       show-icon
-      title="Показаны все строки журнала"
-      description="На аналитической панели счётчики дедуплицированы по сочетанию «цель + тип инцидента», поэтому строк здесь может быть больше."
+      title="Переход с аналитической панели"
+      description="Журнал показывает последний пересчёт каждой цели и типа инцидента — как и счётчик на панели."
       @close="dismissNavHint"
     />
 
