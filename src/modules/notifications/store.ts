@@ -1,9 +1,6 @@
 import type { Prediction } from "@/modules/predictions/types";
-import { ElNotification } from "element-plus";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import { formatNewPredictions } from "./lib/format";
-import "element-plus/theme-chalk/el-notification.css";
 
 const MAX_NOTIFICATIONS = 20;
 
@@ -34,19 +31,19 @@ export const useNotificationsStore = defineStore("notifications", () => {
   const unreviewedCriticalCount = computed(() => snapshot.value.filter((p) => p.status === "NEW").length);
 
   /**
-   * @returns прогнозы, которых не было в предыдущем снимке — по ним внешние
-   * коды переинвалидируют кэш. Пустой массив на первом снимке: стартовая
-   * выборка не «новые» прогнозы.
+   * `fresh` — прогнозы, которых не было в прошлом снимке: по ним инвалидируется кэш,
+   * на первом снимке он пуст. `toasts` — что показать тостом: на первом снимке весь
+   * снимок (диспетчер только вошёл и активных HIGH ещё не видел), дальше — `fresh`;
+   * разобранные (не NEW) тостом не нужны — как и в счётчике шапки.
    */
-  function onSnapshot(next: Prediction[]): Prediction[] {
+  function onSnapshot(next: Prediction[]): { fresh: Prediction[]; toasts: Prediction[] } {
     const receivedAt = new Date();
 
-    // Первый снимок — без уведомления
     if (isFirstSnapshot) {
       snapshot.value = next;
       lastSnapshotAt.value = receivedAt;
       isFirstSnapshot = false;
-      return [];
+      return { fresh: [], toasts: next.filter((p) => p.status === "NEW") };
     }
 
     // Считаем новые id
@@ -73,18 +70,9 @@ export const useNotificationsStore = defineStore("notifications", () => {
       recentNotifications.value.length = Math.min(recentNotifications.value.length, MAX_NOTIFICATIONS);
 
       hasNewPredictions.value = true;
-
-      ElNotification({
-        title: "Прогнозы высокого риска",
-        message: `${formatNewPredictions(fresh.length)}. Смотрите на «Аналитической панели».`,
-        type: "warning",
-        duration: 5000,
-        progress: true,
-        position: "bottom-left",
-      });
     }
 
-    return fresh;
+    return { fresh, toasts: fresh.filter((p) => p.status === "NEW") };
   }
 
   function clearNewPredictions() {

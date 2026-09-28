@@ -13,3 +13,22 @@ body,
   margin: 0;
   font-family: var(--el-font-family);
 }
+
+/* Тост критического инцидента (useIncidentToasts): ElNotification рендерится в body,
+   scoped-стили туда не дотягиваются. Кликабелен целиком — ведёт в карточку прогноза. */
+.incident-toast {
+  cursor: pointer;
+}
+
+.incident-toast__headline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.incident-toast__sensor {
+  color: var(--el-text-color-secondary);
+}
