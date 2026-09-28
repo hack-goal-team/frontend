@@ -45,8 +45,7 @@ const query = computed<PredictionsQuery>(() => ({
   sensorType: (route.query.sensorType as string) || undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
-  minProbability:
-    kind.value === "INCIDENT" && route.query.minProbability ? Number(route.query.minProbability) : undefined,
+  minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
 }));
 
@@ -130,16 +129,20 @@ function dismissNavHint() {
 
 // Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
 const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
-// minProbability у отказов не применяется, значит и фильтром там не считается.
 const hasFilters = computed(() =>
-  Object.entries(route.query).some(
-    ([key, value]) =>
-      !NON_FILTER_KEYS.has(key) &&
-      !(key === "minProbability" && kind.value === "EQUIPMENT") &&
-      value !== undefined &&
-      value !== "",
-  ),
+  Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
 );
+
+/**
+ * У отказов ползунка нет, но переход с карточки «Оборудование к проверке» ставит
+ * minProbability = equipmentCheckThreshold: у EQUIPMENT это ровно riskLevel HIGH.
+ */
+const equipmentCheckOnly = computed(() => kind.value === "EQUIPMENT" && !!route.query.minProbability);
+
+function showAllEquipment() {
+  const { minProbability: _p, ...rest } = route.query;
+  router.replace({ query: { ...rest, offset: 0 } });
+}
 
 const emptyText = computed(() => {
   if (hasFilters.value) return { title: "Нет прогнозов по выбранным фильтрам", hint: "" };
@@ -204,6 +207,16 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
     >
       Показаны инциденты высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
     </el-alert>
+
+    <el-alert
+      v-if="equipmentCheckOnly"
+      type="info"
+      :closable="true"
+      show-icon
+      title="Показаны только отказы «К проверке»"
+      class="predictions-page__hint"
+      @close="showAllEquipment"
+    />
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
       Показаны прогнозы с датчиком в тревоге без решения. Зафиксируйте решение, чтобы убрать их из счётчика-колокольчика

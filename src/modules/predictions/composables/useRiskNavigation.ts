@@ -1,7 +1,7 @@
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useReferenceStore } from "@/modules/reference/store";
-import { THRESHOLD_UNAVAILABLE } from "@/modules/reference/consts";
+import { EQUIPMENT_THRESHOLD_UNAVAILABLE, THRESHOLD_UNAVAILABLE } from "@/modules/reference/consts";
 import "element-plus/theme-chalk/el-message.css";
 
 /**
@@ -46,9 +46,17 @@ export function useRiskNavigation() {
     go({ activeOnly: "true", status: "NEW" });
   }
 
-  // Отказы — своя вкладка: «к проверке» = HIGH у EQUIPMENT, порог риска инцидентов не нужен.
+  /**
+   * «К проверке» = HIGH у EQUIPMENT, то есть probability ≥ equipmentCheckThreshold — фильтр
+   * ровно на число карточки. Без справочника порога нет: не ведём в журнал с выдуманным.
+   */
   function openEquipment() {
-    go({ kind: "EQUIPMENT", activeOnly: "true" });
+    const threshold = reference.equipmentCheckThreshold;
+    if (threshold === null) {
+      ElMessage.warning(EQUIPMENT_THRESHOLD_UNAVAILABLE);
+      return;
+    }
+    go({ kind: "EQUIPMENT", activeOnly: "true", minProbability: String(threshold) });
   }
 
   return { openActive, openCritical, openUnreviewed, openEquipment };

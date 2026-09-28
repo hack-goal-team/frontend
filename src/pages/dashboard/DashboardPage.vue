@@ -190,7 +190,7 @@ function openObjects() {
         <DashboardCard
           title="Оборудование к проверке"
           :value="equipmentToCheck"
-          hint="Датчики, которым модель прогнозирует отказ. Несрочно. В журнале — все активные отказы, эти отмечены «К проверке»"
+          hint="Датчики, которым модель прогнозирует отказ. Несрочно"
           icon="Tools"
           color="info"
           clickable
