@@ -37,6 +37,9 @@ function parseQuery(url: URL): PredictionsQuery & { limit: number; offset: numbe
   const incidentType = p.get("incidentType");
   if (incidentType) q.incidentType = incidentType;
 
+  const kind = p.get("kind");
+  if (kind === "INCIDENT" || kind === "EQUIPMENT") q.kind = kind;
+
   const sensorType = p.get("sensorType");
   if (sensorType) q.sensorType = sensorType;
 
@@ -82,6 +85,7 @@ function applyFilters(items: Prediction[], q: PredictionsQuery): Prediction[] {
 
   return items.filter((p) => {
     if (q.incidentType && p.incidentType !== q.incidentType) return false;
+    if (q.kind && p.kind !== q.kind) return false;
     // Контракт: тип ищется точным совпадением со снапшотом реестра, поэтому прогнозы
     // без канала (context.sensorType = null) через этот фильтр не проходят.
     if (q.sensorType && p.context?.sensorType !== q.sensorType) return false;
@@ -119,6 +123,10 @@ export const predictionHandlers = [
     }
 
     const url = new URL(request.url);
+    const kind = url.searchParams.get("kind");
+    if (kind !== null && kind !== "INCIDENT" && kind !== "EQUIPMENT") {
+      return problem(400, "Bad Request", "kind принимает INCIDENT или EQUIPMENT");
+    }
     const q = parseQuery(url);
 
     const filtered = applyFilters(getLivePredictions(), q);

@@ -17,6 +17,14 @@ export function getLivePredictions(): Prediction[] {
 }
 
 /**
+ * Только инциденты: риск графа, сводка и SSE по контракту не видят модель отказов —
+ * её вероятность несопоставима с инцидентной и срочности не несёт.
+ */
+export function getLiveIncidents(): Prediction[] {
+  return livePredictions.filter((p) => p.kind === "INCIDENT");
+}
+
+/**
  * Админ поменял пороги риска — уровни живой журнала пересчитываются, как на бэке,
  * где `riskLevel` не хранится, а считается на чтении по порогам из `/reference-data`.
  */
@@ -58,6 +66,7 @@ export function spawnCriticalPrediction(): Prediction {
       incidentClass: incidentClassOf(channel?.sensorType),
     },
     incidentType: "FLOOD",
+    kind: "INCIDENT",
     probability: 0.85 + Math.random() * 0.15,
     riskLevel: "HIGH",
     computedAt: now.toISOString(),
@@ -86,7 +95,7 @@ export function spawnCriticalPrediction(): Prediction {
 export function buildCriticalSnapshot(): PredictionPage {
   const now = Date.now();
 
-  const active = livePredictions.filter((p) => {
+  const active = getLiveIncidents().filter((p) => {
     if (p.riskLevel !== "HIGH") return false;
     const computed = Date.parse(p.computedAt);
     const horizon = Date.parse(p.horizonUntil);

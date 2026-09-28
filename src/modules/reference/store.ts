@@ -30,6 +30,9 @@ export const useReferenceStore = defineStore("reference", () => {
   // вместо него «обычные 24» значит объяснять отсутствие прогноза чужим сроком.
   const horizonHours = computed<number | null>(() => data.value?.predictionHorizonHours ?? null);
 
+  // Порог «к проверке» модели отказов — свой, с порогами риска инцидентов не смешивается.
+  const equipmentCheckThreshold = computed<number | null>(() => data.value?.equipmentCheckThreshold ?? null);
+
   async function fetchOnce(): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -51,5 +54,5 @@ export const useReferenceStore = defineStore("reference", () => {
     return fetchOnce();
   }
 
-  return { data, loading, error, thresholds, horizonHours, load, reload };
+  return { data, loading, error, thresholds, horizonHours, equipmentCheckThreshold, load, reload };
 });

@@ -11,11 +11,11 @@ export const mockReferenceData: ReferenceData = {
     { code: "OTHER", description: "Другое", commentRequired: true },
   ],
   incidentTypes: [
-    { code: "EQUIPMENT_FAILURE", description: "Отказ оборудования" },
-    { code: "FIRE", description: "Пожар: обнаружен дым" },
-    { code: "FLOOD", description: "Подтопление" },
-    { code: "GAS", description: "Утечка газа" },
-    { code: "INTRUSION", description: "Проникновение на объект" },
+    { code: "EQUIPMENT_FAILURE", description: "Отказ оборудования", kind: "EQUIPMENT" },
+    { code: "FIRE", description: "Пожар: обнаружен дым", kind: "INCIDENT" },
+    { code: "FLOOD", description: "Подтопление", kind: "INCIDENT" },
+    { code: "GAS", description: "Утечка газа", kind: "INCIDENT" },
+    { code: "INTRUSION", description: "Проникновение на объект", kind: "INCIDENT" },
   ],
   // code — та же строка типа, что в `context.sensorType` каналов реестра (`SENSOR_TYPES`):
   // фильтр журнала отдаёт тип точным совпадением; description дополняет тип инженерной системой.
@@ -27,6 +27,8 @@ export const mockReferenceData: ReferenceData = {
   get riskThresholds() {
     return { medium: mockSettings.riskMedium, high: mockSettings.riskHigh };
   },
+  // Фиксированный порог бэка, в /settings не настраивается.
+  equipmentCheckThreshold: 0.5,
   predictionStatuses: [
     { code: "NEW", description: "Новый, не разобран" },
     { code: "REVIEWED", description: "Разобран диспетчером" },

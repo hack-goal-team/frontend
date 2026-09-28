@@ -4,7 +4,7 @@ import type { Prediction } from "@/modules/predictions/types";
 import { PERMISSIONS } from "@/modules/auth/consts";
 import { hasPermission } from "@/modules/auth/lib/hasPermission";
 import { filterByScope } from "@/modules/predictions/lib/filterByScope";
-import { getLivePredictions } from "../data/notifications";
+import { getLiveIncidents } from "../data/notifications";
 import { sortPredictions } from "../lib/sortPredictions";
 import { getCurrentUser } from "../state/auth";
 import { mockDelay } from "../utils/delay";
@@ -73,7 +73,7 @@ export const dashboardHandlers = [
       return problem(403, "Forbidden", "PREDICTION_READ required");
     }
 
-    const scoped = filterByScope(getLivePredictions(), user);
+    const scoped = filterByScope(getLiveIncidents(), user);
 
     await mockDelay();
 

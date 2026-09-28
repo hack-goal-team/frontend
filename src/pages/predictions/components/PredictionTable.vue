@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import { formatDateTime } from "@/shared/lib/date";
 import { formatProbability } from "@/shared/lib/probability";
-import type { Prediction } from "@/modules/predictions/types";
+import type { Prediction, PredictionKind } from "@/modules/predictions/types";
+import { INCIDENT_ICON } from "@/modules/predictions/consts";
+import { useLabels } from "@/modules/reference/composables/useLabels";
+import EquipmentCheckTag from "./EquipmentCheckTag.vue";
 import RiskTag from "./RiskTag.vue";
 import SensorStateTag from "./SensorStateTag.vue";
 import StatusTag from "./StatusTag.vue";
 
 defineProps<{
+  kind: PredictionKind;
   items: Prediction[];
   loading?: boolean;
 }>();
+
+const { incidentTypeLabel } = useLabels();
 
 const emit = defineEmits<{
   rowClick: [id: string];
@@ -33,12 +39,11 @@ function handleRowClick(row: Prediction) {
     show-overflow-tooltip
     @row-click="handleRowClick"
   >
-    <el-table-column label="Тип инцидента" min-width="180">
+    <!-- Класс — то, что предсказала модель (incidentType), а не класс датчика из context. -->
+    <el-table-column label="Класс" min-width="220">
       <template #default="{ row }">
-        <span v-if="row.context?.incidentClass">
-          {{ row.context.incidentClass.description }}
-        </span>
-        <span v-else class="text-muted">—</span>
+        <span v-if="INCIDENT_ICON[row.incidentType]" class="incident-icon">{{ INCIDENT_ICON[row.incidentType] }}</span>
+        {{ incidentTypeLabel(row.incidentType) }}
       </template>
     </el-table-column>
     <el-table-column label="Вероятность" min-width="120">
@@ -67,9 +72,14 @@ function handleRowClick(row: Prediction) {
         <span v-else class="text-muted">—</span>
       </template>
     </el-table-column>
-    <el-table-column label="Риск" min-width="90">
+    <el-table-column v-if="kind === 'INCIDENT'" key="risk" label="Риск" min-width="90">
       <template #default="{ row }">
         <RiskTag :level="row.riskLevel" />
+      </template>
+    </el-table-column>
+    <el-table-column v-else key="check" label="Проверка" min-width="130">
+      <template #default="{ row }">
+        <EquipmentCheckTag :probability="row.probability" />
       </template>
     </el-table-column>
     <el-table-column label="Состояние" min-width="130">
@@ -91,6 +101,10 @@ function handleRowClick(row: Prediction) {
 </template>
 
 <style scoped>
+.incident-icon {
+  margin-right: 4px;
+}
+
 .text-muted {
   color: var(--el-text-color-placeholder);
 }

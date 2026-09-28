@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
 import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
-import type { PredictionsQuery } from "@/modules/predictions/types";
+import type { PredictionKind, PredictionsQuery } from "@/modules/predictions/types";
+import { DEFAULT_KIND } from "@/modules/predictions/consts";
 import SidePanel from "@/shared/ui/SidePanel.vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PredictionFilters from "./components/PredictionFilters.vue";
+import PredictionKindSwitch from "./components/PredictionKindSwitch.vue";
 import PredictionPagination from "./components/PredictionPagination.vue";
 import PredictionPanelContent from "./components/PredictionPanelContent.vue";
 import PredictionTable from "./components/PredictionTable.vue";
@@ -20,7 +22,23 @@ const router = useRouter();
 const auth = useAuthStore();
 const { incidentTypeLabel } = useLabels();
 
+/**
+ * Вкладка — вид прогноза: журнал никогда не просит оба вида сразу, иначе вероятности двух
+ * моделей встали бы в одну сортировку. Ползунок вероятности есть только у инцидентов,
+ * поэтому при смене вкладки его значение сбрасывается вместе с открытой карточкой.
+ */
+const kind = computed<PredictionKind>({
+  get: () => (route.query.kind === "EQUIPMENT" ? "EQUIPMENT" : DEFAULT_KIND),
+  set: (v) => {
+    const rest = { ...route.query };
+    delete rest.minProbability;
+    delete rest.selectedId;
+    router.replace({ query: { ...rest, kind: v, offset: 0 } });
+  },
+});
+
 const query = computed<PredictionsQuery>(() => ({
+  kind: kind.value,
   limit: Number(route.query.limit ?? 50),
   offset: Number(route.query.offset ?? 0),
   from: (route.query.from as string) || undefined,
@@ -29,11 +47,29 @@ const query = computed<PredictionsQuery>(() => ({
   sensorType: (route.query.sensorType as string) || undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
-  minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
+  minProbability:
+    kind.value === "INCIDENT" && route.query.minProbability ? Number(route.query.minProbability) : undefined,
   activeOnly: route.query.activeOnly === "true" || undefined,
 }));
 
-const { data, isFetching, isLoading, isError, error } = usePredictionsQuery(query);
+const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
+
+// Счётчик второй вкладки — тот же запрос другого вида с limit=1, число берётся из X-Total-Count.
+const otherKind = computed<PredictionKind>(() => (kind.value === "INCIDENT" ? "EQUIPMENT" : "INCIDENT"));
+const otherQuery = computed<PredictionsQuery>(() => ({
+  ...query.value,
+  kind: otherKind.value,
+  minProbability: undefined,
+  limit: 1,
+  offset: 0,
+}));
+const { data: otherData, isPlaceholderData: isOtherPlaceholder } = usePredictionsQuery(otherQuery);
+
+// Пока ответ прошлый (placeholderData), число принадлежит другим фильтрам — не показываем.
+const kindCounts = computed<Partial<Record<PredictionKind, number>>>(() => ({
+  [kind.value]: isPlaceholderData.value ? undefined : data.value?.total,
+  [otherKind.value]: isOtherPlaceholder.value ? undefined : otherData.value?.total,
+}));
 
 const selectedId = computed(() => (route.query.selectedId as string) ?? null);
 const isPanelOpen = computed(() => !!selectedId.value);
@@ -93,7 +129,9 @@ const total = computed(() => data.value?.total ?? 0);
   </Teleport>
 
   <div class="predictions-page">
-    <PredictionFilters :disable="auth.isEmptyScope" class="predictions-page__filters" />
+    <PredictionKindSwitch v-model="kind" :counts="kindCounts" :disable="auth.isEmptyScope" />
+
+    <PredictionFilters :kind="kind" :disable="auth.isEmptyScope" class="predictions-page__filters" />
 
     <el-alert
       v-if="fromDashboard"
@@ -143,7 +181,7 @@ const total = computed(() => data.value?.total ?? 0);
         class="predictions-page__empty"
       />
 
-      <PredictionTable v-else :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
+      <PredictionTable v-else :kind="kind" :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
     </el-card>
 
     <div class="predictions-page__pagination">

@@ -3,12 +3,12 @@ import type { InfrastructureObject, ObjectRisk, ObjectRiskCounts } from "@/modul
 import type { Prediction, RiskLevel } from "@/modules/predictions/types";
 import { channelsOf, mockChannels } from "../data/channels";
 import { mockObjects } from "../data/objects";
-import { getLivePredictions } from "../data/notifications";
+import { getLiveIncidents } from "../data/notifications";
 
 /**
  * Серверный риск для моков `/objects?withRisk=true` и `/channels?withRisk=true`.
  *
- * Считаем из живого журнала (`getLivePredictions`), поэтому `spawnCriticalPrediction`
+ * Считаем из живого журнала (`getLiveIncidents`), поэтому `spawnCriticalPrediction`
  * по SSE перекрашивает существующие узлы на следующем запросе — как на реальном бэке,
  * где риск производен от активных прогнозов, а фронт его только читает.
  *
@@ -34,7 +34,7 @@ export function computeChannelRisks(): Map<string, ChannelRisk> {
   const now = Date.now();
   const strongest = new Map<string, Prediction>();
 
-  for (const prediction of getLivePredictions()) {
+  for (const prediction of getLiveIncidents()) {
     const channelId = prediction.context.channelId;
     if (!channelId || !isActive(prediction, now)) continue;
 
@@ -97,7 +97,7 @@ export function computeObjectRisks(): Map<string, ObjectRisk> {
     own.set(object.id, counts);
   }
 
-  for (const prediction of getLivePredictions()) {
+  for (const prediction of getLiveIncidents()) {
     const objectId = prediction.context.objectId;
     if (!objectId || !isActive(prediction, now)) continue;
 

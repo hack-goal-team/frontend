@@ -8,5 +8,6 @@ import { mockReferenceData } from "../data/reference";
  */
 export function incidentClassOf(sensorType: string | null | undefined): Code | null {
   const code = SENSOR_TYPES.find((type) => type.code === sensorType)?.incidentClass;
-  return mockReferenceData.incidentTypes.find((type) => type.code === code) ?? null;
+  const found = mockReferenceData.incidentTypes.find((type) => type.code === code);
+  return found ? { code: found.code, description: found.description } : null;
 }

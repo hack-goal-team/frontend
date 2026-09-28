@@ -12,6 +12,7 @@ export function useAlarmNavigation() {
     router.push({
       name: "predictions",
       query: {
+        kind: "INCIDENT",
         alarming: "true",
         status: "NEW",
         offset: "0",

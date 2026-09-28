@@ -15,9 +15,6 @@ import { channelsOf } from "./channels";
 
 // --- Справочники ---
 
-// Коды типов — совпадают с /reference-data (mockReferenceData.incidentTypes)
-const INCIDENT_TYPES = ["EQUIPMENT_FAILURE", "FIRE", "FLOOD", "GAS", "INTRUSION"] as const;
-
 const TARGET_KINDS = ["COLLECTOR", "PUMP", "WELL", "SHAFT"] as const;
 
 const MODEL_VERSIONS = ["v1.3.0", "v1.4.0", "v1.4.2", "v1.5.0"] as const;
@@ -212,12 +209,20 @@ export function generatePredictions(count = 500): Prediction[] {
     // --- currentState / lastAlarmAt ---
     const currentState = generateCurrentState(probability);
 
+    // Две модели пишут в один журнал: 4-классовая — только по каналу с классом и ровно этим
+    // классом, модель отказов (EQUIPMENT_FAILURE) — по любому датчику.
+    const context = generateContext();
+    const incidentClass = context.incidentClass;
+    const isEquipment = !incidentClass || rand() < 0.3;
+    const incidentType = incidentClass && !isEquipment ? incidentClass.code : "EQUIPMENT_FAILURE";
+
     items.push({
       id,
       targetKind,
       targetRef,
-      context: generateContext(),
-      incidentType: pick(INCIDENT_TYPES),
+      context,
+      incidentType,
+      kind: isEquipment ? "EQUIPMENT" : "INCIDENT",
       probability,
       riskLevel: riskFromProbability(probability),
       computedAt,

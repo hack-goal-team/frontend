@@ -3,6 +3,11 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useReferenceStore } from "@/modules/reference/store";
 import { PERIOD_SHORTCUTS } from "@/shared/lib/date";
+import type { PredictionKind } from "@/modules/predictions/types";
+
+// Порогов риска у модели отказов нет, а её вероятность несопоставима с инцидентной —
+// ползунок с отметками medium/high там вводил бы в заблуждение.
+const props = defineProps<{ disable: boolean; kind: PredictionKind }>();
 
 const route = useRoute();
 const router = useRouter();
@@ -70,11 +75,10 @@ function update(patch: Record<string, unknown>) {
   });
 }
 
+// Вкладка — не фильтр: «Сбросить» оставляет пользователя в том же виде прогнозов.
 function reset() {
-  router.replace({ query: {} });
+  router.replace({ query: props.kind === "EQUIPMENT" ? { kind: props.kind } : {} });
 }
-
-defineProps<{ disable: boolean }>();
 </script>
 
 <template>
@@ -125,7 +129,7 @@ defineProps<{ disable: boolean }>();
     </div>
 
     <div class="prediction-filters__group">
-      <el-form-item label="Мин. вероятность">
+      <el-form-item v-if="kind === 'INCIDENT'" label="Мин. вероятность">
         <el-slider
           v-model="minProbability"
           :min="0"

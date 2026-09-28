@@ -1,4 +1,22 @@
-import type { RiskLevel } from "./types";
+import type { PredictionKind, RiskLevel } from "./types";
+
+// ---- Вид прогноза ----
+
+export const DEFAULT_KIND: PredictionKind = "INCIDENT";
+
+export const KIND_LABEL: Record<PredictionKind, string> = {
+  INCIDENT: "Инциденты",
+  EQUIPMENT: "Оборудование",
+};
+
+// Подпись класса — из справочника, здесь только значок; неизвестный код — без значка.
+export const INCIDENT_ICON: Record<string, string> = {
+  FIRE: "🔥",
+  FLOOD: "💧",
+  GAS: "💨",
+  INTRUSION: "🚪",
+  EQUIPMENT_FAILURE: "🔧",
+};
 
 // ---- Риск ----
 
