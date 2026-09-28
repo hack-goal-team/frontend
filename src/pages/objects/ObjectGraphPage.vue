@@ -83,8 +83,9 @@ const {
 const childrenExpanded = ref(false);
 
 /**
- * Потолок каналов на графе. Поднимается кликом по «+ ещё» и по сегменту полосы: страницы
- * при этом догружаются запросом, но узлы не ждут ответа.
+ * Потолок каналов на графе, поднятый кликом «+ ещё»: страницы догружаются запросом,
+ * но узлы не ждут ответа. Подсветка из URL потолок не двигает — она учитывается в
+ * `channelCeiling`, иначе зависела бы от того, успел ли запуститься скан.
  */
 const channelLimit = ref(CHANNEL_NODE_LIMIT);
 
@@ -124,6 +125,17 @@ const channelState = computed<ChannelColumnState>(() => {
   return "ready";
 });
 
+/**
+ * Потолок отрисовки каналов. Подсветка учитывается здесь, а не «поднимается» сканом:
+ * канал уже в принятых данных — значит узел обязан быть на схеме, независимо от того,
+ * запускался ли скан и чем он кончился. Иначе `?highlightChannel=` из URL рисует
+ * подсветку только на полосе (она читает `items` целиком), а граф остаётся на 30 узлах.
+ */
+const channelCeiling = computed(() => {
+  const index = highlightChannel.value ? channels.indexOf(highlightChannel.value) : -1;
+  return index >= 0 ? Math.max(channelLimit.value, index + 1) : channelLimit.value;
+});
+
 const graph = computed(() => {
   const node = focus.value;
   if (!node) return null;
@@ -131,7 +143,7 @@ const graph = computed(() => {
   return buildObjectGraph({
     focus: node,
     ancestors: ancestors.value,
-    channels: channels.items.value.slice(0, channelLimit.value),
+    channels: channels.items.value.slice(0, channelCeiling.value),
     channelState: channelState.value,
     channelTotal: channels.total.value,
     hasMoreChannels: channels.hasMore.value,
@@ -147,7 +159,7 @@ const flowNodes = computed(() => (graph.value ? toFlowNodes(graph.value) : []));
 const flowEdges = computed(() => (graph.value ? toFlowEdges(graph.value) : []));
 
 /** Сколько сегментов полосы уже есть на графе — остальные затемняются. */
-const shownChannels = computed(() => Math.min(channelLimit.value, channels.items.value.length));
+const shownChannels = computed(() => Math.min(channelCeiling.value, channels.items.value.length));
 
 const isEmptyScope = computed(() => auth.isEmptyScope);
 const isReady = computed(() => !registry.isLoading.value && !registry.isError.value);
@@ -159,11 +171,13 @@ const notFound = computed(() => isReady.value && !focus.value);
 const scanVerdict = ref<{ outcome: HighlightScanOutcome; loaded: number } | null>(null);
 
 /**
- * Скана ждём до первой страницы: до неё `hasNextPage === false` означает «данных нет»,
- * а не «канал отсутствует», и неосторожный скан выдал бы «не найдено» о объекте,
- * о котором мы ещё ничего не знаем.
+ * Скана ждём до ПЕРВОЙ СТРАНИЦЫ каналов, а не до `!isLoading`: у запроса, который ещё
+ * не стартовал (`enabled` зависит от реестра) или отключён пустой областью, `isLoading`
+ * ложный, а `hasNextPage === false` там означает «данных нет», а не «канала нет» —
+ * неосторожный скан выдал бы «не найдено» о объекте, о котором мы ещё ничего не знаем.
+ * Число страниц — единственный честный признак «первый ответ получен».
  */
-const scanReady = computed(() => channelsEnabled.value && !channels.isLoading.value && !channels.isError.value);
+const scanReady = computed(() => channelsEnabled.value && !channels.isError.value && channels.pageTotal.value > 0);
 
 watch(
   [highlightChannel, scanReady],
@@ -176,21 +190,16 @@ watch(
     const outcome = await channels.scanFor(channelId);
     // Адрес сменился в середине скана: вердикт прошлого канала новому не показываем.
     if (outcome === "aborted") return;
-    if (outcome === "found") revealChannel(channelId);
     scanVerdict.value = { outcome, loaded: channels.items.value.length };
   },
-  { flush: "post" },
+  // `immediate`: обе зависимости истинны с первого кадра, когда каналы объекта уже в кэше
+  // (переход из журнала, повторный вход в пределах staleTime) — без него скан не стартовал бы
+  // вовсе и следующие оффсеты не догрузились бы.
+  { flush: "post", immediate: true },
 );
-
-/** Подсветка работает только по отрисованному узлу — поднимаем потолок до нужного индекса. */
-function revealChannel(channelId: string) {
-  const index = channels.indexOf(channelId);
-  if (index >= channelLimit.value) channelLimit.value = index + 1;
-}
 
 /** Остальные параметры бережём: открытая панель прогноза от навигации по полосе не уходит. */
 function focusChannel(channelId: string) {
-  revealChannel(channelId);
   router.replace({
     name: "object-graph",
     params: { id: objectId.value },
