@@ -5,9 +5,13 @@ export type PredictionStatus = "NEW" | "REVIEWED" | "COVERED";
 
 /**
  * Вид прогноза — какая модель его написала. INCIDENT — 4 класса аварий (FIRE / FLOOD / GAS /
- * INTRUSION), EQUIPMENT — модель отказов (EQUIPMENT_FAILURE). Вероятности двух видов несопоставимы.
+ * INTRUSION), EQUIPMENT — модель отказов (EQUIPMENT_FAILURE), LEGACY — старый CHANNEL_EVENT.
+ * Вероятности видов несопоставимы, поэтому журнал показывает их на разных вкладках.
  */
-export type PredictionKind = "INCIDENT" | "EQUIPMENT";
+export type PredictionKind = "INCIDENT" | "EQUIPMENT" | "LEGACY";
+
+/** Вкладки журнала: LEGACY в интерфейс не выводим, новых таких строк после деплоя ML нет. */
+export type JournalKind = Exclude<PredictionKind, "LEGACY">;
 
 export type PredictionReasonDirection = "UP" | "DOWN";
 
@@ -84,8 +88,8 @@ export interface PredictionsQuery {
   to?: string;
   objectId?: string;
   incidentType?: string;
-  /** Без параметра бэк отдаёт оба вида; журнал всегда шлёт один — вкладки не смешивают шкалы. */
-  kind?: PredictionKind;
+  /** Без параметра бэк отдаёт смесь видов; журнал всегда шлёт один — вкладки не смешивают шкалы. */
+  kind?: JournalKind;
   /** Точное совпадение с `context.sensorType`, значение — code из `sensorTypes` справочника. */
   sensorType?: string;
   /**

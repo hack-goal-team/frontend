@@ -3,7 +3,7 @@ import { mockPredictions } from "./predictions";
 import { channelsOf } from "./channels";
 import { mockLevel3Objects } from "./objects";
 import { sortPredictions } from "../lib/sortPredictions";
-import { riskFromProbability } from "../lib/riskLevel";
+import { riskOf } from "../lib/riskLevel";
 import { incidentClassOf } from "../lib/incidentClass";
 
 // Мутабельная копия — мок меняет её, чтобы имитировать новые прогнозы
@@ -17,8 +17,8 @@ export function getLivePredictions(): Prediction[] {
 }
 
 /**
- * Только инциденты: риск графа, сводка и SSE по контракту не видят модель отказов —
- * её вероятность несопоставима с инцидентной и срочности не несёт.
+ * Только инциденты: риск графа и SSE по контракту не видят модель отказов — её вероятность
+ * несопоставима с инцидентной и срочности не несёт. Сводка по-прежнему смешивает виды.
  */
 export function getLiveIncidents(): Prediction[] {
   return livePredictions.filter((p) => p.kind === "INCIDENT");
@@ -30,7 +30,7 @@ export function getLiveIncidents(): Prediction[] {
  */
 export function recomputeRiskLevels(): void {
   for (const prediction of livePredictions) {
-    prediction.riskLevel = riskFromProbability(prediction.probability);
+    prediction.riskLevel = riskOf(prediction.kind, prediction.probability);
   }
 }
 
@@ -65,7 +65,8 @@ export function spawnCriticalPrediction(): Prediction {
       engineeringSystem: channel?.engineeringSystem ?? null,
       incidentClass: incidentClassOf(channel?.sensorType),
     },
-    incidentType: "FLOOD",
+    // 4-классовая модель пишет класс канала; у канала без класса — подтопление, как раньше.
+    incidentType: incidentClassOf(channel?.sensorType)?.code ?? "FLOOD",
     kind: "INCIDENT",
     probability: 0.85 + Math.random() * 0.15,
     riskLevel: "HIGH",

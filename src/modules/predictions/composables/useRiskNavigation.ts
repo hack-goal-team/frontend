@@ -18,7 +18,8 @@ export function useRiskNavigation() {
   const reference = useReferenceStore();
 
   function go(query: Record<string, string>) {
-    router.push({ name: "predictions", query: { ...query, offset: "0", nav: "dashboard" } });
+    // Сводка — про инциденты: без kind порог HIGH поднял бы и отказы с той же вероятностью.
+    router.push({ name: "predictions", query: { kind: "INCIDENT", ...query, offset: "0", nav: "dashboard" } });
   }
 
   function openActive() {

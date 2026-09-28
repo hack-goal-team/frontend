@@ -15,7 +15,7 @@ export interface ReferenceData {
    */
   sensorTypes: Code[];
   riskThresholds: { medium: number; high: number };
-  /** Вероятность отказа 0…1, начиная с которой датчик «к проверке». Задаёт бэк, не /settings. */
+  /** Порог «к проверке» модели отказов 0…1 (env бэка, не /settings) — только для подсказки. */
   equipmentCheckThreshold: number;
   predictionStatuses: Code[];
   /**

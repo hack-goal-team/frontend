@@ -1,8 +1,9 @@
+import type { RiskLevel } from "../types";
+
 /**
- * «К проверке» — вероятность отказа не ниже фиксированного порога бэка. Уровней риска у модели
- * отказов нет, поэтому RiskTag здесь не годится; без справочника порог неизвестен — null.
+ * «К проверке» у отказов — riskLevel HIGH: у вида EQUIPMENT бэк отдаёт его двоично по своему
+ * фиксированному порогу (MEDIUM не бывает). Слова «Высокий»/«Низкий» для отказов не выводим.
  */
-export function needsEquipmentCheck(probability: number, threshold: number | null): boolean | null {
-  if (threshold === null) return null;
-  return probability >= threshold;
+export function needsEquipmentCheck(level: RiskLevel): boolean {
+  return level === "HIGH";
 }

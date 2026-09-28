@@ -32,7 +32,7 @@ const hintText = computed(() => {
 });
 
 function openPrediction(prediction: Prediction) {
-  router.push({ name: "predictions", query: { selectedId: prediction.id, offset: "0" } });
+  router.push({ name: "predictions", query: { kind: "INCIDENT", selectedId: prediction.id, offset: "0" } });
 }
 
 /**

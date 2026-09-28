@@ -6,6 +6,7 @@ import { formatContribution, formatProbability } from "@/shared/lib/probability"
 import { SHOW_ON_GRAPH } from "@/modules/objects/consts";
 import { REASON_GROUP_LABEL } from "@/modules/predictions/consts";
 import type { PredictionDetail } from "@/modules/predictions/types";
+import IncidentClassTag from "@/modules/predictions/components/IncidentClassTag.vue";
 import EquipmentCheckTag from "./EquipmentCheckTag.vue";
 import RiskTag from "./RiskTag.vue";
 import SensorStateTag from "./SensorStateTag.vue";
@@ -62,12 +63,16 @@ function showOnGraph() {
 
     <!-- Прогноз -->
     <el-descriptions :column="1" border>
+      <el-descriptions-item label="Класс прогноза">
+        <IncidentClassTag :code="detail.prediction.incidentType" />
+      </el-descriptions-item>
+
       <el-descriptions-item label="Вероятность">
         {{ formatProbability(detail.prediction.probability) }}
       </el-descriptions-item>
 
-      <el-descriptions-item v-if="detail.prediction.kind === 'EQUIPMENT'" label="Проверка">
-        <EquipmentCheckTag :probability="detail.prediction.probability" />
+      <el-descriptions-item v-if="detail.prediction.kind === 'EQUIPMENT'" label="К проверке">
+        <EquipmentCheckTag :level="detail.prediction.riskLevel" />
       </el-descriptions-item>
 
       <el-descriptions-item v-else label="Риск">

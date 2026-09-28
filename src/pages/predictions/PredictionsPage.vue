@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { usePredictionQuery } from "@/modules/predictions/composables/usePredictionQuery.ts";
 import { usePredictionsQuery } from "@/modules/predictions/composables/usePredictionsQuery.ts";
-import type { PredictionKind, PredictionsQuery } from "@/modules/predictions/types";
+import type { JournalKind, PredictionsQuery } from "@/modules/predictions/types";
 import { DEFAULT_KIND } from "@/modules/predictions/consts";
 import SidePanel from "@/shared/ui/SidePanel.vue";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PredictionFilters from "./components/PredictionFilters.vue";
 import PredictionKindSwitch from "./components/PredictionKindSwitch.vue";
@@ -24,15 +24,13 @@ const { incidentTypeLabel } = useLabels();
 
 /**
  * Вкладка — вид прогноза: журнал никогда не просит оба вида сразу, иначе вероятности двух
- * моделей встали бы в одну сортировку. Ползунок вероятности есть только у инцидентов,
- * поэтому при смене вкладки его значение сбрасывается вместе с открытой карточкой.
+ * моделей встали бы в одну сортировку. Общие фильтры (период, тип датчика, статус) переживают
+ * смену вкладки, а порог вероятности, тип, карточка и пометка перехода относятся к старой.
  */
-const kind = computed<PredictionKind>({
+const kind = computed<JournalKind>({
   get: () => (route.query.kind === "EQUIPMENT" ? "EQUIPMENT" : DEFAULT_KIND),
   set: (v) => {
-    const rest = { ...route.query };
-    delete rest.minProbability;
-    delete rest.selectedId;
+    const { minProbability: _p, incidentType: _t, selectedId: _s, nav: _n, ...rest } = route.query;
     router.replace({ query: { ...rest, kind: v, offset: 0 } });
   },
 });
@@ -55,7 +53,7 @@ const query = computed<PredictionsQuery>(() => ({
 const { data, isFetching, isLoading, isError, error, isPlaceholderData } = usePredictionsQuery(query);
 
 // Счётчик второй вкладки — тот же запрос другого вида с limit=1, число берётся из X-Total-Count.
-const otherKind = computed<PredictionKind>(() => (kind.value === "INCIDENT" ? "EQUIPMENT" : "INCIDENT"));
+const otherKind = computed<JournalKind>(() => (kind.value === "INCIDENT" ? "EQUIPMENT" : "INCIDENT"));
 const otherQuery = computed<PredictionsQuery>(() => ({
   ...query.value,
   kind: otherKind.value,
@@ -66,7 +64,7 @@ const otherQuery = computed<PredictionsQuery>(() => ({
 const { data: otherData, isPlaceholderData: isOtherPlaceholder } = usePredictionsQuery(otherQuery);
 
 // Пока ответ прошлый (placeholderData), число принадлежит другим фильтрам — не показываем.
-const kindCounts = computed<Partial<Record<PredictionKind, number>>>(() => ({
+const kindCounts = computed<Partial<Record<JournalKind, number>>>(() => ({
   [kind.value]: isPlaceholderData.value ? undefined : data.value?.total,
   [otherKind.value]: isOtherPlaceholder.value ? undefined : otherData.value?.total,
 }));
@@ -81,6 +79,17 @@ const {
   isError: isDetailError,
   error: detailError,
 } = usePredictionQuery(selectedId);
+
+// Карточку открыли ссылкой из другой вкладки (граф, старая ссылка) — вкладка догоняет прогноз.
+watch(
+  () => detail.value?.prediction.kind,
+  (detailKind) => {
+    if ((detailKind === "INCIDENT" || detailKind === "EQUIPMENT") && detailKind !== kind.value) {
+      const { minProbability: _p, incidentType: _t, ...rest } = route.query;
+      router.replace({ query: { ...rest, kind: detailKind, offset: 0 } });
+    }
+  },
+);
 
 // Открыть панель
 function openPanel(id: string) {
@@ -116,6 +125,26 @@ function dismissNavHint() {
   const rest = { ...route.query };
   delete rest.nav;
   router.replace({ query: rest });
+}
+
+// Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
+const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
+const hasFilters = computed(() =>
+  Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
+);
+
+const emptyText = computed(() => {
+  if (hasFilters.value) return { title: "Нет прогнозов по выбранным фильтрам", hint: "" };
+  return kind.value === "INCIDENT"
+    ? {
+        title: "Прогнозов инцидентов нет",
+        hint: "Модель считает пожар, подтопление, загазованность и проникновение по каналам соответствующих датчиков",
+      }
+    : { title: "Прогнозов оборудования нет", hint: "Датчиков в зоне риска отказа не найдено" };
+});
+
+function resetFilters() {
+  router.replace({ query: { kind: kind.value } });
 }
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
@@ -177,9 +206,12 @@ const total = computed(() => data.value?.total ?? 0);
 
       <el-empty
         v-else-if="!isLoading && (!data?.items || data.items.length === 0)"
-        description="Прогнозов нет"
+        :description="emptyText.title"
         class="predictions-page__empty"
-      />
+      >
+        <p v-if="emptyText.hint" class="predictions-page__empty-hint">{{ emptyText.hint }}</p>
+        <el-button v-if="hasFilters" @click="resetFilters">Сбросить фильтры</el-button>
+      </el-empty>
 
       <PredictionTable v-else :kind="kind" :items="data?.items ?? []" :loading="isFetching" @row-click="openPanel" />
     </el-card>
@@ -242,6 +274,13 @@ const total = computed(() => data.value?.total ?? 0);
 
 .predictions-page__empty {
   flex: 1;
+}
+
+.predictions-page__empty-hint {
+  margin: 0;
+  max-width: 420px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 .predictions-page__pagination {

@@ -23,6 +23,7 @@ export function useCriticalNavigation() {
     router.push({
       name: "predictions",
       query: {
+        kind: "INCIDENT",
         activeOnly: "true",
         minProbability: String(high),
         status: "NEW",

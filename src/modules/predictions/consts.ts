@@ -1,21 +1,16 @@
-import type { PredictionKind, RiskLevel } from "./types";
+import type { JournalKind, RiskLevel } from "./types";
 
 // ---- Вид прогноза ----
 
-export const DEFAULT_KIND: PredictionKind = "INCIDENT";
+export const DEFAULT_KIND: JournalKind = "INCIDENT";
 
-export const KIND_LABEL: Record<PredictionKind, string> = {
+export const KIND_LABEL: Record<JournalKind, string> = {
   INCIDENT: "Инциденты",
   EQUIPMENT: "Оборудование",
 };
 
-// Подпись класса — из справочника, здесь только значок; неизвестный код — без значка.
-export const INCIDENT_ICON: Record<string, string> = {
-  FIRE: "🔥",
-  FLOOD: "💧",
-  GAS: "💨",
-  INTRUSION: "🚪",
-  EQUIPMENT_FAILURE: "🔧",
+export const KIND_HINT: Partial<Record<JournalKind, string>> = {
+  EQUIPMENT: "Прогноз отказа датчика. Срочных уведомлений нет — плановая проверка",
 };
 
 // ---- Риск ----

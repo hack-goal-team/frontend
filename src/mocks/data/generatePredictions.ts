@@ -8,7 +8,7 @@ import type {
   SensorState,
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
-import { riskFromProbability } from "../lib/riskLevel";
+import { riskOf } from "../lib/riskLevel";
 import { incidentClassOf } from "../lib/incidentClass";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
@@ -224,7 +224,7 @@ export function generatePredictions(count = 500): Prediction[] {
       incidentType,
       kind: isEquipment ? "EQUIPMENT" : "INCIDENT",
       probability,
-      riskLevel: riskFromProbability(probability),
+      riskLevel: riskOf(isEquipment ? "EQUIPMENT" : "INCIDENT", probability),
       computedAt,
       horizonUntil,
       modelVersion: pick(MODEL_VERSIONS),
