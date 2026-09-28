@@ -31,14 +31,19 @@ import { makePickers } from "../lib/seededRandom";
 /**
  * Подписи каналов — источник для `context` прогнозов: канал и прогноз говорят одним языком.
  * code — строка типа (она же `context.sensorType` и code в `/reference-data.sensorTypes`),
- * system — инженерная система реестра, к которой относится тип.
+ * system — инженерная система реестра, к которой относится тип,
+ * incidentClass — класс инцидента этого типа; у типов вне четырёх класса поля нет.
  */
-export const SENSOR_TYPES = [
+export const SENSOR_TYPES: {
+  code: string;
+  system: string;
+  incidentClass?: "FIRE" | "FLOOD" | "GAS" | "INTRUSION";
+}[] = [
   { code: "Датчик температуры", system: "Температурная подсистема" },
   { code: "Датчик давления", system: "Подсистема электроснабжения" },
-  { code: "Датчик дыма", system: "Подсистема пожаротушения" },
-  { code: "Датчик движения", system: "Подсистема электроснабжения" },
-  { code: "Датчик уровня", system: "Подсистема водоотведения" },
+  { code: "Датчик дыма", system: "Подсистема пожаротушения", incidentClass: "FIRE" },
+  { code: "Датчик движения", system: "Подсистема электроснабжения", incidentClass: "INTRUSION" },
+  { code: "Датчик уровня", system: "Подсистема водоотведения", incidentClass: "FLOOD" },
   { code: "Датчик влажности", system: "Подсистема вентиляции" },
 ];
 

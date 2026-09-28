@@ -1,3 +1,5 @@
+import type { Code } from "@/shared/api/types";
+
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 export type PredictionStatus = "NEW" | "REVIEWED" | "COVERED";
 
@@ -20,6 +22,11 @@ export interface TargetContext {
   sensorName: string | null;
   sensorType: string | null;
   engineeringSystem: string | null;
+  /**
+   * Класс инцидента по типу датчика: FIRE / FLOOD / GAS / INTRUSION. null у типов,
+   * которые ни к одному классу не относятся (температура, ИБП, фаза), и вне реестра.
+   */
+  incidentClass: Code | null;
 }
 
 export interface SensorState {

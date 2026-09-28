@@ -33,6 +33,14 @@ function handleRowClick(row: Prediction) {
     show-overflow-tooltip
     @row-click="handleRowClick"
   >
+    <el-table-column label="Тип инцидента" min-width="180">
+      <template #default="{ row }">
+        <span v-if="row.context?.incidentClass">
+          {{ row.context.incidentClass.description }}
+        </span>
+        <span v-else class="text-muted">—</span>
+      </template>
+    </el-table-column>
     <el-table-column label="Вероятность" min-width="120">
       <template #default="{ row }">
         {{ formatProbability(row.probability) }}

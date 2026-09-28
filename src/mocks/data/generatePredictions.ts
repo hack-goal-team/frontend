@@ -9,6 +9,7 @@ import type {
 } from "@/modules/predictions/types";
 import type { Channel } from "@/modules/channels/types";
 import { riskFromProbability } from "../lib/riskLevel";
+import { incidentClassOf } from "../lib/incidentClass";
 import { mockLevel3Objects } from "./objects";
 import { channelsOf } from "./channels";
 
@@ -68,6 +69,7 @@ function generateContext(): TargetContext {
       sensorName: null,
       sensorType: null,
       engineeringSystem: null,
+      incidentClass: null,
     };
   }
 
@@ -82,6 +84,7 @@ function generateContext(): TargetContext {
     sensorName: channel?.name ?? null,
     sensorType: channel?.sensorType ?? null,
     engineeringSystem: channel?.engineeringSystem ?? null,
+    incidentClass: incidentClassOf(channel?.sensorType),
   };
 }
 

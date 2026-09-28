@@ -4,6 +4,7 @@ import { channelsOf } from "./channels";
 import { mockLevel3Objects } from "./objects";
 import { sortPredictions } from "../lib/sortPredictions";
 import { riskFromProbability } from "../lib/riskLevel";
+import { incidentClassOf } from "../lib/incidentClass";
 
 // Мутабельная копия — мок меняет её, чтобы имитировать новые прогнозы
 let livePredictions: Prediction[] = [...mockPredictions];
@@ -54,6 +55,7 @@ export function spawnCriticalPrediction(): Prediction {
       sensorName: channel?.name ?? null,
       sensorType: channel?.sensorType ?? null,
       engineeringSystem: channel?.engineeringSystem ?? null,
+      incidentClass: incidentClassOf(channel?.sensorType),
     },
     incidentType: "FLOOD",
     probability: 0.85 + Math.random() * 0.15,
