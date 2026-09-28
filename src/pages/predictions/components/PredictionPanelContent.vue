@@ -71,7 +71,7 @@ function showOnGraph() {
         <IncidentClassTag :code="detail.prediction.incidentType" />
       </el-descriptions-item>
 
-      <el-descriptions-item label="Вероятность">
+      <el-descriptions-item :label="isEquipment ? 'Вероятность отказа' : 'Вероятность'">
         {{ formatProbability(detail.prediction.probability) }}
       </el-descriptions-item>
 
