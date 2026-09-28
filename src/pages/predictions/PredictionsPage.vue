@@ -4,7 +4,7 @@ import { usePredictionsQuery } from "@/modules/predictions/composables/usePredic
 import type { JournalKind, PredictionsQuery } from "@/modules/predictions/types";
 import { DEFAULT_KIND } from "@/modules/predictions/consts";
 import SidePanel from "@/shared/ui/SidePanel.vue";
-import { computed, watch } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import PredictionFilters from "./components/PredictionFilters.vue";
 import PredictionKindSwitch from "./components/PredictionKindSwitch.vue";
@@ -58,6 +58,7 @@ const otherQuery = computed<PredictionsQuery>(() => ({
   ...query.value,
   kind: otherKind.value,
   minProbability: undefined,
+  incidentType: undefined,
   limit: 1,
   offset: 0,
 }));
@@ -96,10 +97,11 @@ watch(
   () => detail.value?.prediction.kind,
   (detailKind) => {
     if ((detailKind === "INCIDENT" || detailKind === "EQUIPMENT") && detailKind !== kind.value) {
-      const { minProbability: _p, incidentType: _t, ...rest } = route.query;
+      const { minProbability: _p, incidentType: _t, nav: _n, ...rest } = route.query;
       router.replace({ query: { ...rest, kind: detailKind, offset: 0 } });
     }
   },
+  { immediate: true },
 );
 
 // Открыть панель
@@ -140,8 +142,15 @@ function dismissNavHint() {
 
 // Фильтры — всё, что в query сверх вкладки, пагинации, карточки и пометки перехода.
 const NON_FILTER_KEYS = new Set(["kind", "limit", "offset", "selectedId", "nav"]);
+// minProbability у отказов не применяется, значит и фильтром там не считается.
 const hasFilters = computed(() =>
-  Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
+  Object.entries(route.query).some(
+    ([key, value]) =>
+      !NON_FILTER_KEYS.has(key) &&
+      !(key === "minProbability" && kind.value === "EQUIPMENT") &&
+      value !== undefined &&
+      value !== "",
+  ),
 );
 
 const emptyText = computed(() => {
@@ -158,15 +167,17 @@ function resetFilters() {
   router.replace({ query: { kind: kind.value } });
 }
 
-// После смены вкладки placeholderData держит строки прошлого вида: под колонками нового
-// они смешали бы шкалы двух моделей, поэтому до ответа показываем скелетон.
-const isKindSwitching = computed(
-  () => isPlaceholderData.value && (data.value?.items ?? []).some((p) => p.kind !== kind.value),
-);
+// После смены вкладки placeholderData держит ответ прошлого вида: под колонками нового он
+// смешал бы шкалы двух моделей. Вид ответа запоминаем, пока данные не placeholder.
+const loadedKind = ref<JournalKind | null>(null);
+watchEffect(() => {
+  if (data.value && !isPlaceholderData.value) loadedKind.value = kind.value;
+});
+const isKindSwitching = computed(() => loadedKind.value !== null && loadedKind.value !== kind.value);
 
 const isEmpty = computed(() => !isLoading.value && !isError.value && (data.value?.items.length ?? 0) === 0);
 
-const total = computed(() => data.value?.total ?? 0);
+const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 0)));
 </script>
 
 <template>
