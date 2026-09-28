@@ -24,7 +24,7 @@ const { incidentTypeLabel } = useLabels();
 
 /**
  * Вкладка — вид прогноза: журнал никогда не просит оба вида сразу, иначе вероятности двух
- * моделей встали бы в одну сортировку. Общие фильтры (период, тип датчика, статус) переживают
+ * моделей встали бы в одну сортировку. Общие фильтры (период, состояние, статус) переживают
  * смену вкладки, а порог вероятности, тип, карточка и пометка перехода относятся к старой.
  */
 const kind = computed<JournalKind>({
@@ -41,7 +41,8 @@ const query = computed<PredictionsQuery>(() => ({
   offset: Number(route.query.offset ?? 0),
   from: (route.query.from as string) || undefined,
   to: (route.query.to as string) || undefined,
-  incidentType: (route.query.incidentType as string) || undefined,
+  // Тип инцидента — фильтр вкладки инцидентов: у отказов он из ссылки дал бы пустой журнал без контрола.
+  incidentType: kind.value === "INCIDENT" ? (route.query.incidentType as string) || undefined : undefined,
   alarming: route.query.alarming === "true" ? true : route.query.alarming === "false" ? false : undefined,
   status: (route.query.status as PredictionsQuery["status"]) || undefined,
   minProbability: route.query.minProbability ? Number(route.query.minProbability) : undefined,
@@ -61,6 +62,17 @@ const {
   isError: isDetailError,
   error: detailError,
 } = usePredictionQuery(selectedId);
+
+// Фильтра по типу датчика больше нет: старый sensorType из закладки убираем, а не держим невидимым.
+watch(
+  () => route.query.sensorType,
+  (raw) => {
+    if (raw === undefined) return;
+    const { sensorType: _st, ...rest } = route.query;
+    router.replace({ query: rest });
+  },
+  { immediate: true },
+);
 
 // Неизвестный kind в ссылке читается как INCIDENT — и в URL заменяется на него же.
 watch(
@@ -133,17 +145,6 @@ const hasFilters = computed(() =>
   Object.entries(route.query).some(([key, value]) => !NON_FILTER_KEYS.has(key) && value !== undefined && value !== ""),
 );
 
-/**
- * У отказов ползунка нет, но переход с карточки «Оборудование к проверке» ставит
- * minProbability = equipmentCheckThreshold: у EQUIPMENT это ровно riskLevel HIGH.
- */
-const equipmentCheckOnly = computed(() => kind.value === "EQUIPMENT" && !!route.query.minProbability);
-
-function showAllEquipment() {
-  const { minProbability: _p, ...rest } = route.query;
-  router.replace({ query: { ...rest, offset: 0 } });
-}
-
 const emptyText = computed(() => {
   if (hasFilters.value) return { title: "Нет прогнозов по выбранным фильтрам", hint: "" };
   return kind.value === "INCIDENT"
@@ -207,16 +208,6 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
     >
       Показаны инциденты высокого риска без решения. Зафиксируйте решение, чтобы убрать их из счётчика в шапке.
     </el-alert>
-
-    <el-alert
-      v-if="equipmentCheckOnly"
-      type="info"
-      :closable="true"
-      show-icon
-      title="Показаны только отказы «К проверке»"
-      class="predictions-page__hint"
-      @close="showAllEquipment"
-    />
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
       Показаны прогнозы с датчиком в тревоге без решения. Зафиксируйте решение, чтобы убрать их из счётчика-колокольчика
