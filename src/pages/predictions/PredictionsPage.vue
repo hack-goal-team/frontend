@@ -80,6 +80,17 @@ const {
   error: detailError,
 } = usePredictionQuery(selectedId);
 
+// Неизвестный kind в ссылке читается как INCIDENT — и в URL заменяется на него же.
+watch(
+  () => route.query.kind,
+  (raw) => {
+    if (raw !== undefined && raw !== "INCIDENT" && raw !== "EQUIPMENT") {
+      router.replace({ query: { ...route.query, kind: DEFAULT_KIND } });
+    }
+  },
+  { immediate: true },
+);
+
 // Карточку открыли ссылкой из другой вкладки (граф, старая ссылка) — вкладка догоняет прогноз.
 watch(
   () => detail.value?.prediction.kind,

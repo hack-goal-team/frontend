@@ -215,6 +215,8 @@ export function generatePredictions(count = 500): Prediction[] {
     const incidentClass = context.incidentClass;
     const isEquipment = !incidentClass || rand() < 0.3;
     const incidentType = incidentClass && !isEquipment ? incidentClass.code : "EQUIPMENT_FAILURE";
+    // У модели отказов своя шкала: вероятности смещены вниз, «к проверке» — меньшинство.
+    const modelProbability = isEquipment ? Math.round(probability ** 2 * 100) / 100 : probability;
 
     items.push({
       id,
@@ -223,8 +225,8 @@ export function generatePredictions(count = 500): Prediction[] {
       context,
       incidentType,
       kind: isEquipment ? "EQUIPMENT" : "INCIDENT",
-      probability,
-      riskLevel: riskOf(isEquipment ? "EQUIPMENT" : "INCIDENT", probability),
+      probability: modelProbability,
+      riskLevel: riskOf(isEquipment ? "EQUIPMENT" : "INCIDENT", modelProbability),
       computedAt,
       horizonUntil,
       modelVersion: pick(MODEL_VERSIONS),
