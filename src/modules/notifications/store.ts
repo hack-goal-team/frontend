@@ -15,14 +15,6 @@ export interface PredictionNotification {
   receivedAt: string;
 }
 
-/**
- * Порядок — снимок бэка (он уже отсортирован), объём — то же окно, что и у дельт:
- * лента не должна показывать больше записей, чем помещается после прихода дельты.
- */
-function toNotifications(items: Prediction[], receivedAt: string): PredictionNotification[] {
-  return items.slice(0, MAX_NOTIFICATIONS).map((prediction) => ({ id: prediction.id, prediction, receivedAt }));
-}
-
 export const useNotificationsStore = defineStore("notifications", () => {
   // --- состояние ---
   const snapshot = ref<Prediction[]>([]); // последний снимок
@@ -51,11 +43,6 @@ export const useNotificationsStore = defineStore("notifications", () => {
       snapshot.value = next;
       lastSnapshotAt.value = receivedAt;
       isFirstSnapshot = false;
-      // Первый кадр — тоже уведомление этой сессии: диспетчер вошёл и активных HIGH
-      // ещё не видел. Оставлять ленту пустой до первой дельты нельзя — бэк пересчитывает
-      // прогнозы не каждую секунду, и блок молчал бы часами, тогда как тосты этот кадр
-      // уже показывают.
-      recentNotifications.value = toNotifications(next, receivedAt.toISOString());
       return { fresh: [], toasts: next.filter((p) => p.status === "NEW") };
     }
 
