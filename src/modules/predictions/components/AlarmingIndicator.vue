@@ -4,20 +4,28 @@ import { BellFilled } from "@element-plus/icons-vue";
 import { usePredictionsQuery } from "../composables/usePredictionsQuery";
 import { useAlarmNavigation } from "../composables/useAlarmNavigation";
 import { useAuthStore } from "@/modules/auth/store";
+import { useReferenceStore } from "@/modules/reference/store";
 import { pluralize } from "@/shared/lib/pluralize";
 
 const auth = useAuthStore();
+const reference = useReferenceStore();
 const { showAlarming } = useAlarmNavigation();
 
 /**
- * limit=1: из ответа нужен только `X-Total-Count`, строки здесь не показываются.
- * Ключ — обычный список прогнозов, поэтому успешное решение (`predictionKeys.all`)
- * снимает прогноз из счётчика так же, как из таблицы журнала. Только инциденты: иначе
- * датчик в тревоге считался бы дважды — строкой каждой модели.
+ * limit=1: нужен только `X-Total-Count`. Фильтр тот же, что у перехода по клику, поэтому
+ * число на значке равно числу строк журнала: отказы «к проверке», последний пересчёт, действующие.
  */
-const { data } = usePredictionsQuery({ kind: "INCIDENT", alarming: true, status: "NEW", limit: 1, offset: 0 });
+const { data } = usePredictionsQuery(() => ({
+  kind: "EQUIPMENT",
+  activeOnly: true,
+  latestOnly: true,
+  minProbability: reference.equipmentCheckThreshold ?? undefined,
+  limit: 1,
+  offset: 0,
+}));
 
-const count = computed(() => data.value?.total ?? 0);
+// Без порога из справочника запрос считал бы все отказы — такое число не показываем.
+const count = computed(() => (reference.equipmentCheckThreshold === null ? 0 : (data.value?.total ?? 0)));
 const hasCount = computed(() => count.value > 0);
 
 const tooltipText = computed(() => {
@@ -25,16 +33,15 @@ const tooltipText = computed(() => {
     return "Область видимости не назначена";
   }
   if (!hasCount.value) {
-    return "Нет прогнозов с датчиком в тревоге без решения";
+    return "Нет датчиков к проверке: действующих прогнозов отказа выше порога нет";
   }
 
   const scope = auth.scope;
   const scopeLabel =
     scope?.kind === "ALL" ? " по всем объектам" : scope?.names[0] ? ` по объекту «${scope.names[0]}»` : "";
 
-  const noun = pluralize(count.value, "прогноз", "прогноза", "прогнозов");
-  const verb = count.value === 1 ? "ждёт" : "ждут";
-  return `${count.value} ${noun} с датчиком в тревоге ${verb} решения${scopeLabel}. Нажмите, чтобы открыть список.`;
+  const noun = pluralize(count.value, "датчик", "датчика", "датчиков");
+  return `К проверке ${count.value} ${noun}${scopeLabel}: модель прогнозирует отказ оборудования. Нажмите, чтобы открыть список.`;
 });
 
 function onClick() {

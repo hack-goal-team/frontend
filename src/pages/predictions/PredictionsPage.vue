@@ -210,8 +210,8 @@ const total = computed(() => (isKindSwitching.value ? 0 : (data.value?.total ?? 
     </el-alert>
 
     <el-alert v-if="route.query.nav === 'alarm'" type="info" :closable="true" show-icon class="predictions-page__hint">
-      Показаны прогнозы с датчиком в тревоге без решения. Зафиксируйте решение, чтобы убрать их из счётчика-колокольчика
-      в шапке.
+      Показаны датчики к проверке: действующие прогнозы отказа оборудования с вероятностью не ниже порога проверки —
+      столько же, сколько на колокольчике в шапке.
     </el-alert>
 
     <el-card
