@@ -75,7 +75,7 @@ export function useSse() {
 
           try {
             const page = JSON.parse(event.data) as PredictionPage;
-            const { fresh, toasts } = store.onSnapshot(page.items);
+            const { fresh, toasts } = store.onSnapshot(page.items, !page.hasMore);
             showToasts(toasts);
 
             // Новый критический прогноз меняет и сводку панели — не ждём рефетч по времени
