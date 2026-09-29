@@ -4,6 +4,9 @@ import { computed, ref } from "vue";
 
 const MAX_NOTIFICATIONS = 20;
 
+/** Сколько помним событие после ухода из снимка: риск, мигающий у порога HIGH, не тостит повторно. */
+export const EVENT_GRACE_MS = 30 * 60_000;
+
 /** Событие риска — пара «цель + тип инцидента»: пересчёт даёт новый id, но не новое событие. */
 function eventKey(p: Prediction): string {
   return `${p.targetKind}:${p.targetRef}:${p.incidentType}`;
@@ -45,30 +48,42 @@ export const useNotificationsStore = defineStore("notifications", () => {
   const criticalCount = computed(() => snapshot.value.length);
   const unreviewedCriticalCount = computed(() => snapshot.value.filter((p) => p.status === "NEW").length);
 
+  /** Событие → когда пара последний раз была в снимке; уход короче EVENT_GRACE_MS — не новое событие. */
+  const seenEvents = new Map<string, number>();
+
   /**
    * `fresh` — id, которых не было в прошлом снимке (и пересчёты): по ним инвалидируется кэш.
-   * Тост и лента — одна запись на событие: пара «цель + тип», которой в прошлом снимке не было.
-   * На первом снимке тост на весь снимок (диспетчер только вошёл), разобранные (не NEW) не нужны.
+   * Тост и лента — одна запись на событие «цель + тип». Неполный снимок (`complete=false`,
+   * hasMore) ничего не забывает: хвост мог просто не влезть. Пересчёт обновляет запись ленты.
    */
-  function onSnapshot(next: Prediction[]): { fresh: Prediction[]; toasts: Prediction[] } {
+  function onSnapshot(next: Prediction[], complete = true): { fresh: Prediction[]; toasts: Prediction[] } {
     const receivedAt = new Date();
+    const now = receivedAt.getTime();
 
-    if (isFirstSnapshot) {
-      snapshot.value = next;
-      lastSnapshotAt.value = receivedAt;
-      isFirstSnapshot = false;
-      return { fresh: [], toasts: uniqueEvents(next).filter((p) => p.status === "NEW") };
+    const prevIds = new Set(snapshot.value.map((p) => p.id));
+    const fresh = isFirstSnapshot ? [] : next.filter((p) => !prevIds.has(p.id));
+    const events = uniqueEvents(next);
+    const appeared = events.filter((p) => !seenEvents.has(eventKey(p)));
+
+    for (const p of events) seenEvents.set(eventKey(p), now);
+    if (complete) {
+      for (const [key, seenAt] of seenEvents) if (now - seenAt > EVENT_GRACE_MS) seenEvents.delete(key);
     }
 
-    // Считаем новые id
-    const prevIds = new Set(snapshot.value.map((p) => p.id));
-    const fresh = next.filter((p) => !prevIds.has(p.id));
-    const prevEvents = new Set(snapshot.value.map(eventKey));
-    const appeared = uniqueEvents(next.filter((p) => !prevEvents.has(eventKey(p))));
-
-    // Обновляем данные
     snapshot.value = next;
     lastSnapshotAt.value = receivedAt;
+
+    if (isFirstSnapshot) {
+      isFirstSnapshot = false;
+      return { fresh, toasts: appeared.filter((p) => p.status === "NEW") };
+    }
+
+    // Пересчёт той же пары: вероятность и ссылка в ленте — по последнему прогнозу.
+    const latestByEvent = new Map(events.map((p) => [eventKey(p), p]));
+    for (const item of recentNotifications.value) {
+      const latest = latestByEvent.get(eventKey(item.prediction));
+      if (latest && latest.id !== item.prediction.id) item.prediction = latest;
+    }
 
     if (appeared.length > 0) {
       // Накапливаем, не перезаписываем
@@ -111,6 +126,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
     hasNewPredictions.value = false;
     newPredictionIds.value = [];
     recentNotifications.value = [];
+    seenEvents.clear();
     isFirstSnapshot = true;
   }
 
