@@ -3,5 +3,7 @@
 // со счётчиками панели, причём молча.
 export const THRESHOLD_UNAVAILABLE = "Справочник недоступен: порог HIGH неизвестен, критические прогнозы не показать.";
 
+export const MEDIUM_THRESHOLD_UNAVAILABLE = "Справочник недоступен: порог MEDIUM неизвестен, журнал рисков не открыть.";
+
 export const EQUIPMENT_THRESHOLD_UNAVAILABLE =
   "Справочник недоступен: порог проверки отказов неизвестен, список «к проверке» не показать.";

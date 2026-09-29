@@ -1,7 +1,11 @@
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useReferenceStore } from "@/modules/reference/store";
-import { EQUIPMENT_THRESHOLD_UNAVAILABLE, THRESHOLD_UNAVAILABLE } from "@/modules/reference/consts";
+import {
+  EQUIPMENT_THRESHOLD_UNAVAILABLE,
+  MEDIUM_THRESHOLD_UNAVAILABLE,
+  THRESHOLD_UNAVAILABLE,
+} from "@/modules/reference/consts";
 import "element-plus/theme-chalk/el-message.css";
 
 /**
@@ -26,7 +30,7 @@ export function useRiskNavigation() {
   function goFromMedium(query: Record<string, string>) {
     const medium = reference.thresholds.medium;
     if (medium === null) {
-      ElMessage.warning(THRESHOLD_UNAVAILABLE);
+      ElMessage.warning(MEDIUM_THRESHOLD_UNAVAILABLE);
       return;
     }
     go({ activeOnly: "true", minProbability: String(medium), ...query });
