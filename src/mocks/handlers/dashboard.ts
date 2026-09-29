@@ -32,7 +32,8 @@ function buildDashboard(items: Prediction[]): Dashboard {
   for (const p of active) {
     riskCounts[p.riskLevel] += 1;
     riskCountsByKind[p.kind][p.riskLevel] += 1;
-    if (p.status === "NEW") {
+    // Как бэк: «Без решения» — только MEDIUM и HIGH.
+    if (p.status === "NEW" && p.riskLevel !== "LOW") {
       unreviewed += 1;
       unreviewedByKind[p.kind] += 1;
     }
