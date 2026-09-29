@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import StreamStatus from "@/modules/notifications/components/StreamStatus.vue";
 import CriticalIndicator from "@/modules/notifications/components/CriticalIndicator.vue";
 import AlarmingIndicator from "@/modules/predictions/components/AlarmingIndicator.vue";
@@ -6,6 +7,17 @@ import { isDark, toggleDark } from "@/shared/composables/useTheme";
 import { Moon, Sunny } from "@element-plus/icons-vue";
 import ScopeBadge from "@/modules/auth/components/ScopeBadge.vue";
 import UserMenu from "@/modules/auth/components/UserMenu.vue";
+import { useAuthStore } from "@/modules/auth/store";
+import { PERMISSIONS } from "@/modules/auth/consts";
+
+const auth = useAuthStore();
+
+/**
+ * Центр шапки целиком про прогнозы: scope описывает, чьи объекты видно в них, счётчики
+ * берутся из /predictions, статус — из SSE. Без PREDICTION_READ и там и там 403,
+ * поэтому блоку тут не место (admin).
+ */
+const canReadPredictions = computed(() => auth.hasPermission(PERMISSIONS.PREDICTION_READ));
 </script>
 
 <template>
@@ -15,10 +27,12 @@ import UserMenu from "@/modules/auth/components/UserMenu.vue";
     </div>
 
     <div class="header__center">
-      <ScopeBadge />
-      <StreamStatus />
-      <CriticalIndicator />
-      <AlarmingIndicator />
+      <template v-if="canReadPredictions">
+        <ScopeBadge />
+        <StreamStatus />
+        <CriticalIndicator />
+        <AlarmingIndicator />
+      </template>
       <div id="header-center" class="header__slot" />
     </div>
 

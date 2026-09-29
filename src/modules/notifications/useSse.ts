@@ -8,10 +8,13 @@ import type { PredictionPage } from "@/modules/predictions/types";
 import { dashboardKeys } from "../dashboard/keys";
 import { objectsKeys } from "../objects/keys";
 import { channelsKeys } from "../channels/keys";
+import { useAuthStore } from "@/modules/auth/store";
+import { PERMISSIONS } from "@/modules/auth/consts";
 
 const RECONNECT_DELAY = 5000;
 
 export function useSse() {
+  const auth = useAuthStore();
   const store = useNotificationsStore();
   const queryClient = useQueryClient();
   const { show: showToasts } = useIncidentToasts();
@@ -35,6 +38,10 @@ export function useSse() {
 
   async function connect() {
     if (isUnmounted) return;
+
+    // Снимок в стриме — критические прогнозы, и endpoint требует PREDICTION_READ.
+    // Без права запрос отвечает 403, а onerror реконнектил бы его каждые 5 секунд.
+    if (!auth.hasPermission(PERMISSIONS.PREDICTION_READ)) return;
 
     abortController = new AbortController();
 
