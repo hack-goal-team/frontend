@@ -5,7 +5,10 @@ import { predictionKeys } from "../keys";
 import type { PredictionsQuery } from "../types";
 import { useAuthStore } from "@/modules/auth/store";
 
-export function usePredictionsQuery(query: MaybeRefOrGetter<PredictionsQuery> = {}) {
+export function usePredictionsQuery(
+  query: MaybeRefOrGetter<PredictionsQuery> = {},
+  options: { refetchInterval?: number } = {},
+) {
   const auth = useAuthStore();
 
   return useQuery({
@@ -14,5 +17,6 @@ export function usePredictionsQuery(query: MaybeRefOrGetter<PredictionsQuery> = 
     placeholderData: (prev) => prev,
     staleTime: 30_000, // 30 секунд: баланс между свежестью и нагрузкой
     enabled: computed(() => !auth.isEmptyScope),
+    refetchInterval: options.refetchInterval,
   });
 }

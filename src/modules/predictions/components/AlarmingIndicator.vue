@@ -5,6 +5,7 @@ import { usePredictionsQuery } from "../composables/usePredictionsQuery";
 import { useAlarmNavigation } from "../composables/useAlarmNavigation";
 import { useAuthStore } from "@/modules/auth/store";
 import { useReferenceStore } from "@/modules/reference/store";
+import { EQUIPMENT_THRESHOLD_UNAVAILABLE } from "@/modules/reference/consts";
 import { pluralize } from "@/shared/lib/pluralize";
 
 const auth = useAuthStore();
@@ -15,14 +16,18 @@ const { showAlarming } = useAlarmNavigation();
  * limit=1: нужен только `X-Total-Count`. Фильтр тот же, что у перехода по клику, поэтому
  * число на значке равно числу строк журнала: отказы «к проверке», последний пересчёт, действующие.
  */
-const { data } = usePredictionsQuery(() => ({
-  kind: "EQUIPMENT",
-  activeOnly: true,
-  latestOnly: true,
-  minProbability: reference.equipmentCheckThreshold ?? undefined,
-  limit: 1,
-  offset: 0,
-}));
+const { data } = usePredictionsQuery(
+  () => ({
+    kind: "EQUIPMENT",
+    activeOnly: true,
+    latestOnly: true,
+    minProbability: reference.equipmentCheckThreshold ?? undefined,
+    limit: 1,
+    offset: 0,
+  }),
+  // SSE про отказы не пишет, а прогнозы истекают молча — как сводка, рефетч по времени.
+  { refetchInterval: 60_000 },
+);
 
 // Без порога из справочника запрос считал бы все отказы — такое число не показываем.
 const count = computed(() => (reference.equipmentCheckThreshold === null ? 0 : (data.value?.total ?? 0)));
@@ -31,6 +36,9 @@ const hasCount = computed(() => count.value > 0);
 const tooltipText = computed(() => {
   if (auth.isEmptyScope) {
     return "Область видимости не назначена";
+  }
+  if (reference.equipmentCheckThreshold === null) {
+    return EQUIPMENT_THRESHOLD_UNAVAILABLE;
   }
   if (!hasCount.value) {
     return "Нет датчиков к проверке: действующих прогнозов отказа выше порога нет";
