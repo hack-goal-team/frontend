@@ -21,6 +21,7 @@ import EmptyScopeNotice from "@/modules/auth/components/EmptyScopeNotice.vue";
 import RecentNotifications from "@/modules/notifications/components/RecentNotifications.vue";
 import DashboardCard from "./components/DashboardCard.vue";
 import RiskBreakdown from "./components/RiskBreakdown.vue";
+import { atRisk } from "@/modules/dashboard/lib/counts";
 import DashboardSkeleton from "./components/skeletons/DashboardSkeleton.vue";
 
 type DashboardState = "empty-scope" | "loading" | "error" | "no-predictions" | "no-active" | "has-active";
@@ -84,9 +85,8 @@ const generatedText = computed(() => {
 // Карточки и распределение — только инциденты: вероятности отказов на другой шкале,
 // а все переходы отсюда ведут во вкладку инцидентов журнала.
 const incidentCounts = computed(() => data.value?.riskCountsByKind.INCIDENT ?? { LOW: 0, MEDIUM: 0, HIGH: 0 });
-const incidentActive = computed(
-  () => incidentCounts.value.LOW + incidentCounts.value.MEDIUM + incidentCounts.value.HIGH,
-);
+// «Риск» — MEDIUM и HIGH: LOW есть почти у каждого канала и в работу диспетчера не идёт.
+const incidentActive = computed(() => atRisk(incidentCounts.value));
 // Отказы — отдельной нейтральной карточкой: несрочно и на своей шкале, в «риски» не входят.
 const equipmentToCheck = computed(() => data.value?.riskCountsByKind.EQUIPMENT.HIGH ?? 0);
 const incidentUnreviewed = computed(() => data.value?.unreviewedByKind.INCIDENT ?? 0);
@@ -159,7 +159,7 @@ function openObjects() {
         <DashboardCard
           title="Активные риски"
           :value="incidentActive"
-          hint="Активные прогнозы инцидентов, без повторов по «цель + тип инцидента»"
+          hint="Прогнозы инцидентов уровня MEDIUM и HIGH, без повторов по «цель + тип инцидента»"
           icon="Warning"
           color="warning"
           clickable
@@ -180,7 +180,7 @@ function openObjects() {
           v-if="canDecide"
           title="Без решения"
           :value="incidentUnreviewed"
-          hint="Статус NEW — решение не зафиксировано"
+          hint="Прогнозы инцидентов MEDIUM и HIGH со статусом NEW — решение не зафиксировано"
           icon="Bell"
           color="info"
           clickable

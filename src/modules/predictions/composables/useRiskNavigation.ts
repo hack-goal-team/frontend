@@ -22,15 +22,24 @@ export function useRiskNavigation() {
     router.push({ name: "predictions", query: { kind: "INCIDENT", ...query, offset: "0", nav: "dashboard" } });
   }
 
+  /** «Активные риски» и «Без решения» — от MEDIUM, как считает сводка. */
+  function goFromMedium(query: Record<string, string>) {
+    const medium = reference.thresholds.medium;
+    if (medium === null) {
+      ElMessage.warning(THRESHOLD_UNAVAILABLE);
+      return;
+    }
+    go({ activeOnly: "true", minProbability: String(medium), ...query });
+  }
+
   function openActive() {
-    go({ activeOnly: "true" });
+    goFromMedium({});
   }
 
   /**
    * Порог диктует справочник, временных значений на фронте нет: без `/reference-data`
    * переход не состоятелен, и мы говорим об этом прямо, а не фильтруем по выдуманному 0.7.
-   * Переход есть только у HIGH: журнал умеет фильтровать «не ниже порога», верхней границы
-   * в контракте нет — MEDIUM неотделим от HIGH, а LOW от остальных.
+   * Журнал умеет фильтровать только «не ниже порога»: HIGH — от high, MEDIUM+HIGH — от medium.
    */
   function openCritical() {
     const high = reference.thresholds.high;
@@ -43,7 +52,7 @@ export function useRiskNavigation() {
   }
 
   function openUnreviewed() {
-    go({ activeOnly: "true", status: "NEW" });
+    goFromMedium({ status: "NEW" });
   }
 
   /**
