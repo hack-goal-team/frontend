@@ -4,6 +4,21 @@ import { computed, ref } from "vue";
 
 const MAX_NOTIFICATIONS = 20;
 
+/** Событие риска — пара «цель + тип инцидента»: пересчёт даёт новый id, но не новое событие. */
+function eventKey(p: Prediction): string {
+  return `${p.targetKind}:${p.targetRef}:${p.incidentType}`;
+}
+
+function uniqueEvents(items: Prediction[]): Prediction[] {
+  const seen = new Set<string>();
+  return items.filter((p) => {
+    const key = eventKey(p);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /**
  * Запись в списке «Последние уведомления». Это скользящее окно текущей сессии,
  * а не журнал: SSE отдаёт снимок, историю он не хранит и после перезагрузки
@@ -31,10 +46,9 @@ export const useNotificationsStore = defineStore("notifications", () => {
   const unreviewedCriticalCount = computed(() => snapshot.value.filter((p) => p.status === "NEW").length);
 
   /**
-   * `fresh` — прогнозы, которых не было в прошлом снимке: по ним инвалидируется кэш,
-   * на первом снимке он пуст. `toasts` — что показать тостом: на первом снимке весь
-   * снимок (диспетчер только вошёл и активных HIGH ещё не видел), дальше — `fresh`;
-   * разобранные (не NEW) тостом не нужны — как и в счётчике шапки.
+   * `fresh` — id, которых не было в прошлом снимке (и пересчёты): по ним инвалидируется кэш.
+   * Тост и лента — одна запись на событие: пара «цель + тип», которой в прошлом снимке не было.
+   * На первом снимке тост на весь снимок (диспетчер только вошёл), разобранные (не NEW) не нужны.
    */
   function onSnapshot(next: Prediction[]): { fresh: Prediction[]; toasts: Prediction[] } {
     const receivedAt = new Date();
@@ -43,24 +57,26 @@ export const useNotificationsStore = defineStore("notifications", () => {
       snapshot.value = next;
       lastSnapshotAt.value = receivedAt;
       isFirstSnapshot = false;
-      return { fresh: [], toasts: next.filter((p) => p.status === "NEW") };
+      return { fresh: [], toasts: uniqueEvents(next).filter((p) => p.status === "NEW") };
     }
 
     // Считаем новые id
     const prevIds = new Set(snapshot.value.map((p) => p.id));
     const fresh = next.filter((p) => !prevIds.has(p.id));
+    const prevEvents = new Set(snapshot.value.map(eventKey));
+    const appeared = uniqueEvents(next.filter((p) => !prevEvents.has(eventKey(p))));
 
     // Обновляем данные
     snapshot.value = next;
     lastSnapshotAt.value = receivedAt;
 
-    if (fresh.length > 0) {
+    if (appeared.length > 0) {
       // Накапливаем, не перезаписываем
       const existing = new Set(newPredictionIds.value);
-      for (const p of fresh) existing.add(p.id);
+      for (const p of appeared) existing.add(p.id);
       newPredictionIds.value = Array.from(existing);
 
-      for (const p of fresh) {
+      for (const p of appeared) {
         recentNotifications.value.unshift({
           id: p.id,
           prediction: p,
@@ -72,7 +88,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
       hasNewPredictions.value = true;
     }
 
-    return { fresh, toasts: fresh.filter((p) => p.status === "NEW") };
+    return { fresh, toasts: appeared.filter((p) => p.status === "NEW") };
   }
 
   function clearNewPredictions() {
