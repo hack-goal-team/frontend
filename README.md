@@ -1,18 +1,107 @@
+<div align="center">
+
 # Интерфейс «Москоллектор»
 
-Клиентское приложение диспетчерского стенда. Реализованные маршруты, права и
-ограничения описаны в [архитектуре](docs/architecture.md).
+Веб-интерфейс диспетчерского стенда: прогноз инцидентов в коллекторах Москвы
+и отказов датчиков, разбор прогнозов и фиксация решений.
 
-## Требования
+[![Vue](https://img.shields.io/badge/Vue-3.5-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)](https://vite.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Element Plus](https://img.shields.io/badge/Element_Plus-2.14-409eff)](https://element-plus.org/)
 
-- Node.js 20.x (LTS)
-- npm 10.x
+[Стенд](https://moscollector-goal.ru) ·
+[Команда /goal](https://github.com/hack-goal-team) ·
+[Архитектура интерфейса](docs/architecture.md)
 
-## Установка с нуля
+</div>
 
-### 1. Установить Node.js
+Хакатон ЛЦТ 2026, кейс 8. Заказчик — Департамент ЖКХ города Москвы и
+АО «Москоллектор». Интерфейс показывает готовые прогнозы, которые бэкенд
+читает из журнала инференса; модель напрямую клиент не вызывает.
 
-**Windows:** скачать LTS с [https://nodejs.org/en/download](https://nodejs.org/en/download), установить, проверить:
+<p align="center">
+  <img src="docs/screenshots/predictions-high-risk.webp" width="100%"
+       alt="Журнал прогнозов: инциденты высокого риска без решения и карточка прогноза">
+  <br>
+  <sub>Журнал прогнозов: инциденты высокого риска без решения и карточка
+  прогноза с классом, вероятностью, горизонтом, факторами и формой решения</sub>
+</p>
+
+## Возможности
+
+- **Аналитическая панель** — счётчики активных рисков, высокого риска и
+  прогнозов без решения, карточка «Оборудование к проверке», лента последних
+  уведомлений.
+- **Журнал прогнозов** — вкладки «Инциденты» и «Оборудование» (прогноз
+  отказов датчиков), фильтры по периоду, типу инцидента, состоянию и
+  минимальной вероятности, карточка прогноза с факторами и историей решений.
+- **Реестр и иерархия объектов** — граф объекта, узлы окрашены по уровню
+  риска, отдельный значок отмечает датчик в зоне риска отказа.
+- **Уведомления в реальном времени** — поток SSE о критических прогнозах:
+  тосты, индикатор в шапке, переход в карточку прогноза.
+- **Светлая и тёмная тема.**
+
+Что доступно пользователю, определяют права его роли; область видимости
+(поддерево объектов) бэкенд проверяет в каждом запросе.
+
+| Роль                  | Что делает в интерфейсе                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| Техник                | Смотрит прогнозы, иерархию объектов и оборудование к проверке    |
+| Диспетчер района, ЦДС | Разбирает прогнозы и фиксирует решение с причиной из справочника |
+| Руководитель          | Смотрит прогнозы и сводку; раздел отчётов пока заглушка          |
+| Администратор         | Загрузка журнала, параметры и пороги риска, интеграции, аудит    |
+
+Маршруты и права подробно — в [docs/architecture.md](docs/architecture.md).
+
+## Скриншоты
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/object-hierarchy.webp"
+           alt="Иерархия объекта: граф с цветом риска">
+      <p align="center"><sub>Иерархия объекта: граф узлов с цветом риска
+      (роль «Техник»)</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/equipment-check.webp"
+           alt="Журнал прогнозов, вкладка «Оборудование»">
+      <p align="center"><sub>Вкладка «Оборудование»: датчики к проверке по
+      прогнозу отказов</sub></p>
+    </td>
+  </tr>
+  <!-- analytics-dashboard:start
+  <tr>
+    <td colspan="2">
+      <img src="docs/screenshots/analytics-dashboard.webp"
+           alt="Аналитическая панель">
+      <p align="center"><sub>Аналитическая панель: сводка рисков и
+      последние уведомления</sub></p>
+    </td>
+  </tr>
+  analytics-dashboard:end -->
+</table>
+
+## Быстрый старт
+
+Нужны Node.js 20.x (LTS) и npm 10.x.
+
+```bash
+npm ci
+cp .env.template .env.local
+npm run dev
+```
+
+Приложение откроется на [http://localhost:5173/](http://localhost:5173/).
+Шаблон окружения включает MSW, поэтому интерфейс работает без бэкенда.
+
+<details>
+<summary>Установка Node.js</summary>
+
+**Windows:** скачать LTS с
+[https://nodejs.org/en/download](https://nodejs.org/en/download),
+установить, проверить:
 
 ```bash
 node -v   # v20.x.x
@@ -21,13 +110,9 @@ npm -v    # 10.x.x
 
 **Linux/macOS:** через nvm или пакетный менеджер.
 
-### 2. Установить зависимости
+</details>
 
-```bash
-npm ci
-```
-
-### 3. Настроить окружение
+## Окружение
 
 Скопировать `.env.template` в `.env.local`. Шаблон включает MSW для автономной
 демонстрации. Для подключения к запущенному бэкенду задайте:
@@ -37,14 +122,6 @@ VITE_API_URL=/api/v1
 VITE_USE_MOCK=false
 VITE_API_TARGET=http://localhost:8080
 ```
-
-## Запуск для разработки
-
-```bash
-npm run dev
-```
-
-Приложение: [http://localhost:5173/](http://localhost:5173/)
 
 **Моки:** при `VITE_USE_MOCK=true` MSW перехватывает запросы к `/api/v1/*`
 только в режиме разработки. При `VITE_USE_MOCK=false` Vite проксирует `/api/*`
@@ -80,32 +157,35 @@ npm run preview
 
 Сервер: [http://localhost:4173/](http://localhost:4173/)
 
-### Деплой на Nginx
+<details>
+<summary>Деплой на Nginx</summary>
 
 1. Скопировать `dist/*` на сервер (например, в `/var/www/app/`).
 2. Настроить Nginx:
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/app;
-    index index.html;
-    location /api/ {
-        proxy_pass http://backend:8080;
-    }
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+       root /var/www/app;
+       index index.html;
+       location /api/ {
+           proxy_pass http://backend:8080;
+       }
+       location / {
+           try_files $uri $uri/ /index.html;
+       }
+   }
+   ```
 
 3. Проверить и перезагрузить:
 
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+</details>
 
 Для SSE `/api/v1/notifications/stream` на прокси следует отключить
 буферизацию ответа. Пример конфигурации стенда — `backend/deploy/nginx-frontend.conf`.
